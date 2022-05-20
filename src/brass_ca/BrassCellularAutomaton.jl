@@ -136,7 +136,7 @@ See also: [`magnet_total`](@ref), [`magnet_moment`](@ref).
 @doc raw"""
     magnet_moment(σ::array, k::integer)
 
-calculated the k-th momentum of the magnetization of a brass CA with state `σ`.
+Calculates the k-th momentum of the magnetization of a brass CA with state `σ`.
 
 ``mᵏ = 1/nᵏ (∑ᵢ σᵢ)ᵏ``
 
@@ -147,7 +147,7 @@ See also: [`magnet`](@ref), [`magnet_total`](@ref).
 @doc raw"""
     magnet_moment(ca::BrassCA, k::integer)
 
-calculated the k-th momentum of the magnetization of a brass CA `ca`.
+Calculates the k-th momentum of the magnetization of a brass CA `ca`.
 
 ``mᵏ = 1/nᵏ (∑ᵢ σᵢ)ᵏ``
 

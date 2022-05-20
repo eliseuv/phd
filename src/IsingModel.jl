@@ -1,52 +1,119 @@
 module IsingModel
 
-using Folds, Graphs
+using Graphs
 
 export Ising, IsingSquareLattice, IsingCompleteGraph, IsingGraph, magnet_total, magnet, ising_square_lattice_2d_βc, energy_naive, energy, flip!, nearest_neighbors, energy_local, metropolis!
 
 """
-Ising supertype
+    Ising
+
+Supertype for all Ising model systems.
 """
 abstract type Ising end
 
 """
-Ising state size
+    size(ising::Ising)
+
+Size of the state of an Ising system `ising`.
 """
 @inline Base.size(ising::Ising) = size(ising.σ)
+
+"""
+    size(ising::Ising, d::Integer)
+
+Size of the state of an Ising system `ising` along a given dimension `d`.
+"""
 @inline Base.size(ising::Ising, d::Integer) = size(ising.σ, d)
+
+"""
+    length(ising::Ising)
+
+Total number of sites of an Ising system `ising`.
+"""
 @inline Base.length(ising::Ising) = length(ising.σ)
 
 """
-Single spin flip
+    flip!(ising::Ising, i::Integer)
+
+Flips the `i-th` spin on the Ising system `ising`.
 """
-@inline function flip!(ising::Ising, idx::Integer)
-    @inbounds ising.σ[idx] = -ising.σ[idx]
+@inline function flip!(ising::Ising, i::Integer)
+    @inbounds ising.σ[i] = -ising.σ[i]
 end
 
-"""
-Total magnetization:
-    M = ∑_i sᵢ
-"""
-@inline magnet_total(ising::Ising)::Integer = @inbounds Folds.sum(ising.σ)
+@doc raw"""
+    magnet_total(ising::Ising)
 
-"""
-Magnetization per spin:
-    m = ∑_i sᵢ / N
-"""
-@inline magnet(ising::Ising)::Real = @inbounds magnet_total(ising) / length(ising)
+Total magnetization of an Ising system `ising`.
 
+The total magnetization is defined as the sum of all site states:
+
+``M = ∑ᵢ σᵢ``
+
+See also: [`magnet`](@ref), [`magnet_moment`](@ref).
 """
-Metropolis sampling
+@inline magnet_total(ising::Ising)::Integer = @inbounds sum(ising.σ)
+
+@doc raw"""
+    magnet(ising::Ising)
+
+Magnetization per site of an Ising system `ising`.
+
+``m = M / N = ∑ᵢ σᵢ / N``
+
+See also: [`magnet_total`](@ref), [`magnet_moment`](@ref).
 """
-function metropolis!(ising::Ising, β::Real, n_steps::Integer; J::Real = 1, h::Real = 0)
+@inline magnet(ising::Ising)::Real = magnet_total(ising) / length(ising)
+
+@doc raw"""
+    magnet_moment(ising::Ising, k::integer)
+
+Calculates the k-th momentum of the magnetization of an Ising system `ising`.
+
+``mᵏ = 1/nᵏ (∑ᵢ σᵢ)ᵏ``
+
+See also: [`magnet`](@ref), [`magnet_total`](@ref).
+"""
+@inline magnet_moment(ising::Ising, k::Integer) = magnet(ising)^k
+
+@doc raw"""
+    metropolis!(ising::Ising, β::Real, n_steps::Integer, h::Real=0)
+
+Metropolis sampling with external magnetic filed `h`.
+
+If no `h` is provided it is assumed that there is no external magnetic field.
+
+The Boltzmann constant `k_B` and the interaction strenght `J` are assumed to be unitary.
+
+Each specific type of Ising system must `IsingSpecific` provide its own implementation of the `energy_local(ising::IsingSpecific, i::Integer, h::Real=0)` method.
+
+# Arguments:
+- `ising::Ising`: Ising system to be sampled
+- `β::Real`: Inverse of the temperature (`1/T`)
+- `n_steps::Integer`: Number of steps to sample
+- `h::Real`: Intensity of the external magnetic field
+"""
+function metropolis!(ising::Ising, β::Real, n_steps::Integer, h::Real)
     # Sampling loop
     @inbounds for _ in 1:n_steps
         # Select random spin
-        idx = rand(1:length(ising))
+        i = rand(1:length(ising))
         # Get energy difference
-        ΔH = energy_local(ising, idx, J = J, h = h)
+        ΔH = energy_local(ising, i, h)
         # Metropolis prescription
-        (ΔH < 0 || exp(-β * ΔH) > rand()) && flip!(ising, idx)
+        (ΔH < 0 || exp(-β * ΔH) > rand()) && flip!(ising, i)
+    end
+end
+
+function metropolis!(ising::Ising, β::Real, n_steps::Integer)
+    # Sampling loop
+    @inbounds for _ in 1:n_steps
+        # Select random spin
+        i = rand(1:length(ising))
+        # Get energy difference
+        ΔH = energy_local(ising, i)
+        # Metropolis prescription
+        (ΔH < 0 || exp(-β * ΔH) > rand()) && flip!(ising, i)
     end
 end
 
@@ -66,16 +133,20 @@ end
 # Critical temperature
 @inline ising_square_lattice_2d_βc(J::Real = 1) = log1p(sqrt(2)) / (2 * J)
 
-"""
-Total energy
+@doc raw"""
+    energy(ising::IsingSquareLattice{N}, h::Real=0)::Real where {N}
+
+Total energy of an Ising square lattice system `ising` with external magnetic field `h`.
+
+If no external magnetic field is provided it is assumed to be `h=0`.
 
 Given by the Hamiltonian:
-    H = - J ∑_⟨i,j⟩ sᵢ sⱼ - h ∑_i sᵢ
-where ⟨i,j⟩ means that i and j are nearest neighbors.
 
-Unless explicitly stated, it is assumed J=1 and h=0.
+``H = - J ∑_⟨i,j⟩ sᵢ sⱼ - h ∑_i sᵢ``
+
+where `⟨i,j⟩` means that `i` and `j` are nearest neighbors.
 """
-function energy(ising::IsingSquareLattice{N}; J::Real = 1, h::Real = 0)::Real where {N}
+function energy(ising::IsingSquareLattice{N})::Real where {N}
     # Total energy
     H::Real = 0
     # Interaction energy
@@ -84,17 +155,20 @@ function energy(ising::IsingSquareLattice{N}; J::Real = 1, h::Real = 0)::Real wh
         # Bulk
         front_bulk = selectdim(ising.σ, d, 1:(S[d]-1))
         back_bulk = selectdim(ising.σ, d, 2:S[d])
-        H -= Folds.sum(front_bulk .* back_bulk)
+        H -= sum(front_bulk .* back_bulk)
         # Periodic boundaries
         first_slice = selectdim(ising.σ, d, 1)
         last_slice = selectdim(ising.σ, d, S[d])
-        H -= Folds.sum(last_slice .* first_slice)
+        H -= sum(last_slice .* first_slice)
     end
-    H *= J
+    return H
+end
+
+function energy(ising::IsingSquareLattice{N}, h::Real)::Real where {N}
+    # Interaction energy
+    H::Real = energy(ising)
     # External field
-    if h != 0
-        @inbounds H -= h * magnet_total(ising)
-    end
+    H -= h * magnet_total(ising)
     return H
 end
 
