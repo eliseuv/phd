@@ -46,7 +46,7 @@ Therefore knowing the total number of site `N`, the magnetization `M` and the nu
     | N₂ = N₁ - M
 
 """
-module Brass
+module BrassCellularAutomaton
 
 export BrassCA, BrassCAMeanField, BrassCASquareLattice, BrassCAGraph
 export set_state!
@@ -593,19 +593,45 @@ Single *asynchronous* step of the Brass CA mean field, updating a random site.
 end
 
 """
-Brass CA on a periodic multidimensional square lattice
+    BrassCASquareLattice
+
+Brass CA on a periodic multidimensional square lattice.
+
+# Fields:
+- `σ::Array{Int8}`: State of the CA
 """
 mutable struct BrassCASquareLattice <: BrassCA
     "State of the CA"
     σ::Array{Int8}
-    "Construct Brass CA with dimensions `L` and site initial state `σ₀`"
+
+    @doc raw"""
+        BrassCASquareLattice(L::NTuple{N,Integer}, σ₀::Int8) where {N}
+
+    Construct Brass CA with dimensions `L` and site initial state `σ₀`
+    """
     BrassCASquareLattice(L::NTuple{N,Integer}, σ₀::Int8) where {N} = new(fill(σ₀, L...))
-    "Construct a `dim`-dimensional square Brass CA of side length `L` and site initial state `σ₀`"
+
+    @doc raw"""
+        BrassCASquareLattice(::Val{N}, L::Integer, σ₀::Int8) where {N}
+
+    Construct a `dim`-dimensional square Brass CA of side length `L` and site initial state `σ₀`
+    """
     BrassCASquareLattice(::Val{N}, L::Integer, σ₀::Int8) where {N} = BrassCASquareLattice(ntuple(_ -> L, Val(N)), σ₀)
-    "Construct Brass CA with dimensions `L` and random initial state"
+
+    @doc raw"""
+        BrassCASquareLattice(L::NTuple{N,Integer}, ::Val{:rand}) where {N}
+
+    Construct Brass CA with dimensions `L` and random initial state
+    """
     BrassCASquareLattice(L::NTuple{N,Integer}, ::Val{:rand}) where {N} = new(rand(-1:1, L...))
-    "Construct a `dim`-dimensional square Brass CA of side length `L` and random initial state"
+
+    @doc raw"""
+        BrassCASquareLattice(::Val{N}, L::Integer, ::Val{:rand}) where {N}
+
+    Construct a `dim`-dimensional square Brass CA of side length `L` and random initial state
+    """
     BrassCASquareLattice(::Val{N}, L::Integer, ::Val{:rand}) where {N} = BrassCASquareLattice(ntuple(_ -> L, Val(N)), Val(:rand))
+
 end
 
 """

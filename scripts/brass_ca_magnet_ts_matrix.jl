@@ -28,7 +28,7 @@ for params in parameters_list
     merge!(data, params)
     data[:M_ts] = M_ts
 
-    filename = savename("BrassCA2DMagnetTSMatrix", params)
+    filename = savename("BrassCA2DMagnetTSMatrix", params, "jld2")
     println(filename)
     @tagsave filename data
 end
