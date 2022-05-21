@@ -1,15 +1,13 @@
 module IsingModel
 
-using Graphs
-
-export Ising,
+export Ising, IsingMeanField, IsingSquareLattice, IsingGraph,
+    ISING_SQ_LAT_2D_BETA_CRIT,
     magnet_total, magnet, magnet_moment,
     flip!,
-    metropolis!,
-    nearest_neighbors, energy, energy_local,
-    IsingSquareLattice, ISING_SQ_LAT_2D_BETA_CRIT,
-    IsingMeanField,
-    IsingGraph
+    metropolis!, metropolis_and_measure_total_magnet!,
+    nearest_neighbors, energy, energy_local
+
+using Graphs
 
 """
     Ising
@@ -125,6 +123,109 @@ function metropolis!(ising::Ising, β::Real, n_steps::Integer)
 end
 
 """
+    metropolis_and_measure_total_magnet!(ising::Ising, β::Real, n_steps::Integer)
+
+Metropolis sample an Ising system `ising` at a given temperature `β` for a number of steps `n_steps`
+and measure the total magnetization at the end of each step.
+
+# Arguments:
+- `ising::Ising`: Ising system to be sampled
+- `β::Real`: Temperature of the system (β = 1/T)
+- `n_steps::Integer`: Number of samples to be generated
+
+# Returns:
+- `M_T::Vector{Int64}`: The total magnetization at each time step
+"""
+function metropolis_and_measure_total_magnet!(ising::Ising, β::Real, n_steps::Integer)
+    # Vector to store results
+    M_T = Vector{Int64}(undef, n_steps + 1)
+    # Initial magnetization
+    M_T[1] = total_magnet(ising)
+    # Sampling loop
+    @inbounds for t ∈ 1:n_steps
+        # Select random spin
+        i = rand(1:length(ising))
+        # Get energy difference
+        ΔH = energy_local(ising, i)
+        # Metropolis prescription
+        if ΔH < 0 || exp(-β * ΔH) > rand()
+            # Flip spin
+            M_T[t+1] = M_T[t] - 2 * ising.σ[i]
+            flip!(ising, i)
+        else
+            # Do NOT flip spin
+            M_T[t+1] = M_T[t]
+        end
+    end
+end
+
+"""
+    IsingMeanField
+
+Ising mean field model in which it is assumed that every spin interacts equally with every other spin.
+
+# Fields:
+- `σ::Vector{Int8}`: State of the system
+"""
+mutable struct IsingMeanField <: Ising
+
+    "State of the system"
+    σ::Vector{Int8}
+
+    """
+        IsingMeanField(::Val{N}) where {N}
+
+    Construct with random initial state.
+    """
+    IsingMeanField(::Val{N}) where {N} = new(rand(Int8[-1, +1], Val(N)))
+
+    """
+        IsingMeanField(::Val{N}, (::Val{+1} || ::Val{-1})) where {N}
+
+    Construct with all spins with same state.
+    """
+    IsingMeanField(::Val{N}, ::Val{+1}) where {N} = new(fill(Int8(+1), N))
+    IsingMeanField(::Val{N}, ::Val{-1}) where {N} = new(fill(Int8(-1), N))
+end
+
+"""
+    nearest_neighbors(ising::IsingMeanField, i::Integer)
+
+For an Ising system `ising` with mean field interaction, get the nearest neighobors of a given site `i`.
+
+That is, every site except for `i` itself.
+"""
+@inline nearest_neighbors(ising::IsingMeanField, i::Integer) = union(1:i-1, i+1:length(ising))
+
+"""
+    energy(ising::IsingMeanField, h::Real=0)::Real
+
+Total energy of an Ising system `ising` with mean field interaction subject to an external magnetic field `h`.
+
+If no external magnetic field is provided, it is assumed to be `h=0`.
+"""
+energy(ising::IsingMeanField)::Real = @inbounds -sum(ising.σ[i] * ising.σ[j] for i ∈ LinearIndices(ising.σ) for j ∈ nearest_neighbors(ising, i))
+
+energy(ising::IsingMeanField, h::Real)::Real = @inbounds energy(ising) - h * magnet_total(ising)
+
+"""
+    energy_local(ising::IsingMeanField, i::Integer, h::Real=0)::Real
+
+Energy difference for an Ising system with mean field interaction `ising` associated with a single spin flip at site `i` subject to external magnetic field `h`.
+
+If no external magnetic field is provided, it is assumed to be `h=0`.
+"""
+@inline function energy_local(ising::IsingMeanField, i::Integer, h::Real)::Real
+    @inbounds ΔH = 2 * ising.σ[i] * (sum(ising.σ[nn] for nn ∈ nearest_neighbors(ising, i)) + h)
+    return ΔH
+end
+
+@inline function energy_local(ising::IsingMeanField, i::Integer)::Real
+    @inbounds ΔH = 2 * ising.σ[i] * sum(ising.σ[nn] for nn ∈ nearest_neighbors(ising, i))
+    return ΔH
+end
+
+"""
     IsingSquareLattice{N}
 
 Ising system on a `N`-dimensional square lattice with nearest neighbor interaction.
@@ -203,13 +304,7 @@ function energy(ising::IsingSquareLattice{N})::Real where {N}
     return H
 end
 
-function energy(ising::IsingSquareLattice, h::Real)::Real
-    # Interaction energy
-    H::Real = energy(ising)
-    # External field
-    H -= h * magnet_total(ising)
-    return H
-end
+energy(ising::IsingSquareLattice, h::Real)::Real = @inbounds energy(ising) - h * magnet_total(ising)
 
 """
     nearest_neighbors(ising::IsingSquareLattice{N}, idx::CartesianIndex)::NTuple{2 * N,CartesianIndex{N}} where {N}
@@ -254,85 +349,12 @@ If no external magnetic field is provided, it is assumed `h=0`.
 - `idx::CartesianIndex`: Spin site
 - `h::Real=0`: External magnetic field
 """
-@inline function energy_local(ising::IsingSquareLattice, idx::Union{Integer,CartesianIndex}, h::Real)
+@inline function energy_local(ising::IsingSquareLattice, idx::Union{Integer,CartesianIndex}, h::Real)::Real
     @inbounds ΔH = 2 * ising.σ[idx] * (sum(ising.σ[nn] for nn ∈ nearest_neighbors(ising, idx)) + h)
     return ΔH
 end
-@inline function energy_local(ising::IsingSquareLattice, idx::Union{Integer,CartesianIndex})
+@inline function energy_local(ising::IsingSquareLattice, idx::Union{Integer,CartesianIndex})::Real
     @inbounds ΔH = 2 * ising.σ[idx] * sum(ising.σ[nn] for nn ∈ nearest_neighbors(ising, idx))
-    return ΔH
-end
-
-"""
-    IsingMeanField
-
-Ising mean field model in which it is assumed that every spin interacts equally with every other spin.
-
-# Fields:
-- `σ::Vector{Int8}`: State of the system
-"""
-mutable struct IsingMeanField <: Ising
-
-    "State of the system"
-    σ::Vector{Int8}
-
-    """
-        IsingMeanField(::Val{N}) where {N}
-
-    Construct with random initial state.
-    """
-    IsingMeanField(::Val{N}) where {N} = new(rand(Int8[-1, +1], Val(N)))
-
-    """
-        IsingMeanField(::Val{N}, (::Val{+1} || ::Val{-1})) where {N}
-
-    Construct with all spins with same state.
-    """
-    IsingMeanField(::Val{N}, ::Val{+1}) where {N} = new(fill(Int8(+1), N))
-    IsingMeanField(::Val{N}, ::Val{-1}) where {N} = new(fill(Int8(-1), N))
-end
-
-"""
-    nearest_neighbors(ising::IsingMeanField, i::Integer)
-
-For an Ising system `ising` with mean field interaction, get the nearest neighobors of a given site `i`.
-
-That is, every site except for `i` itself.
-"""
-@inline nearest_neighbors(ising::IsingMeanField, i::Integer) = union(1:i-1, i+1:length(ising))
-
-"""
-    energy(ising::IsingMeanField, h::Real=0)::Real
-
-Total energy of an Ising system `ising` with mean field interaction subject to an external magnetic field `h`.
-
-If no external magnetic field is provided, it is assumed to be `h=0`.
-"""
-function energy(ising::IsingMeanField)::Real
-    # Interaction energy
-    @inbounds H = -sum(ising.σ[i] * ising.σ[j] for i ∈ LinearIndices(ising.σ) for j ∈ nearest_neighbors(ising, i))
-    return H
-end
-
-function energy(ising::IsingMeanField, h::Real)::Real
-    @inbounds H = energy(ising) - h * magnet_total(ising)
-    return H
-end
-
-"""
-    energy_local(ising::IsingMeanField, i::Integer, h::Real)::Real
-
-Energy difference for an Ising system with mean field interaction `ising` associated with a single spin flip at site `i` subject to external magnetic field `h`.
-
-If no external magnetic field is provided, it is assumed to be `h=0`.
-"""
-@inline function energy_local(ising::IsingMeanField, i::Integer, h::Real)::Real
-    @inbounds ΔH = 2 * ising.σ[i] * (sum(ising.σ[nn] for nn ∈ nearest_neighbors(ising, i)) + h)
-    return ΔH
-end
-
-@inline function energy_local(ising::IsingMeanField, i::Integer)::Real
-    @inbounds ΔH = 2 * ising.σ[i] * sum(ising.σ[nn] for nn ∈ nearest_neighbors(ising, i))
     return ΔH
 end
 
@@ -370,16 +392,16 @@ mutable struct IsingGraph <: Ising
 end
 
 """
-    energy(ising::IsingGraph, h::Real=0)
+    energy(ising::IsingGraph, h::Real=0)::Real
 
 Total energy of an Ising system `ising` over a graph subject to external magnetic field `h`.
 
 If no external magnetic field is provided it is assumed to be `h=0`.
 """
-@inline energy(ising::IsingGraph) = @inbounds -sum(ising.σ[src(e)] * ising.σ[dst(e)] for e ∈ edges(ising.g))
+@inline energy(ising::IsingGraph)::Real = @inbounds -sum(ising.σ[src(e)] * ising.σ[dst(e)] for e ∈ edges(ising.g))
 
 
-@inline energy(ising::IsingGraph, h::Real) = @inbounds energy(ising) - h * magnet_total(ising)
+@inline energy(ising::IsingGraph, h::Real)::Real = @inbounds energy(ising) - h * magnet_total(ising)
 
 """
     nearest_neighbors(ising::IsingGraph, v::Integer)
@@ -389,12 +411,12 @@ For an Ising system over a graph `ising`, get the nearest neighobors of a given 
 @inline nearest_neighbors(ising::IsingGraph, v::Integer) = neighbors(ising.g, v)
 
 """
-    energy_local(ising::IsingGraph, v::Integer, h::Real=0)
+    energy_local(ising::IsingGraph, v::Integer, h::Real=0)::Real
 
 Energy difference for an Ising system over a graph `ising` associated with a single flip of an spin at node `v`.
 """
-@inline energy_local(ising::IsingGraph, v::Integer, h::Real) = @inbounds 2 * ising.σ[v] * (sum(ising.σ[nn] for nn ∈ nearest_neighbors(ising, v)) + h)
+@inline energy_local(ising::IsingGraph, v::Integer, h::Real)::Real = @inbounds 2 * ising.σ[v] * (sum(ising.σ[nn] for nn ∈ nearest_neighbors(ising, v)) + h)
 
-@inline energy_local(ising::IsingGraph, v::Integer) = @inbounds 2 * ising.σ[v] * sum(ising.σ[nn] for nn ∈ nearest_neighbors(ising, v))
+@inline energy_local(ising::IsingGraph, v::Integer)::Real = @inbounds 2 * ising.σ[v] * sum(ising.σ[nn] for nn ∈ nearest_neighbors(ising, v))
 
 end

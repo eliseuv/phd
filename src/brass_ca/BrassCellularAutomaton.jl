@@ -48,12 +48,12 @@ Therefore knowing the total number of site `N`, the magnetization `M` and the nu
 """
 module BrassCellularAutomaton
 
-export BrassCA, BrassCAMeanField, BrassCASquareLattice, BrassCAGraph
-export set_state!
-export advance!, advance_and_measure!
-export advance_parallel!, advance_parallel_and_measure!
-export advance_async!, advance_async_and_measure!
-export magnet_total, magnet, state_count, state_concentration
+export BrassCA, BrassCAMeanField, BrassCASquareLattice, BrassCAGraph,
+    set_state!,
+    advance!, advance_and_measure!,
+    advance_parallel!, advance_parallel_and_measure!,
+    advance_async!, advance_async_and_measure!,
+    magnet_total, magnet, state_count, state_concentration
 
 using Statistics, Random, Graphs
 
@@ -290,7 +290,7 @@ A random number `tirage` from an uniform distribution over `[0,1]` is generated 
 
 See also [`cumulative_transition_probabilities`](@ref).
 """
-@inline function new_site_state(σᵢ::Integer, sᵢ::Integer, p::Float64, r::Float64)
+@inline function brass_ca_new_site_state(σᵢ::Integer, sᵢ::Integer, p::Float64, r::Float64)
     W₀, W₁ = cumulative_transition_probabilities(σᵢ, sᵢ, p, r)
     tirage = rand()
     σᵢ′ = tirage < W₀ ? 0 : tirage < W₁ ? +1 : -1
@@ -542,7 +542,7 @@ Single step of the Brass CA mean field.
     for i in LinearIndices(ca.σ)
         σᵢ = σ[i]
         sᵢ = sign(mean_field_nn_sum(σ, i))
-        σ′[i] = new_site_state(σᵢ, sᵢ, p, r)
+        σ′[i] = brass_ca_new_site_state(σᵢ, sᵢ, p, r)
     end
 end
 
@@ -560,7 +560,7 @@ Single step of the Brass CA mean field.
     @inbounds Threads.@threads for i in LinearIndices(ca.σ)
         σᵢ = σ[i]
         sᵢ = sign(mean_field_nn_sum(σ, i))
-        σ′[i] = new_site_state(σᵢ, sᵢ, p, r)
+        σ′[i] = brass_ca_new_site_state(σᵢ, sᵢ, p, r)
     end
 end
 
@@ -577,7 +577,7 @@ Single *asynchronous* step of the Brass CA mean field, updating a given site.
     # Get sign of the sum of nearest neighbors
     sᵢ = sign(mean_field_nn_sum(ca.σ, i))
     # Transition to new site state
-    ca.σ[i] = new_site_state(σᵢ, sᵢ, p, r)
+    ca.σ[i] = brass_ca_new_site_state(σᵢ, sᵢ, p, r)
 end
 
 """
@@ -686,7 +686,7 @@ Single step of the Brass CA on a square lattice.
         # Get sign of the sum of nearest neighbors
         sᵢ = sign(square_lattice_nn_sum(σ, i))
         # Transition to new site state
-        σ′[i] = new_site_state(σᵢ, sᵢ, p, r)
+        σ′[i] = brass_ca_new_site_state(σᵢ, sᵢ, p, r)
     end
 end
 
@@ -706,7 +706,7 @@ Single step of the Brass CA on a square lattice.
         # Get sign of the sum of nearest neighbors
         sᵢ = sign(square_lattice_nn_sum(σ, i))
         # Transition to new site state
-        σ′[i] = new_site_state(σᵢ, sᵢ, p, r)
+        σ′[i] = brass_ca_new_site_state(σᵢ, sᵢ, p, r)
     end
 end
 
@@ -723,7 +723,7 @@ Single *asynchronous* step of the Brass CA on a square lattice, updating a given
     # Get sign of the sum of nearest neighbors
     sᵢ = sign(square_lattice_nn_sum(ca.σ, i))
     # Transition to new site state
-    ca.σ[i] = new_site_state(σᵢ, sᵢ, p, r)
+    ca.σ[i] = brass_ca_new_site_state(σᵢ, sᵢ, p, r)
 end
 
 """
@@ -787,7 +787,7 @@ Single step of the Brass CA on an arbitrary graph.
         # Get sign of the sum of nearest neighbors
         sᵢ = sign(sum(σ[neighbors(ca.g, i)]))
         # Transition to new site state
-        σ′[i] = new_site_state(σᵢ, sᵢ, p, r)
+        σ′[i] = brass_ca_new_site_state(σᵢ, sᵢ, p, r)
     end
 end
 
@@ -807,7 +807,7 @@ Single step of the Brass CA on an arbitrary graph.
         # Get sign of the sum of nearest neighbors
         sᵢ = sign(sum(σ[neighbors(ca.g, i)]))
         # Transition to new site state
-        σ′[i] = new_site_state(σᵢ, sᵢ, p, r)
+        σ′[i] = brass_ca_new_site_state(σᵢ, sᵢ, p, r)
     end
 end
 
@@ -824,7 +824,7 @@ Single *asynchronous* step of the Brass CA on a square lattice, updating a given
     # Get sign of the sum of nearest neighbors
     sᵢ = sign(sum(ca.σ[neighbors(ca.g, i)]))
     # Transition to new site state
-    ca.σ[i] = new_site_state(σᵢ, sᵢ, p, r)
+    ca.σ[i] = brass_ca_new_site_state(σᵢ, sᵢ, p, r)
 end
 
 """
