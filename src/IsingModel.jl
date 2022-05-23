@@ -81,6 +81,13 @@ Flips the `i-th` spin on the Ising system `ising`.
     @inbounds ising.σ[i] = -ising.σ[i]
 end
 
+"""
+    flip_total_manget_diff(ising::Ising, i::Integer)
+
+The difference in total magnetization of an Ising system `ising` if the spin at site `i` were to be flipped.
+"""
+@inline flip_manget_total_diff(ising::Ising, i::Integer) = @inbounds -2 * ising.σ[i]
+
 @doc raw"""
     metropolis!(ising::Ising, β::Real, n_steps::Integer, h::Real=0)
 
@@ -123,24 +130,50 @@ function metropolis!(ising::Ising, β::Real, n_steps::Integer)
 end
 
 """
-    metropolis_and_measure_total_magnet!(ising::Ising, β::Real, n_steps::Integer)
+    metropolis_and_measure_total_magnet!(ising::Ising, β::Real, h::Real=0, n_steps::Integer)
 
-Metropolis sample an Ising system `ising` at a given temperature `β` for a number of steps `n_steps`
-and measure the total magnetization at the end of each step.
+Metropolis sample an Ising system `ising` at a given temperature `β` and subject to external magnetic field `h`
+for a number of steps `n_steps` and measure the total magnetization at the end of each step.
+
+If no `h` is provided it is assumed that there is no external magnetic field.
 
 # Arguments:
 - `ising::Ising`: Ising system to be sampled
 - `β::Real`: Temperature of the system (β = 1/T)
+- `h::Real=0`: External magnetic field
 - `n_steps::Integer`: Number of samples to be generated
 
 # Returns:
 - `M_T::Vector{Int64}`: The total magnetization at each time step
 """
+function metropolis_and_measure_total_magnet!(ising::Ising, β::Real, h::Real, n_steps::Integer)
+    # Vector to store results
+    M_T = Vector{Int64}(undef, n_steps + 1)
+    # Initial magnetization
+    M_T[1] = magnet_total(ising)
+    # Sampling loop
+    @inbounds for t ∈ 1:n_steps
+        # Select random spin
+        i = rand(1:length(ising))
+        # Get energy difference
+        ΔH = energy_local(ising, i, h)
+        # Metropolis prescription
+        if ΔH < 0 || exp(-β * ΔH) > rand()
+            # Flip spin
+            M_T[t+1] = M_T[t] + flip_manget_total_diff(ising, i)
+            flip!(ising, i)
+        else
+            # Do NOT flip spin
+            M_T[t+1] = M_T[t]
+        end
+    end
+end
+
 function metropolis_and_measure_total_magnet!(ising::Ising, β::Real, n_steps::Integer)
     # Vector to store results
     M_T = Vector{Int64}(undef, n_steps + 1)
     # Initial magnetization
-    M_T[1] = total_magnet(ising)
+    M_T[1] = magnet_total(ising)
     # Sampling loop
     @inbounds for t ∈ 1:n_steps
         # Select random spin
@@ -150,11 +183,74 @@ function metropolis_and_measure_total_magnet!(ising::Ising, β::Real, n_steps::I
         # Metropolis prescription
         if ΔH < 0 || exp(-β * ΔH) > rand()
             # Flip spin
-            M_T[t+1] = M_T[t] - 2 * ising.σ[i]
+            M_T[t+1] = M_T[t] + flip_manget_total_diff(ising, i)
             flip!(ising, i)
         else
             # Do NOT flip spin
             M_T[t+1] = M_T[t]
+        end
+    end
+end
+
+"""
+    metropolis_and_measure_energy!(ising::Ising, β::Real, h::Real=0, n_steps::Integer)
+
+Metropolis sample an Ising system `ising` at a given temperature `β` and subject to external magnetic field `h`
+for a number of steps `n_steps` and measure the energy at the end of each step.
+
+If no `h` is provided it is assumed that there is no external magnetic field.
+
+# Arguments:
+- `ising::Ising`: Ising system to be sampled
+- `β::Real`: Temperature of the system (β = 1/T)
+- `h::Real=0`: External magnetic field
+- `n_steps::Integer`: Number of samples to be generated
+
+# Returns:
+- `M_T::Vector{Int64}`: The total magnetization at each time step
+"""
+function metropolis_and_measure_energy!(ising::Ising, β::Real, h::Real, n_steps::Integer)
+    # Vector to store results
+    H = Vector(undef, n_steps + 1)
+    # Initial magnetization
+    H[1] = energy(ising, h)
+    # Sampling loop
+    @inbounds for t ∈ 1:n_steps
+        # Select random spin
+        i = rand(1:length(ising))
+        # Get energy difference
+        ΔH = energy_local(ising, i, h)
+        # Metropolis prescription
+        if ΔH < 0 || exp(-β * ΔH) > rand()
+            # Flip spin
+            H[t+1] = H[t] + ΔH
+            flip!(ising, i)
+        else
+            # Do NOT flip spin
+            H[t+1] = H[t]
+        end
+    end
+end
+
+function metropolis_and_measure_energy!(ising::Ising, β::Real, n_steps::Integer)
+    # Vector to store results
+    H = Vector(undef, n_steps + 1)
+    # Initial magnetization
+    H[1] = energy(ising)
+    # Sampling loop
+    @inbounds for t ∈ 1:n_steps
+        # Select random spin
+        i = rand(1:length(ising))
+        # Get energy difference
+        ΔH = energy_local(ising, i)
+        # Metropolis prescription
+        if ΔH < 0 || exp(-β * ΔH) > rand()
+            # Flip spin
+            H[t+1] = H[t] + ΔH
+            flip!(ising, i)
+        else
+            # Do NOT flip spin
+            H[t+1] = H[t]
         end
     end
 end
