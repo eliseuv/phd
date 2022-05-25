@@ -8,7 +8,8 @@ module Metaprogramming
 export @defvar,
     @strvar, @strvars,
     @p_str, @dq_str, @sq_str,
-    number_regex, int_regex, float_regex
+    NUMBER_REGEXES,
+    infer_type
 
 @doc raw"""
     @defvar(name, value)
@@ -139,16 +140,7 @@ macro p_str(s)
     s
 end
 
-# Useful p"quotes" for building regular expressions
-
-"Regext to match any number (integer or floating point)"
-const number_regex = p"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"
-"Regex to match integers"
-const int_regex = p"[-+]?[0-9]*([eE][+]?[0-9]+)?"
-"Regex to match floating point numbers"
-const float_regex = p"[-+]?[0-9]*\.[0-9]+([eE][-+]?[0-9]+)?"
-
-"""
+@doc raw"""
 Double quotes quote string
 
 # Usage:
@@ -158,7 +150,7 @@ macro dq_str(s)
     "\"" * s * "\""
 end
 
-"""
+@doc raw"""
 Simple quotes quote string
 
 # Usage:
@@ -166,6 +158,46 @@ Simple quotes quote string
 """
 macro sq_str(s)
     "'" * s * "'"
+end
+
+# Useful p"quotes" for building regular expressions
+
+"Regex to match any number (integer or floating point)"
+const number_regex = p"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"
+"Regex to match integers"
+const int_regex = p"[-+]?[0-9]*([eE][+]?[0-9]+)?"
+"Regex to match floating point numbers"
+const float_regex = p"[-+]?[0-9]*\.[0-9]+([eE][-+]?[0-9]+)?"
+
+# Regular expressions that match certain types
+@doc raw"""
+    NUMBER_REGEXES
+"""
+const NUMBER_REGEXES = Dict{Type,String}(
+    Int64 => p"[-+]?[0-9]*([eE][+]?[0-9]+)?",
+    Float64 => p"[-+]?[0-9]*\.[0-9]+([eE][-+]?[0-9]+)?",
+    Complex{Int64} => p"[-+]?[0-9]*([eE][+]?[0-9]+)?([ ]*)?[-+]([ ]*)?[0-9]*([eE][+]?[0-9]+)?([ ]*)[ij]",
+    Complex{Float64} => p"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?([ ]*)?[-+]([ ]*)?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?([ ]*)[ij]",
+    Real => p"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?",
+)
+
+@doc raw"""
+    infer_type(value::AbstractString)::Type
+
+Try to infer the type of the value in the string `value`.
+
+If no type could be inferred, returns `Any`.
+"""
+function infer_type(value::AbstractString)::Type
+    # Test if a number
+    for Type in (Int64, Float64, Complex{Int64}, Complex{Float64})
+        re = Regex(p"^" * NUMBER_REGEXES[Type] * p"$")
+        if occursin(re, strip(value))
+            return Type
+        end
+    end
+    # If not a number, return Any
+    return Any
 end
 
 end

@@ -5,105 +5,83 @@ Utilities for reading and writing to data files.
 """
 module DataIO
 
-export file_extension,
-    keep_filenames_with_extension,
-    parse_vars_in_filename
+export number_regex, int_regex, float_regex,
+    get_extension, keep_extension,
+    parse_filename
 
 using Logging, JLD2
 
 include("Metaprogramming.jl")
 using .Metaprogramming
 
-# Reading data
+# File system
 
-function file_extension(filepath::String)
-    filename = basename(filepath)
-    re_ext = r"\.(?<ext>.+?)$"
-    m = match(re_ext, filename)
-    if isnothing(m)
-        @warn "File " * dq"$filename" * " without extension"
-        return nothing
+"""
+    get_extension(path::AbstractString)
+
+Get the file extension from a given `filename`.
+"""
+function get_extension(path::AbstractString)
+    ext = splitext(path)[2]
+    if ext != ""
+        return ext
     else
-        return m[:ext]
+        @warn "File " * "\"$path\"" * " without extension"
+        return nothing
     end
 end
 
 """
-Keep only the filenames with a given extension
+    keep_file_extension(ext::AbstractString, paths::AbstractVector{AbstractString})
 
-# Arguments:
-    - `ext`: Desired extension
-    - `filenames`: Vector of filenames
-
-# Returns:
-    - Vectors of filenames with desired extension
+Keep only the files from `paths` with a given extension `ext`.
 """
-function keep_filenames_with_extension(ext::String, filenames::Vector{String})::Vector{String}
-    resulting_filenames = Vector{String}()
-    for filename in filenames
-        file_extension_m = match(r"\.(\D+)$", basename(filename))
-        if isnothing(file_extension_m)
-            println("Ignoring file without extension: $(filename)")
-            continue
-        end
-        file_extension = file_extension_m.captures[1]
-        if file_extension == ext
-            push!(resulting_filenames, filename)
-        end
-    end
-    resulting_filenames
-end
+keep_extension(ext::AbstractString, paths::AbstractVector{AbstractString}) = filter(path -> (get_extension(path) == ext), paths)
 
 """
-Parse for variables in filenames
+    parse_filename(path::AbstractString; sep::AbstractString="_")
 
-The expected format of the filenames is "GeneralDescription:var1=value1:var2=value2:...:varN=valueN.ext".
+Attempts to parse paramenters in name of file given by `path` using `sep` as parameter separator.
 
-# Arguments:
-    - filename
+It assumes the following pattern for the filename (using the default separator `"_"`):
+    `SomePrefix_first_param=foo_second_param=42_third_param=3.14.ext`
 
-# Returns:
-    - Dictionary whose keys are variables names and values are parsed variable values.
+Retuns a `Dict{Symbol,Any}` with keys being the names of the parameters as symbols and the values the parsed parameter values.
+
+# Example:
+    ```julia
+    julia> test_path = "/path/to/SomePrefix_first_param=foo_second_param=42_third_param=3.14.ext"
+    julia>  for (key, value) in parse_filename(test_filename)
+                println("$key => $value ($(typeof(value)))")
+            end
+    prefix => SomePrefix (SubString{String})
+    third_param => 3.14 (Float64)
+    second_param => 42 (Int64)
+    first_param => foo (SubString{String})
+    ```
 """
-function parse_vars_in_filename(filename::String)::Dict{String,Any}
-    vars_dict = Dict()
-    # Parse floats
-    re = Regex(p":(\w+?)=(" * float_regex * p")")
-    if !isnothing(match(re, filename))
-        vars_list = [m.captures for m in eachmatch(re, filename)]
-        for var in vars_list
-            var_name = var[1]
-            var_value = var[2]
-            if !haskey(vars_dict, var_name)
-                vars_dict[var_name] = parse(Float64, var_value)
-            end
+function parse_filename(path::AbstractString; sep::AbstractString = "_")
+    filename = splitext(basename(path))[1]
+    namechunks = split(filename, sep)
+    param_dict = Dict{Symbol,Any}()
+    param_dict[:prefix] = popfirst!(namechunks)
+    while length(namechunks) != 0
+        param = popfirst!(namechunks)
+        while !occursin("=", param) && length(namechunks) != 0
+            param = param * sep * popfirst!(namechunks)
+        end
+        (param_name, param_value) = split(param, "=")
+        # Try to infer type
+        ParamType = infer_type(param_value)
+        if ParamType != Any
+            # Type could be inferred, parse it
+            param_dict[Symbol(param_name)] = parse(ParamType, param_value)
+        else
+            # Type could not be inferred, keep it as String
+            param_dict[Symbol(param_name)] = param_value
         end
     end
-    # Parse integers
-    re = Regex(p":(\w+?)=(" * int_regex * p")")
-    if !isnothing(match(re, filename))
-        vars_list = [m.captures for m in eachmatch(re, filename)]
-        for var in vars_list
-            var_name = var[1]
-            var_value = var[2]
-            if !haskey(vars_dict, var_name)
-                vars_dict[var_name] = parse(Int, var_value)
-            end
-        end
-    end
-    # Parse everything else
-    re = r":(\w+?)=(\w+?)"
-    if !isnothing(match(re, filename))
-        vars_list = [m.captures for m in eachmatch(re, filename)]
-        for var in vars_list
-            var_name = var[1]
-            var_value = var[2]
-            if !haskey(vars_dict, var_name)
-                vars_dict[var_name] = var_value
-            end
-        end
-    end
-    return vars_dict
+    return param_dict
 end
 
 end

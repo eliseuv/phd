@@ -498,18 +498,20 @@ mutable struct BrassCAMeanField <: BrassCA
     σ::Vector{Int8}
 
     @doc """
-        BrassCAMeanField(N::Integer, σ₀::Int8)
-
-    Construct a Brass CA with mean field interaction with `N` sites and initial state `σ₀`.
-    """
-    BrassCAMeanField(N::Integer, σ₀::Int8) = new(fill(σ₀, N))
-
-    @doc """
         BrassCAMeanField(N::Integer, ::Val{:rand})
 
     Construct a Brass CA with mean field interaction with `N` sites and random initial state `σ ∈ {-1, 0, +1}`.
     """
-    BrassCAMeanField(N::Integer, ::Val{:rand}) = new(rand(-1:1, N))
+    BrassCAMeanField(N::Integer, ::Val{:rand}) = new(rand(Int8[0, +1, -1], N))
+
+    @doc """
+        BrassCAMeanField(N::Integer, (::Val{0} || ::Val{+1} || ::Val{-1}))
+
+    Construct a Brass CA with mean field interaction with `N` sites and a given initial state.
+    """
+    BrassCAMeanField(N::Integer, ::Val{0}) = new(fill(Int8(0), N))
+    BrassCAMeanField(N::Integer, ::Val{+1}) = new(fill(Int8(+1), N))
+    BrassCAMeanField(N::Integer, ::Val{-1}) = new(fill(Int8(-1), N))
 end
 
 @doc raw"""

@@ -4,7 +4,7 @@ export Ising, IsingMeanField, IsingSquareLattice, IsingGraph,
     ISING_SQ_LAT_2D_BETA_CRIT,
     magnet_total, magnet, magnet_moment,
     flip!,
-    metropolis!, metropolis_and_measure_total_magnet!,
+    metropolis!, metropolis_and_measure_total_magnet!, metropolis_and_measure_energy!,
     energy,
     nearest_neighbors, energy_local
 
@@ -49,7 +49,7 @@ The total magnetization is defined as the sum of all site states:
 
 See also: [`magnet`](@ref), [`magnet_moment`](@ref).
 """
-@inline magnet_total(ising::Ising)::Integer = @inbounds sum(ising.σ)
+@inline magnet_total(ising::Ising) = @inbounds sum(ising.σ)
 
 @doc raw"""
     magnet(ising::Ising)
@@ -60,7 +60,7 @@ Magnetization per site of an Ising system `ising`.
 
 See also: [`magnet_total`](@ref), [`magnet_moment`](@ref).
 """
-@inline magnet(ising::Ising)::Real = magnet_total(ising) / length(ising)
+@inline magnet(ising::Ising) = magnet_total(ising) / length(ising)
 
 @doc raw"""
     magnet_moment(ising::Ising, k::integer)
@@ -145,7 +145,7 @@ If no `h` is provided it is assumed that there is no external magnetic field.
 - `n_steps::Integer`: Number of samples to be generated
 
 # Returns:
-- `M_T::Vector{Int64}`: The total magnetization at each time step
+- `M_T::Vector`: The total magnetization at each time step
 """
 function metropolis_and_measure_total_magnet!(ising::Ising, β::Real, h::Real, n_steps::Integer)
     # Vector to store results
@@ -168,6 +168,7 @@ function metropolis_and_measure_total_magnet!(ising::Ising, β::Real, h::Real, n
             M_T[t+1] = M_T[t]
         end
     end
+    return M_T
 end
 
 function metropolis_and_measure_total_magnet!(ising::Ising, β::Real, n_steps::Integer)
@@ -191,10 +192,11 @@ function metropolis_and_measure_total_magnet!(ising::Ising, β::Real, n_steps::I
             M_T[t+1] = M_T[t]
         end
     end
+    return M_T
 end
 
 """
-    metropolis_and_measure_energy!(ising::Ising, β::Real, h::Real=0, n_steps::Integer)
+    metropolis_and_measure_energy!(ising::Ising, β::Real, h::T=0, n_steps::Integer) where {T<:Real}
 
 Metropolis sample an Ising system `ising` at a given temperature `β` and subject to external magnetic field `h`
 for a number of steps `n_steps` and measure the energy at the end of each step.
@@ -210,9 +212,9 @@ If no `h` is provided it is assumed that there is no external magnetic field.
 # Returns:
 - `M_T::Vector{Int64}`: The total magnetization at each time step
 """
-function metropolis_and_measure_energy!(ising::Ising, β::Real, h::Real, n_steps::Integer)
+function metropolis_and_measure_energy!(ising::Ising, β::Real, h::T, n_steps::Integer) where {T<:Real}
     # Vector to store results
-    H = Vector{}(undef, n_steps + 1)
+    H = Vector{T}(undef, n_steps + 1)
     # Initial magnetization
     H[1] = energy(ising, h)
     # Sampling loop
@@ -231,6 +233,7 @@ function metropolis_and_measure_energy!(ising::Ising, β::Real, h::Real, n_steps
             H[t+1] = H[t]
         end
     end
+    return H
 end
 
 function metropolis_and_measure_energy!(ising::Ising, β::Real, n_steps::Integer)
@@ -254,12 +257,14 @@ function metropolis_and_measure_energy!(ising::Ising, β::Real, n_steps::Integer
             H[t+1] = H[t]
         end
     end
+    return H
 end
 
 """
     IsingMeanField
 
-Ising mean field model in which it is assumed that every spin interacts equally with every other spin.
+Ising system with mean field interaction:
+Every spin interacts equally with every other spin.
 
 # Fields:
 - `σ::Vector{Int8}`: State of the system
@@ -270,19 +275,20 @@ mutable struct IsingMeanField <: Ising
     σ::Vector{Int8}
 
     """
-        IsingMeanField(::Val{N}) where {N}
+        IsingMeanField(N::Integer, ::Val{:rand})
 
-    Construct with random initial state.
+    Construct an Ising system with mean field interaction with `N` sites and random initial state `σ ∈ {-1, +1}`.
     """
-    IsingMeanField(::Val{N}) where {N} = new(rand(Int8[-1, +1], Val(N)))
+    IsingMeanField(N::Integer, ::Val{:rand}) = new(rand(Int8[-1, +1], N))
 
     """
-        IsingMeanField(::Val{N}, (::Val{+1} || ::Val{-1})) where {N}
+        IsingMeanField(N::Integer, (::Val{-1} || ::Val{+1}))
 
-    Construct with all spins with same state.
+    Construct an Ising system with mean field interaction with `N` sites and and a given initial state.
     """
-    IsingMeanField(::Val{N}, ::Val{+1}) where {N} = new(fill(Int8(+1), N))
-    IsingMeanField(::Val{N}, ::Val{-1}) where {N} = new(fill(Int8(-1), N))
+    IsingMeanField(N::Integer, ::S) where {S<:Union{::Val{-1},::Val{+1}}} = new(fill(Int8(S), N))
+    #IsingMeanField(N::Integer, ::Val{-1}) = new(fill(Int8(-1), N))
+    #IsingMeanField(N::Integer, ::Val{+1}) = new(fill(Int8(+1), N))
 end
 
 """
@@ -346,7 +352,7 @@ mutable struct IsingSquareLattice{N} <: Ising
     IsingSquareLattice(S::NTuple{N,Integer}, ::Val{-1}) where {N} = new{N}(fill(Int8(-1), S))
 end
 
-"""
+@doc raw"""
     ISING_SQ_LAT_2D_BETA_CRIT
 
 Critical temperature for the Ising system on a 2D square lattice.
