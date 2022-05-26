@@ -298,7 +298,7 @@ Total energy of an Ising system `ising` with mean field interaction subject to a
 
 If no external magnetic field is provided, it is assumed to be `h=0`.
 """
-@inline energy(ising::IsingMeanField) = @inbounds -sum(ising.σ[i] * ising.σ[j] for i ∈ LinearIndices(ising.σ) for j ∈ nearest_neighbors(ising, i))
+@inline energy(ising::IsingMeanField) = @inbounds -sum(ising.σ[i] * ising.σ[j] for i ∈ eachindex(ising.σ) for j ∈ nearest_neighbors(ising, i))
 
 @inline energy(ising::IsingMeanField, h::Real) = @inbounds energy(ising) - h * magnet_total(ising)
 
@@ -413,11 +413,11 @@ For a `N`-dimensional lattice each spin has 2`N` nearest neighbors.
 """
 @inline function nearest_neighbors(ising::IsingSquareLattice{N}, idx::CartesianIndex)::NTuple{2 * N,CartesianIndex{N}} where {N}
     S = size(ising.σ)
-    return (ntuple(d -> CartesianIndex(ntuple(i -> i == d ? mod1(idx[i] + 1, S[i]) : idx[i], Val(N))), Val(N))..., ntuple(d -> CartesianIndex(ntuple(i -> i == d ? mod1(idx[i] - 1, S[i]) : idx[i], Val(N))), Val(N))...)
+    return @inbounds (ntuple(d -> CartesianIndex(ntuple(i -> i == d ? mod1(idx[i] + 1, S[i]) : idx[i], Val(N))), Val(N))..., ntuple(d -> CartesianIndex(ntuple(i -> i == d ? mod1(idx[i] - 1, S[i]) : idx[i], Val(N))), Val(N))...)
 end
 
 """
-    nearest_neighbors(ising::IsingSquareLattice{N}, i::Integer)::NTuple{2 * N,CartesianIndex{N}} where {N}
+    nearest_neighbors(ising::IsingSquareLattice, i::Integer)
 
 Get the cartesian coordinates of the nearest neighbours of the `i`-th spin
 in a multidimensional square lattice `ising`.
@@ -426,7 +426,7 @@ For a `N`-dimensional lattice each spin has 2`N` nearest neighbors.
 """
 @inline function nearest_neighbors(ising::IsingSquareLattice, i::Integer)
     @inbounds idx = CartesianIndices(ising.σ)[i]
-    nearest_neighbors(ising, idx)
+    return nearest_neighbors(ising, idx)
 end
 
 @doc raw"""

@@ -541,7 +541,7 @@ Single step of the Brass CA mean field.
 """
 @inline function step!(ca::BrassCAMeanField, σ::Vector, σ′::Vector, p::Float64, r::Float64)
     # Iterate over every site
-    for i in LinearIndices(ca.σ)
+    @inbounds for i in eachindex(ca.σ)
         σᵢ = σ[i]
         sᵢ = sign(mean_field_nn_sum(σ, i))
         σ′[i] = brass_ca_new_site_state(σᵢ, sᵢ, p, r)
@@ -559,7 +559,7 @@ Single step of the Brass CA mean field.
 """
 @inline function step_parallel!(ca::BrassCAMeanField, σ::Vector, σ′::Vector, p::Float64, r::Float64)
     # Iterate over every site
-    @inbounds Threads.@threads for i in LinearIndices(ca.σ)
+    @inbounds Threads.@threads for i in eachindex(ca.σ)
         σᵢ = σ[i]
         sᵢ = sign(mean_field_nn_sum(σ, i))
         σ′[i] = brass_ca_new_site_state(σᵢ, sᵢ, p, r)
@@ -683,7 +683,7 @@ Single step of the Brass CA on a square lattice.
 """
 @inline function step!(ca::BrassCASquareLattice, σ::Array, σ′::Array, p::Float64, r::Float64)
     # Iterate over every site
-    for i in CartesianIndices(ca.σ)
+    for i in eachindex(ca.σ)
         σᵢ = σ[i]
         # Get sign of the sum of nearest neighbors
         sᵢ = sign(square_lattice_nn_sum(σ, i))
@@ -703,7 +703,7 @@ Single step of the Brass CA on a square lattice.
 """
 @inline function step_parallel!(ca::BrassCASquareLattice, σ::Array, σ′::Array, p::Float64, r::Float64)
     # Iterate over every site
-    @inbounds Threads.@threads for i in CartesianIndices(ca.σ)
+    @inbounds Threads.@threads for i in eachindex(ca.σ)
         σᵢ = σ[i]
         # Get sign of the sum of nearest neighbors
         sᵢ = sign(square_lattice_nn_sum(σ, i))

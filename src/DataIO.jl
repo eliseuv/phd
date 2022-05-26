@@ -5,16 +5,15 @@ Utilities for reading and writing to data files.
 """
 module DataIO
 
-export number_regex, int_regex, float_regex,
-    get_extension, keep_extension,
-    parse_filename
+export get_extension, keep_extension,
+    filename, parse_filename
 
 using Logging, JLD2
 
 include("Metaprogramming.jl")
 using .Metaprogramming
 
-# File system
+# Filenames
 
 """
     get_extension(path::AbstractString)
@@ -26,7 +25,7 @@ function get_extension(path::AbstractString)
     if ext != ""
         return ext
     else
-        @warn "File " * "\"$path\"" * " without extension"
+        @info "File " * "\"$path\"" * " without extension"
         return nothing
     end
 end
@@ -38,8 +37,38 @@ Keep only the files from `paths` with a given extension `ext`.
 """
 keep_extension(ext::AbstractString, paths::AbstractVector{AbstractString}) = filter(path -> (get_extension(path) == ext), paths)
 
+@doc raw"""
+    filename(prefix::AbstractString, params::Dict{Symbol,Any}; sep::AbstractString = "_", ext::Union{AbstractString,Nothing} = "jld2")
+
+Generate a filname give an `prefix` a dictionary of parameters `params` and a file extension `ext`.
+
+Each parameter is written as `param_name=param_value` and separated by a `sep` string.
+
+The dot `.` in the extension can be ommited: `ext=".csv"` and 'ext="csv"' are equivalent.
+
+The default file extension is `.jld2`.
+To create a file without extension, use either `ext=nothing` or `ext=""`.
 """
-    parse_filename(path::AbstractString; sep::AbstractString="_")
+function filename(prefix::AbstractString, params::Dict{Symbol,Any}; sep::AbstractString = "_", ext::Union{AbstractString,Nothing} = "jld2")
+    # Prefix
+    filename = prefix
+    # Parameters in alphabetical order
+    for (param_name, param_value) in sort(collect(params), by = x -> x.first)
+        filename = filename * sep * string(param_name) * '=' * string(param_value)
+    end
+    # Extension
+    if !isnothing(ext) && ext != ""
+        if ext[begin] == '.'
+            filename = filename * ext
+        else
+            filename = filename * '.' * ext
+        end
+    end
+    return filename
+end
+
+@doc raw"""
+    parse_filename(path::AbstractString; sep::AbstractString = "_")
 
 Attempts to parse paramenters in name of file given by `path` using `sep` as parameter separator.
 
