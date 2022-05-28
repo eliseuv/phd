@@ -57,6 +57,8 @@ export BrassCA, BrassCAMeanField, BrassCASquareLattice, BrassCAGraph,
 
 using Statistics, Random, Graphs
 
+include("Geometry.jl")
+
 """
     BrassCA
 
@@ -641,36 +643,12 @@ Generated function for calculating the sum of nearest neighbors of a given site 
 
 # Arguments:
 - `σ`: State of the lattice
-- `s`: Cartesian index of the chosen site
+- `idx`: Cartesian index of the chosen site
 
 # Returns:
-- Function that calculates the sum of the nearest neighbors of `s`
+- Function that calculates the sum of the nearest neighbors of `idx`
 """
-function square_lattice_nn_sum_impl(σ::Type{Array{T,dim}}, i::Type{CartesianIndex{dim}}) where {T,dim}
-    # Loop on the dimensions
-    terms = map(1:dim) do d
-        # Indices for both nearest neighbors in the current dimension
-        idx_prev_nn = :(mod1(i[$d] - 1, size(σ, $d)))
-        idx_next_nn = :(mod1(i[$d] + 1, size(σ, $d)))
-        # Fill indices before and after the current dimension
-        idx_before = [:(i[$k]) for k in 1:d-1]
-        idx_after = [:(i[$k]) for k in d+1:dim]
-        # Term correspondig to dimension $d$
-        :(σ[$(idx_before...), $idx_prev_nn, $(idx_after...)] + σ[$(idx_before...), $idx_next_nn, $(idx_after...)])
-    end
-    # Return sum of all terms
-    :(+($(terms...)))
-end
-
-"""
-Extract generated function that calculates the sum of the nearest neighbors of a give site
-"""
-@generated function square_lattice_nn_sum(σ::Array{T,dim}, i::CartesianIndex{dim}) where {T,dim}
-    square_lattice_nn_sum_impl(σ, i)
-end
-
-# Test generated function
-#display(square_lattice_nn_sum_impl(Array{Int,3}, CartesianIndex{3}))
+@inline square_lattice_nn_sum(σ::Array{T,N}, idx::CartesianIndex{N}) where {T,N} = @inbounds Geometry.square_lattice_nearest_neighbors_sum(σ, idx)
 
 """
 Single step of the Brass CA on a square lattice.

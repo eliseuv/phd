@@ -10,6 +10,8 @@ export Ising, IsingMeanField, IsingSquareLattice, IsingGraph,
 
 using Graphs
 
+include("Geometry.jl")
+
 """
     Ising
 
@@ -404,17 +406,14 @@ end
 @inline energy(ising::IsingSquareLattice, h::Real) = energy(ising) - h * magnet_total(ising)
 
 """
-    nearest_neighbors(ising::IsingSquareLattice{N}, idx::CartesianIndex)::NTuple{2 * N,CartesianIndex{N}} where {N}
+    nearest_neighbors(ising::IsingSquareLattice{N}, idx::CartesianIndex{N}) where {N}
 
 Get the cartesian coordinates of the nearest neighbours of a given spin located at `idx`
 in a multidimensional square lattice `ising`.
 
 For a `N`-dimensional lattice each spin has 2`N` nearest neighbors.
 """
-@inline function nearest_neighbors(ising::IsingSquareLattice{N}, idx::CartesianIndex)::NTuple{2 * N,CartesianIndex{N}} where {N}
-    S = size(ising.σ)
-    return @inbounds (ntuple(d -> CartesianIndex(ntuple(i -> i == d ? mod1(idx[i] + 1, S[i]) : idx[i], Val(N))), Val(N))..., ntuple(d -> CartesianIndex(ntuple(i -> i == d ? mod1(idx[i] - 1, S[i]) : idx[i], Val(N))), Val(N))...)
-end
+@inline nearest_neighbors(ising::IsingSquareLattice{N}, idx::CartesianIndex{N}) where {N} = @inbounds Geometry.square_lattice_nearest_neighbors_flat(ising.σ, idx)
 
 """
     nearest_neighbors(ising::IsingSquareLattice, i::Integer)
