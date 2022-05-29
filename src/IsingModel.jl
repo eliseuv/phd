@@ -445,9 +445,9 @@ If no external magnetic field is provided, it is assumed `h=0`.
 - `idx::CartesianIndex`: Spin site
 - `h::Real=0`: External magnetic field
 """
-@inline energy_local(ising::IsingSquareLattice, idx::Union{Integer,CartesianIndex}, h::Real) = @inbounds 2 * ising.σ[idx] * (sum(ising.σ[nn] for nn ∈ nearest_neighbors(ising, idx)) + h)
+@inline energy_local(ising::IsingSquareLattice, idx::Union{Integer,CartesianIndex}, h::Real) = @inbounds 2 * ising.σ[idx] * (Geometry.square_lattice_nearest_neighbors_sum(ising.σ, idx) + h)
 
-@inline energy_local(ising::IsingSquareLattice, idx::Union{Integer,CartesianIndex}) = @inbounds 2 * ising.σ[idx] * sum(ising.σ[nn] for nn ∈ nearest_neighbors(ising, idx))
+@inline energy_local(ising::IsingSquareLattice, idx::Union{Integer,CartesianIndex}) = @inbounds 2 * ising.σ[idx] * Geometry.square_lattice_nearest_neighbors_sum(ising.σ, idx)
 
 
 """
