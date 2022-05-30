@@ -8,6 +8,7 @@ module Metaprogramming
 export @defvar,
     @strvar, @strvars,
     @p_str, @dq_str, @sq_str,
+    extract_val,
     NUMBER_REGEXES,
     infer_type
 
@@ -160,14 +161,12 @@ macro sq_str(s)
     "'" * s * "'"
 end
 
-# Useful p"quotes" for building regular expressions
+@doc raw"""
+    extract_val(::Val{X}) where {X}
 
-"Regex to match any number (integer or floating point)"
-const number_regex = p"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?"
-"Regex to match integers"
-const int_regex = p"[-+]?[0-9]*([eE][+]?[0-9]+)?"
-"Regex to match floating point numbers"
-const float_regex = p"[-+]?[0-9]*\.[0-9]+([eE][-+]?[0-9]+)?"
+Extracts the value of a value type.
+"""
+@generated extract_val(::Val{X}) where {X} = X
 
 # Regular expressions that match certain types
 @doc raw"""

@@ -57,7 +57,10 @@ export BrassCA, BrassCAMeanField, BrassCASquareLattice, BrassCAGraph,
 
 using Statistics, Random, Graphs
 
+include("Metaprogramming.jl")
 include("Geometry.jl")
+
+using .Metaprogramming
 
 """
     BrassCA
@@ -65,6 +68,23 @@ include("Geometry.jl")
 Supertype for all Brass Cellular Automata.
 """
 abstract type BrassCA end
+
+"""
+    BrassCAStateVals
+
+The allowed values for the state of a site for the Brass Cellular Automaton:
+- Val{0} corresponds to TH
+- Val{+1} corresponds to TH1
+- Val{-1} corresponds to TH2
+"""
+BrassCAStateVals = Union{Val{0},Val{+1},Val{-1}}
+
+"""
+    BrassCAStateType
+
+Type for the representation of the state of a site of a Brass Cellular Automaton in memory.
+"""
+BrassCAStateType = Int8
 
 """
     size(ca::BrassCA)
@@ -233,18 +253,18 @@ See also: [`state_count`](@ref).
 @inline state_concentration(ca::BrassCA) = state_concentration(ca.σ)
 
 """
-    set_state!(ca::BrassCA, σ₀::Int8)
+    set_state!(ca::BrassCA, σ₀::BrassCAStateType)
 
 Set the state of all sites of a Brass CA `ca` to a given site state `σ₀`.
 """
-@inline set_state!(ca::BrassCA, σ₀::Int8) = fill!(ca.σ, σ₀)
+@inline set_state!(ca::BrassCA, σ₀::BrassCAStateType) = fill!(ca.σ, σ₀)
 
 """
     set_state!(ca::BrassCA, ::Val{:rand})
 
 Set the state of each site of a Brass CA `ca` to a random state `σ ∈ {-1, 0, +1}`.
 """
-@inline set_state!(ca::BrassCA, ::Val{:rand}) = rand!(ca.σ, Int8.(-1:1))
+@inline set_state!(ca::BrassCA, ::Val{:rand}) = rand!(ca.σ, BrassCAStateType.(-1:1))
 
 """
     cumulative_transition_probabilities(σᵢ::Integer, sᵢ::Integer, p::Float64, r::Float64)
@@ -306,7 +326,7 @@ Advance the state of a Brass CA `ca` *synchronously* by `n_steps` time steps.
 
 The probabilities `p` and `r` are parameters of the model.
 
-Each specific type of Brass CA `BrassCASpecific` must provide its own implementation of the `step!(ca::BrassCASpecific, σ::Array{Int8}, σ′::Array{Int8}, p::Float64, r::Float64)` method.
+Each specific type of Brass CA `BrassCASpecific` must provide its own implementation of the `step!(ca::BrassCASpecific, σ::Array{BrassCAStateType}, σ′::Array{BrassCAStateType}, p::Float64, r::Float64)` method.
 
 See also [`step!`](@ref), [`advance_and_measure!`](@ref), [`advance_parallel!`](@ref), [`advance_async!`](@ref).
 """
@@ -334,7 +354,7 @@ The function `measurement` must take as its sole argument the state of CA.
 
     measurement::(Array -> ResultType)
 
-Each specific type of Brass CA `BrassCASpecific` must provide its own implementation of the `step!(ca::BrassCASpecific, σ::Array{Int8}, σ′::Array{Int8}, p::Float64, r::Float64)` method.
+Each specific type of Brass CA `BrassCASpecific` must provide its own implementation of the `step!(ca::BrassCASpecific, σ::Array{BrassCAStateType}, σ′::Array{BrassCAStateType}, p::Float64, r::Float64)` method.
 
 # Returns:
 - `results::Vector{ResultType}`: Vector containing the mearurements results
@@ -374,7 +394,7 @@ For each time step the sites of the CA are updated in parallel.
 
 The probabilities `p` and `r` are parameters of the model.
 
-Each specific type of Brass CA `BrassCASpecific` must provide its own implementation of the `step_parallel!(ca::BrassCASpecific, σ::Array{Int8}, σ′::Array{Int8}, p::Float64, r::Float64)` method.
+Each specific type of Brass CA `BrassCASpecific` must provide its own implementation of the `step_parallel!(ca::BrassCASpecific, σ::Array{BrassCAStateType}, σ′::Array{BrassCAStateType}, p::Float64, r::Float64)` method.
 
 See also [`step_parallel!`](@ref), [`advance_parallel_and_measure!`](@ref), [`advance!`](@ref), [`advance_async!`](@ref).
 """
@@ -404,7 +424,7 @@ The function `measurement` must take as its sole argument the state of CA.
 
     measurement::(Array -> ResultType)
 
-Each specific type of Brass CA `BrassCASpecific` must provide its own implementation of the `step_parallel!(ca::BrassCASpecific, σ::Array{Int8}, σ′::Array{Int8}, p::Float64, r::Float64)` method.
+Each specific type of Brass CA `BrassCASpecific` must provide its own implementation of the `step_parallel!(ca::BrassCASpecific, σ::Array{BrassCAStateType}, σ′::Array{BrassCAStateType}, p::Float64, r::Float64)` method.
 
 # Returns:
 - `results::Vector{ResultType}`: Vector containing the mearurements results
@@ -492,28 +512,26 @@ Brass CA with mean field interaction:
 Every site interacts with every other site.
 
 # Fields:
-- `σ::Vector{Int8}`: State of the CA
+- `σ::Vector{BrassCAStateType}`: State of the CA
 """
 mutable struct BrassCAMeanField <: BrassCA
 
     "State of the CA"
-    σ::Vector{Int8}
+    σ::Vector{BrassCAStateType}
 
-    @doc """
+    @doc raw"""
         BrassCAMeanField(N::Integer, ::Val{:rand})
 
     Construct a Brass CA with mean field interaction with `N` sites and random initial state `σ ∈ {-1, 0, +1}`.
     """
-    BrassCAMeanField(N::Integer, ::Val{:rand}) = new(rand(Int8[0, +1, -1], N))
+    BrassCAMeanField(N::Integer, ::Val{:rand}) = new(rand(BrassCAStateType[0, +1, -1], N))
 
-    @doc """
+    @doc raw"""
         BrassCAMeanField(N::Integer, (::Val{0} || ::Val{+1} || ::Val{-1}))
 
     Construct a Brass CA with mean field interaction with `N` sites and a given initial state.
     """
-    BrassCAMeanField(N::Integer, ::Val{0}) = new(fill(Int8(0), N))
-    BrassCAMeanField(N::Integer, ::Val{+1}) = new(fill(Int8(+1), N))
-    BrassCAMeanField(N::Integer, ::Val{-1}) = new(fill(Int8(-1), N))
+    BrassCAMeanField(N::Integer, s::BrassCAStateVals) = new(fill(BrassCAStateType(extract_val(s)), N))
 end
 
 @doc raw"""
@@ -602,32 +620,19 @@ end
 Brass CA on a periodic multidimensional square lattice.
 
 # Fields:
-- `σ::Array{Int8}`: State of the CA
+- `σ::Array{BrassCAStateType}`: State of the CA
 """
-mutable struct BrassCASquareLattice <: BrassCA
+mutable struct BrassCASquareLattice{N} <: BrassCA
+
     "State of the CA"
-    σ::Array{Int8}
+    σ::Array{BrassCAStateType,N}
 
     @doc raw"""
-        BrassCASquareLattice(L::NTuple{N,Integer}, σ₀::Int8) where {N}
+        BrassCASquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N}
 
-    Construct Brass CA with dimensions `L` and site initial state `σ₀`
+    Construct Brass CA with dimensions `size` and random initial state
     """
-    BrassCASquareLattice(L::NTuple{N,Integer}, σ₀::Int8) where {N} = new(fill(σ₀, L...))
-
-    @doc raw"""
-        BrassCASquareLattice(::Val{N}, L::Integer, σ₀::Int8) where {N}
-
-    Construct a `dim`-dimensional square Brass CA of side length `L` and site initial state `σ₀`
-    """
-    BrassCASquareLattice(::Val{N}, L::Integer, σ₀::Int8) where {N} = BrassCASquareLattice(ntuple(_ -> L, Val(N)), σ₀)
-
-    @doc raw"""
-        BrassCASquareLattice(L::NTuple{N,Integer}, ::Val{:rand}) where {N}
-
-    Construct Brass CA with dimensions `L` and random initial state
-    """
-    BrassCASquareLattice(L::NTuple{N,Integer}, ::Val{:rand}) where {N} = new(rand(-1:1, L...))
+    BrassCASquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N} = new{N}(rand(BrassCAStateType[0, +1, -1], size))
 
     @doc raw"""
         BrassCASquareLattice(::Val{N}, L::Integer, ::Val{:rand}) where {N}
@@ -635,6 +640,20 @@ mutable struct BrassCASquareLattice <: BrassCA
     Construct a `dim`-dimensional square Brass CA of side length `L` and random initial state
     """
     BrassCASquareLattice(::Val{N}, L::Integer, ::Val{:rand}) where {N} = BrassCASquareLattice(ntuple(_ -> L, Val(N)), Val(:rand))
+
+    @doc raw"""
+        BrassCASquareLattice(size::NTuple{N,Integer}, (::Val{0} || ::Val{+1} || ::Val{-1})) where {N}
+
+    Construct Brass CA with dimensions `size` and a given initial state.
+    """
+    BrassCASquareLattice(size::NTuple{N,Integer}, s::BrassCAStateVals) where {N} = new{N}(fill(BrassCAStateType(extract_val(s)), size))
+
+    @doc raw"""
+        BrassCASquareLattice(::Val{N}, L::Integer, σ₀::BrassCAStateType) where {N}
+
+    Construct a `dim`-dimensional square Brass CA of side length `L` and a given initial state.
+    """
+    BrassCASquareLattice(::Val{N}, L::Integer, s::BrassCAStateVals) where {N} = BrassCASquareLattice(ntuple(_ -> L, Val(N)), s)
 
 end
 
@@ -719,36 +738,29 @@ Single *asynchronous* step of the Brass CA on a square lattice, updating a rando
 end
 
 """
-Calculate the average final value of concentration.
-"""
-function final_concentration_avg(L::NTuple{N,Int}, σ₀::Int, p::Float64, r::Float64, n_steps::Int, n_samples::Int) where {N}
-    @assert n_steps > 0 "Number of steps must be positive."
-    @assert n_samples > 0 "Number of samples must be positive."
-
-    count = Array{Int}(undef, n_samples, 3)
-    @inbounds for k in 1:n_samples
-        local brass = BrassCASquareLattice(L, σ₀)
-        advance!(brass, p, r, n_steps)
-        count[k, :] .= state_count(brass.σ)
-    end
-    conc = count ./ prod(L)
-    conc_avg = mean(conc, dims = 1)
-    conc_std = std(conc, dims = 1, corrected = true, mean = conc_avg)
-    conc_avg, conc_std
-end
-
-"""
 Brass CA on an abitrary graph `g` with states of each node stored in the vector `σ`
 """
 mutable struct BrassCAGraph <: BrassCA
+
     "Graph structure"
     g::Graph
+
     "State at each node"
-    σ::Vector{Int8}
-    "Construct Brass CA over a given graph `g` with initial state `σ₀`"
-    BrassCAGraph(g::Graph, σ₀::Int8) = new(g, fill(σ₀, nv(g)))
-    "Construct Brass CA over a given graph `g` with random initial state"
-    BrassCAGraph(g::Graph, ::Val{:rand}) = new(g, rand(-1:1, nv(g)))
+    σ::Vector{BrassCAStateType}
+
+    """
+        BrassCAGraph(g::Graph, ::Val{:rand})
+
+    Construct a new Brass CA with graph structure `g` and random initial states at each node.
+    """
+    BrassCAGraph(g::Graph, ::Val{:rand}) = new(g, rand(BrassCAStateType[0, +1, -1], nv(g)))
+
+    """
+        BrassCAGraph(g::Graph, (::Val{0} || ::Val{+1} || ::Val{-1}))
+
+    Construct a new Brass CA with graph structure `g` and a given initial state for all sites.
+    """
+    BrassCAGraph(g::Graph, s::BrassCAStateVals) = new(g, fill(BrassCAStateType(extract_val(s)), nv(g)))
 end
 
 """
