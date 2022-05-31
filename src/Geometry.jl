@@ -1,7 +1,7 @@
 @doc raw"""
     Geometry
 
-General
+General geometric utilities.
 """
 module Geometry
 
@@ -9,7 +9,7 @@ export square_gird_iter,
     square_lattice_nearest_neighbors, square_lattice_nearest_neighbors_flat,
     square_lattice_nearest_neighbors_sum
 
-"""
+@doc raw"""
     square_gird_iter(::Val{N}, iter::Integer) where {N}
 
 Fill a `N`-dimensional unit domain with uniformly spaced points iteratively.
@@ -47,7 +47,7 @@ Points associated with current iteration are represented by `*` and those associ
     - `iter::Integer`: Iteration number
 
 # Returns:
-    - Tuple of cartesian indices (given as fractions) of the points associated with the iteration `iter`.
+    - `::Vector{NTuple{N,Rational}}`: Array of cartesian indices (given as fractions) of the points associated with the iteration `iter`.
 """
 function square_gird_iter(::Val{N}, iter::Integer) where {N}
     @assert iter >= 0
