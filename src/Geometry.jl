@@ -118,13 +118,12 @@ function square_lattice_nearest_neighbors_flat_impl(lattice::Type{Array{T,N}}, i
     # Get NN expressions
     nn_exprs = square_lattice_nearest_neighbors_exprs(lattice, idx)
     # Unpack NN expressions to flat tuple
-    return :(tuple($((nn_exprs...)...)))
+    return :([$((nn_exprs...)...)])
 end
 """
     square_lattice_nearest_neighbors_flat(lattice::Array{T,N}, idx::CartesianIndex{N}) where {T,N}
 
-Get the cartesian coordinates of the nearest neighbours of a given site located at `idx` of a `N`-dimensional periodic square lattice `lattice`
-in a flat tuple of the form `NTuple{2N,CartesianIndex{N}}`.
+Get a vector of the cartesian coordinates of the nearest neighbours of a given site located at `idx` of a `N`-dimensional periodic square lattice `lattice`.
 """
 @generated function square_lattice_nearest_neighbors_flat(lattice::Array{T,N}, idx::CartesianIndex{N}) where {T,N}
     square_lattice_nearest_neighbors_flat_impl(lattice, idx)

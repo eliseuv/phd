@@ -150,18 +150,18 @@ mutable struct IsingMeanField <: Ising
     state::Vector{SpinType}
 
     @doc raw"""
-        IsingMeanField(N::Integer, ::Val{:rand})
-
-    Construct an Ising system with mean field interaction with `N` sites and random initial state `σ ∈ {-1, +1}`.
-    """
-    IsingMeanField(N::Integer, ::Val{:rand}) = new(rand(SpinType[-1, +1], N))
-
-    @doc raw"""
         IsingMeanField(N::Integer, σ::SpinState)
 
     Construct an Ising system with mean field interaction with `N` sites and and a given initial state `σ`.
     """
     IsingMeanField(N::Integer, σ::SpinState) = new(fill(Integer(σ), N))
+
+    @doc raw"""
+        IsingMeanField(N::Integer, ::Val{:rand})
+
+    Construct an Ising system with mean field interaction with `N` sites and random initial state `σ ∈ {-1, +1}`.
+    """
+    IsingMeanField(N::Integer, ::Val{:rand}) = new(rand(Integer.(instances(SpinState)), N))
 
     @doc raw"""
         IsingMeanField(N::Integer, (::Val{-1} || ::Val{+1}))
@@ -178,7 +178,7 @@ Total energy of an Ising system `ising` with mean field interaction subject to a
 
 If no external magnetic field is provided, it is assumed to be `h=0`.
 """
-@inline energy(ising::IsingMeanField) = @inbounds -sum(ising.state[i] * ising.state[j] for i ∈ eachindex(ising.state) for j ∈ nearest_neighbors(ising, i))
+@inline energy(ising::IsingMeanField) = @inbounds -sum(ising.state[i] * sum(ising.state[begin:(i-1)]) for i ∈ eachindex(ising.state))
 
 @inline energy(ising::IsingMeanField, h::Real) = @inbounds energy(ising) - h * magnet_total(ising)
 
@@ -189,7 +189,7 @@ For an Ising system `ising` with mean field interaction, get the nearest neighob
 
 That is, every site except for `i` itself.
 """
-@inline nearest_neighbors(ising::IsingMeanField, i::Integer) = union(1:i-1, i+1:length(ising))
+@inline nearest_neighbors(ising::IsingMeanField, i::Integer) = vcat(1:i-1, i+1:length(ising))
 
 """
     IsingSquareLattice{N}
@@ -205,20 +205,20 @@ mutable struct IsingSquareLattice{N} <: Ising
     state::Array{SpinType,N}
 
     """
-        IsingSquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N}
-
-    Construct a new Ising system in a multidimensional square lattice of dimensions provided by `size`,
-    with nearest neighbor interaction and with spins in random states
-    """
-    IsingSquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N} = new{N}(rand(Integer.(instances(SpinState)), size))
-
-    """
         IsingSquareLattice(size::NTuple{N,Integer}, σ::SpinState) where {N}
 
     Construct a new Ising system in a multidimensional square lattice of dimensions provided by `size`,
     with nearest neighbor interaction and with all spins with same initial state `σ`.
     """
     IsingSquareLattice(size::NTuple{N,Integer}, σ::SpinState) where {N} = new{N}(fill(Integer(σ), size))
+
+    """
+        IsingSquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N}
+
+    Construct a new Ising system in a multidimensional square lattice of dimensions provided by `size`,
+    with nearest neighbor interaction and with spins in random states
+    """
+    IsingSquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N} = new{N}(rand(Integer.(instances(SpinState)), size))
 
     """
         IsingSquareLattice(size::NTuple{N,Integer}, (::Val{+1} || ::Val{-1})) where {N}
@@ -261,18 +261,17 @@ Given by the Hamiltonian:
 where `⟨i,j⟩` means that `i` and `j` are nearest neighbors.
 """
 function energy(ising::IsingSquareLattice{N}) where {N}
-    # Total energy
-    H::Real = 0
     # Interaction energy
-    S = size(ising.state)
+    H::Int64 = 0
+    # Loop on dimensions
     @inbounds for d ∈ 1:Val(N)
         # Bulk
-        front_bulk = selectdim(ising.state, d, 1:(S[d]-1))
-        back_bulk = selectdim(ising.state, d, 2:S[d])
+        front_bulk = selectdim(ising.state, d, 1:(size(ising.state, d)-1))
+        back_bulk = selectdim(ising.state, d, 2:size(ising.state, d))
         H -= sum(front_bulk .* back_bulk)
         # Periodic boundaries
         first_slice = selectdim(ising.state, d, 1)
-        last_slice = selectdim(ising.state, d, S[d])
+        last_slice = selectdim(ising.state, d, size(ising.state, d))
         H -= sum(last_slice .* first_slice)
     end
     return H
@@ -356,18 +355,18 @@ mutable struct IsingGraph <: Ising
     state::Vector{SpinType}
 
     """
-        IsingGraph(g::Graph, ::Val{:rand})
-
-    Construct a new Ising system with graph structure `g` and random initial states at each node.
-    """
-    IsingGraph(g::Graph, ::Val{:rand}) = new(g, rand(Integer.(instances(SpinState)), nv(g)))
-
-    """
         IsingGraph(g::Graph, σ::SpinState)
 
     Construct a new Ising system with graph structure `g` with all spins with same initial state `σ`.
     """
     IsingGraph(g::Graph, σ::SpinState) = new(g, fill(Integer(σ), nv(g)))
+
+    """
+        IsingGraph(g::Graph, ::Val{:rand})
+
+    Construct a new Ising system with graph structure `g` and random initial states at each node.
+    """
+    IsingGraph(g::Graph, ::Val{:rand}) = new(g, rand(Integer.(instances(SpinState)), nv(g)))
 
     """
         IsingGraph(g::Graph, (::Val{+1} || ::Val{-1}))
