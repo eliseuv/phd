@@ -264,7 +264,7 @@ function energy(ising::IsingSquareLattice{N}) where {N}
     # Interaction energy
     H::Int64 = 0
     # Loop on dimensions
-    @inbounds for d ∈ 1:Val(N)
+    @inbounds for d ∈ 1:N
         # Bulk
         front_bulk = selectdim(ising.state, d, 1:(size(ising.state, d)-1))
         back_bulk = selectdim(ising.state, d, 2:size(ising.state, d))
