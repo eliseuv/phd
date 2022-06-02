@@ -167,57 +167,166 @@ Each specific type of Ising model `IsingSpecific` must provide its own implement
 """
     flip!(ising::Ising, i::Integer)
 
-Flips the `i-th` spin on the Ising system `ising`.
+Flips the `i`-th spin on the Ising system `ising`.
 """
 @inline function flip!(ising::Ising, i::Integer)
     @inbounds ising[i] = -ising[i]
 end
 
+@doc raw"""
+    IsingMF
+
+Ising system with mean field interaction:
+Every spin interacts equally with every other spin.
+
+Since in the mean field model there is no concept of space and locality,
+we represent the state of the system simply by total number of spin up and spin down sites.
+
+An `AbstractVector{SpinState}` interface for the `IsingMF` type can be implemented
+if we assume that the all spin states are stored in a sorted vector with ``N = N₊ + N₋`` elements:
+
+    σ = (↑, ↑, …, ↑, ↓, ↓, …, ↓)
+        |---(N₊)---||---(N₋)---|
+        |----------(N)---------|
+
+Therefore, for an `ising::IsingMF` we can access the `i`-th spin `σᵢ = ising[i]`:
+If `i ≤ N₊` then `σᵢ = ↑` else (`N₊ < i ≤ N`) `σᵢ = ↓`.
+
+# Fields:
+- `state::NamedTuple{(:up, :down),NTuple{2,Int64}}`: State of the system given by the number of spins in each state.
+"""
 mutable struct IsingMF <: Ising
 
+    "State of the system"
     state::NamedTuple{(:up, :down),NTuple{2,Int64}}
 
+    @doc raw"""
+        IsingMF(; up::Int64, down::Int64)
+
+    Construct an Ising system with mean field interaction with a given number of spins in each state.
+    """
+    IsingMF(; up::Integer = 0, down::Integer = 0) = new((up = up, down = down))
+
+    @doc raw"""
+        IsingMF(N::Integer, σ₀::SpinState)
+
+    Construct an Ising system with mean field interaction with `N` spins, all in a given initial state `σ₀`.
+    """
     function IsingMF(N::Integer, σ₀::SpinState)
         return σ₀ == up ? new((up = N, down = 0)) : new((up = 0, down = N))
     end
 
+    @doc raw"""
+        IsingMF(N::Integer, ::Val{:rand})
+
+    Construct an Ising system with mean field interaction with `N` spins in a random initial state.
+    """
     function IsingMF(N::Integer, ::Val{:rand})
-        N_up = rand(1:N)
-        N_down = N - N_up
-        return new((up = N_up, down = N_down))
+        N₊ = rand(1:N)
+        N₋ = N - N₊
+        return new((up = N₊, down = N₋))
     end
+
+    @doc raw"""
+        IsingMF(N::Integer, (::Val{-1} || ::Val{+1}))
+
+    Construct an Ising system with mean field interaction with `N` sites and and a given initial state.
+    """
+    IsingMF(N::Integer, σ₀::SpinVals) = IsingMF(N, SpinState(extract_val(σ₀)))
 end
 
+@doc raw"""
+    length(ising::IsingMF)
+
+Total number of spins (`N`) in an Ising system with mean field interaction `ising`.
+"""
 Base.length(ising::IsingMF) = sum(ising.state)
-@inline Base.IndexStyle(::IsingMF) = LinearIndices
+
+@doc raw"""
+    IndexStyle(::IsingMF)
+
+Use only linear indices for the `AbstractVector{SpinState}` interface for the `IsingMF` type.
+"""
+@inline Base.IndexStyle(::Type{<:IsingMF}) = IndexLinear()
+
+@doc raw"""
+    getindex(ising::IsingMF, i::Integer)
+
+Get the state of the `i`-th spin in the Ising system with mean field interaction `ising`.
+"""
 @inline Base.getindex(ising::IsingMF, i::Integer) = i <= ising.state.up ? up : down
+
+@doc raw"""
+    setindex!(ising::IsingMF, σ::SpinState, i::Integer)
+
+Set the state of the `i`-th spin to `σ` in the Ising system with mean field interaction `ising`.
+"""
 @inline function Base.setindex!(ising::IsingMF, σ::SpinState, i::Integer)
-    if i <= ising.state.up
-        if σ == down
-            ising.state = (up = ising.state.up - 1, down = ising.state.down + 1)
-        end
-    else
-        if σ == up
-            ising.state = (up = ising.state.up + 1, down = ising.state.down - 1)
-        end
+    if i <= ising.state.up && σ == down
+        ising.state = (up = ising.state.up - 1, down = ising.state.down + 1)
+    elseif σ == up
+        ising.state = (up = ising.state.up + 1, down = ising.state.down - 1)
     end
 end
+
+@doc raw"""
+    firstindex(ising::IsingMF)
+
+The first spin in the `AbstractVector{SpinState}` interface of `IsingMF`.
+"""
 @inline Base.firstindex(ising::IsingMF) = ising.state.up != 0 ? up : down
+
+@doc raw"""
+    lastindex(ising::IsingMF)
+
+The last spin in the `AbstractVector{SpinState}` interface of `IsingMF`.
+"""
 @inline Base.lastindex(ising::IsingMF) = ising.state.down != 0 ? down : up
+
+@doc raw"""
+    flip!(ising::IsingMF, i::Integer)
+
+Flip the state of the `i`-th spin in the Ising system with mean field interaction `ising`.
+"""
 @inline function flip!(ising::IsingMF, i::Integer)
-    σᵢ = ising[i]
-    ising.state = (up = ising.state.up - Integer(σᵢ), down = ising.state.down + Integer(σᵢ))
+    σᵢ = Integer(ising[i])
+    N₊, N₋ = ising.state.up, ising.state.down
+    ising.state = (up = N₊ - σᵢ, down = N₋ + σᵢ)
 end
 
+@doc raw"""
+    magnet_total(ising::IsingMF)
+
+Total magnetization of an Ising system with mean field interaction.
+
+    ``M = N₊ - N₋``
+"""
 @inline magnet_total(ising::IsingMF) = ising.state.up - ising.state.down
 
-@inline magnet_total_local(ising::IsingMF, i::Integer) = -2 * Integer(ising[i])
+@doc raw"""
+    energy(ising::IsingMF, h::Real=0)
 
+Total magnetization of an Ising system with mean field interaction.
+
+    ``H = \frac{N - M^2}{2} + Mh``
+"""
 @inline energy(ising::IsingMF) = Integer((length(ising) - magnet_total(ising)^2) / 2)
 @inline energy(ising::IsingMF, h::Real) = energy(ising) + h * magnet_total(ising)
 
-@inline energy_local(ising::IsingMF, i::Integer, h::Real) = 2 * Integer(ising[i]) * (magnet_total(ising) - Integer(ising[i]) + h)
+@doc raw"""
+    magnet_total_local(ising::IsingMF, i::Integer)
+
+Change in local magnetization of an Ising system with mean field interaction if the `i`-th were to be flipped.
+"""
+@inline magnet_total_local(ising::IsingMF, i::Integer) = -2 * Integer(ising[i])
+
+@doc raw"""
+    energy_local(ising::IsingMF, i::Integer, h::Real=0)
+
+Change in energy of an Ising system with mean field interaction if the `i`-th were to be flipped.
+"""
 @inline energy_local(ising::IsingMF, i::Integer) = 2 * Integer(ising[i]) * (magnet_total(ising) - Integer(ising[i]))
+@inline energy_local(ising::IsingMF, i::Integer, h::Real) = 2 * Integer(ising[i]) * (magnet_total(ising) - Integer(ising[i]) + h)
 
 @doc raw"""
     IsingMeanField
