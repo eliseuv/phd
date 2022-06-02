@@ -202,11 +202,12 @@ Count each type cell on given Brass CA state `state`.
 See also: [`state_concentration`](@ref).
 """
 @inline function state_count(state::Array)
+    # Total number of sites
+    N = length(state)
+    # Total magnetization
+    M = magnet_total(state)
     # Calculate N₁
     N₁ = count(==(+1), state)
-    # Aux variables
-    N = length(state)
-    M = sum(state)
     # Calculate remaining values
     N₀ = N + M - 2 * N₁
     N₂ = N₁ - M
@@ -529,6 +530,13 @@ mutable struct BrassCAMeanField <: BrassCA
 
     "State of the CA"
     state::Vector{StateType}
+
+    @doc raw"""
+        BrassCAMeanField(N::Integer, σ₀::BrassState)
+
+    Construct a Brass CA with mean field interaction with `N` sites and a given initial state `σ₀`.
+    """
+    BrassCAMeanField(N::Integer, σ₀::BrassState) = new(fill(Integer(σ₀), N))
 
     @doc raw"""
         BrassCAMeanField(N::Integer, ::Val{:rand})
