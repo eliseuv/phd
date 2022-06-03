@@ -60,22 +60,22 @@ function square_gird_iter(::Val{N}, iter::Integer) where {N}
     end
 end
 
-@inline function square_lattice_nearest_neighbors_(lattice::Array{T,N}, idx::CartesianIndex{N}) where {T,N}
+@inline function square_lattice_nearest_neighbors_(lattice::AbstractArray{T,N}, idx::CartesianIndex{N}) where {T,N}
     return @inbounds (ntuple(d -> CartesianIndex(ntuple(i -> i == d ? mod1(idx[i] + 1, size(lattice, i)) : idx[i], Val(N))), Val(N)),
         ntuple(d -> CartesianIndex(ntuple(i -> i == d ? mod1(idx[i] - 1, size(lattice, i)) : idx[i], Val(N))), Val(N)))
 end
-@inline function square_lattice_nearest_neighbors_flat_(lattice::Array{T,N}, idx::CartesianIndex{N}) where {T,N}
+@inline function square_lattice_nearest_neighbors_flat_(lattice::AbstractArray{T,N}, idx::CartesianIndex{N}) where {T,N}
     return @inbounds (ntuple(d -> CartesianIndex(ntuple(i -> i == d ? mod1(idx[i] + 1, size(lattice, i)) : idx[i], Val(N))), Val(N))...,
         ntuple(d -> CartesianIndex(ntuple(i -> i == d ? mod1(idx[i] - 1, size(lattice, i)) : idx[i], Val(N))), Val(N))...)
 end
 
 @doc raw"""
-    square_lattice_nearest_neighbors_exprs(lattice::Type{Array{T,N}}, idx::Type{CartesianIndex{N}}) where {T,N}
+    square_lattice_nearest_neighbors_exprs(lattice::Type{AbstractArray{T,N}}, idx::Type{CartesianIndex{N}}) where {T,N}
 
 Returns the expressions for the nearest neighbors of site at `idx` in a `N`-dimensional preiodic square lattice `lattice`
 in a nested tuple of the form `((nn_prev_1, nn_next_1),...,(nn_prev_N, nn_next_N))::NTuple{N,Tuple{Expr,Expr}}`.
 """
-function square_lattice_nearest_neighbors_exprs(lattice::Type{Array{T,N}}, idx::Type{CartesianIndex{N}}) where {T,N}
+function square_lattice_nearest_neighbors_exprs(lattice::Type{<:AbstractArray{T,N}}, idx::Type{CartesianIndex{N}}) where {T,N}
     # Loop on the dimensions
     terms = map(1:N) do d
         # Indices for both nearest neighbors in the current dimension `d`
@@ -94,7 +94,7 @@ function square_lattice_nearest_neighbors_exprs(lattice::Type{Array{T,N}}, idx::
     return tuple(terms...)
 end
 
-function square_lattice_nearest_neighbors_impl(lattice::Type{Array{T,N}}, idx::Type{CartesianIndex{N}}) where {T,N}
+function square_lattice_nearest_neighbors_impl(lattice::Type{<:AbstractArray{T,N}}, idx::Type{CartesianIndex{N}}) where {T,N}
     # Get NN expressions
     nn_exprs = square_lattice_nearest_neighbors_exprs(lattice, idx)
     # Mult
@@ -105,31 +105,31 @@ function square_lattice_nearest_neighbors_impl(lattice::Type{Array{T,N}}, idx::T
     return :(tuple($(terms...)))
 end
 """
-    square_lattice_nearest_neighbors(lattice::Array{T,N}, idx::CartesianIndex{N}) where {T,N}
+    square_lattice_nearest_neighbors(lattice::AbstractArray{T,N}, idx::CartesianIndex{N}) where {T,N}
 
 Get the cartesian coordinates of the nearest neighbours of a given site located at `idx` of a `N`-dimensional periodic square lattice `lattice`
 in a nested tuple of the form `NTuple{N,NTuple{2,CartesianIndex{N}}}`.
 """
-@generated function square_lattice_nearest_neighbors(lattice::Array{T,N}, idx::CartesianIndex{N}) where {T,N}
+@generated function square_lattice_nearest_neighbors(lattice::AbstractArray{T,N}, idx::CartesianIndex{N}) where {T,N}
     square_lattice_nearest_neighbors_impl(lattice, idx)
 end
 
-function square_lattice_nearest_neighbors_flat_impl(lattice::Type{Array{T,N}}, idx::Type{CartesianIndex{N}}) where {T,N}
+function square_lattice_nearest_neighbors_flat_impl(lattice::Type{<:AbstractArray{T,N}}, idx::Type{CartesianIndex{N}}) where {T,N}
     # Get NN expressions
     nn_exprs = square_lattice_nearest_neighbors_exprs(lattice, idx)
     # Unpack NN expressions to flat tuple
     return :([$((nn_exprs...)...)])
 end
 """
-    square_lattice_nearest_neighbors_flat(lattice::Array{T,N}, idx::CartesianIndex{N}) where {T,N}
+    square_lattice_nearest_neighbors_flat(lattice::AbstractArray{T,N}, idx::CartesianIndex{N}) where {T,N}
 
 Get a vector of the cartesian coordinates of the nearest neighbours of a given site located at `idx` of a `N`-dimensional periodic square lattice `lattice`.
 """
-@generated function square_lattice_nearest_neighbors_flat(lattice::Array{T,N}, idx::CartesianIndex{N}) where {T,N}
+@generated function square_lattice_nearest_neighbors_flat(lattice::AbstractArray{T,N}, idx::CartesianIndex{N}) where {T,N}
     square_lattice_nearest_neighbors_flat_impl(lattice, idx)
 end
 
-function square_lattice_nearest_neighbors_sum_impl(lattice::Type{Array{T,N}}, idx::Type{CartesianIndex{N}}) where {T,N}
+function square_lattice_nearest_neighbors_sum_impl(lattice::Type{<:AbstractArray{T,N}}, idx::Type{CartesianIndex{N}}) where {T,N}
     # Get NN expressions
     nn_exprs = square_lattice_nearest_neighbors_exprs(lattice, idx)
     # Unpack NN expressions to flat tuple of lattice site values
@@ -137,12 +137,20 @@ function square_lattice_nearest_neighbors_sum_impl(lattice::Type{Array{T,N}}, id
     # Return sum of all these terms
     return :(+($(nn_values...)))
 end
+function square_lattice_nearest_neighbors_sum_impl(lattice::Type{<:AbstractArray{T,N}}, idx::Type{CartesianIndex{N}}) where {T<:Enum,N}
+    # Get NN expressions
+    nn_exprs = square_lattice_nearest_neighbors_exprs(lattice, idx)
+    # Unpack NN expressions to flat tuple of lattice site values
+    nn_values = (:(Integer(lattice[$nn_expr])) for nn_expr in tuple((nn_exprs...)...))
+    # Return sum of all these terms
+    return :(+($(nn_values...)))
+end
 """
-    square_lattice_nearest_neighbors_sum(lattice::Array{T,N}, idx::CartesianIndex{N}) where {T,N}
+    square_lattice_nearest_neighbors_sum(lattice::AbstractArray{T,N}, idx::CartesianIndex{N}) where {T,N}
 
 Get the sum of the values of the nearest neighbours of a given site located at `idx` of a `N`-dimensional periodic square lattice `lattice`.
 """
-@generated function square_lattice_nearest_neighbors_sum(lattice::Array{T,N}, idx::CartesianIndex{N}) where {T,N}
+@generated function square_lattice_nearest_neighbors_sum(lattice::AbstractArray{T,N}, idx::CartesianIndex{N}) where {T,N}
     square_lattice_nearest_neighbors_sum_impl(lattice, idx)
 end
 
