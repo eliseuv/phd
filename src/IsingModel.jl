@@ -18,13 +18,6 @@ include("Geometry.jl")
 using .Metaprogramming
 
 """
-    Ising
-
-Supertype for all Ising systems.
-"""
-abstract type Ising end
-
-"""
     SpinState::Int8
 
 Enumeration of possible spin values.
@@ -81,8 +74,8 @@ An `AbstractVector{SpinState}` interface for the `IsingMeanField` type can be im
 if we assume that the all spin states are stored in a sorted vector with ``N = N₊ + N₋`` elements:
 
     σ = (↑, ↑, …, ↑, ↓, ↓, …, ↓)
-        |---(N₊)---||---(N₋)---|
-        |----------(N)---------|
+        |--- N₊ ---||--- N₋ ---|
+        |---------- N ---------|
 
 Therefore, for an `ising::IsingMeanField` we can access the `i`-th spin `σᵢ = ising[i]`:
 If `i ≤ N₊` then `σᵢ = ↑` else (`N₊ < i ≤ N`) `σᵢ = ↓`.
@@ -90,7 +83,7 @@ If `i ≤ N₊` then `σᵢ = ↑` else (`N₊ < i ≤ N`) `σᵢ = ↓`.
 # Fields:
 - `state::NamedTuple{(:up, :down),NTuple{2,Int64}}`: State of the system given by the number of spins in each state.
 """
-mutable struct IsingMeanField <: Ising
+mutable struct IsingMeanField <: AbstractVector{SpinState}
 
     "State of the system"
     state::NamedTuple{(:up, :down),NTuple{2,Int64}}
@@ -162,14 +155,14 @@ end
 
 The first spin in the `AbstractVector{SpinState}` interface of `IsingMeanField`.
 """
-@inline Base.firstindex(ising::IsingMeanField) = ising.state.up != 0 ? up : down
+@inline Base.firstindex(ising::IsingMeanField) = 1
 
 @doc raw"""
     lastindex(ising::IsingMeanField)
 
 The last spin in the `AbstractVector{SpinState}` interface of `IsingMeanField`.
 """
-@inline Base.lastindex(ising::IsingMeanField) = ising.state.down != 0 ? down : up
+@inline Base.lastindex(ising::IsingMeanField) = sum(ising.state)
 
 @doc raw"""
     flip!(ising::IsingMeanField, i::Integer)
@@ -185,7 +178,7 @@ end
 @doc raw"""
     magnet_total(ising::IsingMeanField)
 
-Total magnetization of an Ising system with mean field interaction.
+Total magnetization of an Ising.
 
     ``M = N₊ - N₋``
 """
@@ -250,19 +243,19 @@ Size of the state of an Ising system `ising` along a given dimension `dim`.
 """
     IndexStyle(ising::IsingConcrete)
 
-Use the linear index preferably.
+Use cartesian indices preferably.
 """
-@inline Base.IndexStyle(::Type{<:IsingConcrete}) = IndexLinear()
+@inline Base.IndexStyle(::Type{<:IsingConcrete}) = IndexCartesian()
 
 """
-    getindex(ising::IsingConcrete, i)
+    getindex(ising::IsingConcrete, i::Union{Integer,CartesianIndex{N}})
 
 Index the Ising system itself to access its state.
 """
 @inline Base.getindex(ising::IsingConcrete{N}, i::Union{Integer,CartesianIndex{N}}) where {N} = ising.state[i]
 
 """
-    setindex!(ising::IsingConcrete, σ::SpinState, i)
+    setindex!(ising::IsingConcrete, σ::SpinState, i::Union{Integer,CartesianIndex{N}})
 
 Set the state of a given spin at site `i` to `σ` in the Ising system `ising`.
 """
@@ -554,6 +547,13 @@ If no external magnetic field is provided it is assumed to be `h=0`.
 For an Ising system over a graph `ising`, get the nearest neighobors of a given site `i`.
 """
 @inline nearest_neighbors(ising::IsingGraph, i::Integer) = neighbors(ising.g, i)
+
+"""
+    Ising
+
+Supertype for all Ising systems.
+"""
+Ising = Union{IsingMeanField,IsingConcrete}
 
 @doc raw"""
     metropolis!(ising::Ising, β::Real, n_steps::Integer, h::Real=0)

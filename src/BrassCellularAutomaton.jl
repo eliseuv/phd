@@ -48,14 +48,20 @@ Therefore knowing the total number of site `N`, the magnetization `M` and the nu
 """
 module BrassCellularAutomaton
 
-export BrassCA, BrassState, BrassCAMeanField, BrassCASquareLattice, BrassCAGraph,
-    set_state!,
+export BrassState, TH0, TH1, TH2,
+    BrassCA,
+    BrassCAMeanField,
+    BrassCAConcrete, BrassCASquareLattice, BrassCAGraph,
+    set_state!, state_count,
+    magnet_total,
+    nearest_neighbors_sum,
+    state_concentration,
+    magnet_total_local, magnet, magnet_moment,
     advance!, advance_and_measure!,
     advance_parallel!, advance_parallel_and_measure!,
-    advance_async!, advance_async_and_measure!,
-    magnet_total, magnet, state_count, state_concentration
+    advance_async!, advance_async_and_measure!
 
-using Statistics, Random, Graphs
+using Statistics, Random, Graphs, Match
 
 include("Metaprogramming.jl")
 include("Geometry.jl")
@@ -63,223 +69,56 @@ include("Geometry.jl")
 using .Metaprogramming
 
 """
-    BrassCA
-
-Supertype for all Brass Cellular Automata.
-"""
-abstract type BrassCA end
-
-"""
-    StateType
-
-Type for the representation of the state of a site of a Brass Cellular Automaton in memory.
-"""
-StateType = Int8
-
-"""
-    StateVals
-
-The value types for the states of a site for the Brass Cellular Automaton:
-- Val{0} corresponds to TH0
-- Val{+1} corresponds to TH1
-- Val{-1} corresponds to TH2
-"""
-StateVals = Union{Val{0},Val{+1},Val{-1}}
-
-"""
-    BrassState::StateType
+    BrassState::Int8
 
 Enumeration of the possible states for each site of the Brass Cellular Automaton.
 """
-@enum BrassState::StateType begin
+@enum BrassState::Int8 begin
     TH0 = 0
     TH1 = +1
     TH2 = -1
 end
 
 """
-    size(ca::BrassCA)
+    convert(::Type{T}, σ::BrassState) where {T<:Number}
 
-Size of the state of a Brass cellular automaton `ca`.
+Use the integer representation of `σ::BrassState` in order to convert it to a numerical type `T<:Number`.
 """
-@inline Base.size(ca::BrassCA) = size(ca.state)
-
-"""
-    size(ca::BrassCA, dim::Integer)
-
-Size of the state of Brass cellular automaton `ca` along a given dimension `dim`.
-"""
-@inline Base.size(ca::BrassCA, dim::Integer) = size(ca.state, dim)
+@inline Base.convert(::Type{T}, σ::BrassState) where {T<:Number} = T(Integer(σ))
 
 """
-    length(ca::BrassCA)
+    promote_rule(T::Type, ::Type{BrassState})
 
-Total number of sites of a Brass cellular automaton `ca`.
+Always promote the `BrassState` to whatever the other type is.
 """
-@inline Base.length(ca::BrassCA) = length(ca.state)
+@inline Base.promote_rule(T::Type, ::Type{BrassState}) = T
 
-@doc raw"""
-    magnet_total(state::Array)
-
-Total magnetization of a Brass CA with state `state`.
-
-The total magnetization is defined as the sum of all site states:
-
-``M = ∑ᵢ σᵢ``
-
-See also: [`magnet`](@ref), [`magnet_moment`](@ref).
-"""
-@inline magnet_total(state::Array) = @inbounds sum(state)
-
-@doc raw"""
-    magnet_total(ca::BrassCA)
-
-Total magnetization of a Brass CA `ca`.
-
-The total magnetization is defined as the sum of all site states:
-
-``M = ∑ᵢ σᵢ``
-
-See also: [`magnet`](@ref), [`magnet_moment`](@ref).
-"""
-@inline magnet_total(ca::BrassCA) = magnet_total(ca.state)
-
-@doc raw"""
-    magnet(state::Array)
-
-Magnetization per site of a Brass CA with state `state`.
-
-``m = M / N = ∑ᵢ σᵢ / N``
-
-See also: [`magnet_total`](@ref), [`magnet_moment`](@ref).
-"""
-@inline magnet(state::Array) = magnet_total(state) / length(state)
-
-@doc raw"""
-    magnet(ca::BrassCA)
-
-Magnetization per site of a Brass CA `ca`.
-
-``m = M / N = ∑ᵢ σᵢ / N``
-
-See also: [`magnet_total`](@ref), [`magnet_moment`](@ref).
-"""
-@inline magnet(ca::BrassCA) = magnet(ca.state)
-
-@doc raw"""
-    magnet_moment(state::Array, k::Integer)
-
-Calculates the k-th momentum of the magnetization of a brass CA with state `state`.
-
-``mᵏ = 1/nᵏ (∑ᵢ σᵢ)ᵏ``
-
-See also: [`magnet`](@ref), [`magnet_total`](@ref).
-"""
-@inline magnet_moment(state::Array, k::Integer) = magnet(state)^k
-
-@doc raw"""
-    magnet_moment(ca::BrassCA, k::integer)
-
-Calculates the k-th momentum of the magnetization of a brass CA `ca`.
-
-``mᵏ = 1/nᵏ (∑ᵢ σᵢ)ᵏ``
-
-See also: [`magnet`](@ref), [`magnet_total`](@ref).
-"""
-@inline magnet_moment(ca::BrassCA, k::Integer) = magnet_moment(ca.state, Val(k))
-
-"""
-    state_count(state::Array)
-
-Count each type cell on given Brass CA state `state`.
-
-# Returns:
-- `(N₀, N₁, N₂)::NTuple{3,Integer}`, where:
-    - `N₀`: TH0 cell count
-    - `N₁`: TH1 cell count
-    - `N₂`: TH2 cell count
-
-See also: [`state_concentration`](@ref).
-"""
-@inline function state_count(state::Array)
-    # Total number of sites
-    N = length(state)
-    # Total magnetization
-    M = magnet_total(state)
-    # Calculate N₁
-    N₁ = count(==(+1), state)
-    # Calculate remaining values
-    N₀ = N + M - 2 * N₁
-    N₂ = N₁ - M
-    # Return tuple
-    return (N₀, N₁, N₂)
+# Arithmetic with numbers and Brass States
+for op in (:*, :/, :+, :-)
+    @eval begin
+        @inline Base.$op(x::Number, σ::BrassState) = $op(promote(x, σ)...)
+        @inline Base.$op(σ::BrassState, y::Number) = $op(promote(σ, y)...)
+    end
 end
 
 """
-    state_count(ca::BrassCA)
+    *(σ₁::BrassState, σ₂::BrassState)
 
-Count each type cell on given Brass CA `ca`.
-
-# Returns:
-- `(N₀, N₁, N₂)::NTuple{3,Integer}`, where:
-    - `N₀`: TH0 cell count
-    - `N₁`: TH1 cell count
-    - `N₂`: TH2 cell count
-
-See also: [`state_concentration`](@ref).
+Since `({0, +1, -1}, *)` have a monoid structure, it is safe to define multiplication of Brass states.
 """
-@inline state_count(ca::BrassCA) = state_count(ca.state)
+@inline Base.:*(σ₁::BrassState, σ₂::BrassState) = Integer(σ₁) * Integer(σ₂)
 
-@doc raw"""
-    state_concentration(state::Array)
-
-Concentration of each type cell on given Brass CA state `state`.
-
-``cᵢ = Nᵢ/N``
-
-# Returns:
-- `(c₀,c₁,c₂)::NTuple{3,Float64}`, where:
-    - `c₀`: TH0 cell concentration
-    - `c₁`: TH1 cell concentration
-    - `c₂`: TH2 cell concentration
-
-See also: [`state_count`](@ref).
-"""
-@inline state_concentration(state::Array) = state_count(state) ./ length(state)
-
-@doc raw"""
-    state_concentration(ca::BrassCA)
-
-Concentration of each type cell on given Brass CA `ca`.
-
-``cᵢ = Nᵢ/N``
-
-# Returns:
-- `(c₀,c₁,c₂)::NTuple{3,Float64}`, where:
-    - `c₀`: TH0 cell concentration
-    - `c₁`: TH1 cell concentration
-    - `c₂`: TH2 cell concentration
-
-See also: [`state_count`](@ref).
-"""
-@inline state_concentration(ca::BrassCA) = state_concentration(ca.state)
+function Base.show(io::IO, ::MIME"text/plain", σ::BrassState)
+    brass_str = @match σ begin
+        TH0 => "TH0"
+        TH1 => "TH1"
+        _ => "TH2"
+    end
+    print(io, brass_str)
+end
 
 """
-    set_state!(ca::BrassCA, σ₀::BrassState)
-
-Set the state of all sites of a Brass CA `ca` to a given site state `σ₀`.
-"""
-@inline set_state!(ca::BrassCA, σ₀::BrassState) = fill!(ca.state, Integer(σ₀))
-
-"""
-    set_state!(ca::BrassCA, ::Val{:rand})
-
-Set the state of each site of a Brass CA `ca` to a random state `σ ∈ {-1, 0, +1}`.
-"""
-@inline set_state!(ca::BrassCA, ::Val{:rand}) = rand!(ca.state, Integer.(instances(BrassState)))
-
-"""
-    cumulative_transition_probabilities(σᵢ::Integer, sᵢ::Integer, p::Float64, r::Float64)
+    cumulative_transition_probabilities(σᵢ::BrassState, sᵢ::T, p::Float64, r::Float64) where {T<:Integer}
 
 Calculate cumulative transition probabilities for a given site currently at state `σᵢ`
 and whose sum of neighbors has sign `sᵢ`.
@@ -293,19 +132,19 @@ The probabilities `p` and `r` are parameters of the model.
 
 See also [`new_site_state`](@ref).
 """
-@inline function cumulative_transition_probabilities(σᵢ::Integer, sᵢ::Integer, p::Float64, r::Float64)
-    if σᵢ == 0
-        W₀ = 1 - p
-        W₁ = W₀ + (sᵢ == 0 ? (0.5 * p) : sᵢ == +1 ? p : 0.0)
+@inline function cumulative_transition_probabilities(σᵢ::BrassState, sᵢ::T, p::Float64, r::Float64) where {T<:Integer}
+    if σᵢ == TH0
+        W₀ = 1.0 - p
+        W₁ = W₀ + (sᵢ == zero(T) ? (0.5 * p) : sᵢ == one(T) ? p : 0.0)
     else
         W₀ = r
-        W₁ = W₀ + (σᵢ == +1 ? (1.0 - r) : 0.0)
+        W₁ = W₀ + (σᵢ == TH1 ? (1.0 - r) : 0.0)
     end
     return (W₀, W₁)
 end
 
 """
-    new_site_state(σᵢ::Integer, sᵢ::Integer, p::Float64, r::Float64)
+    new_site_state(σᵢ::BrassState, sᵢ::Integer, p::Float64, r::Float64)
 
 Determines new state for a given site currently at state `σᵢ` and whose sign of the sum of neighboring site is `sᵢ`.
 
@@ -324,25 +163,416 @@ A random number `tirage` from an uniform distribution over `[0,1]` is generated 
 
 See also [`cumulative_transition_probabilities`](@ref).
 """
-@inline function new_site_state(σᵢ::Integer, sᵢ::Integer, p::Float64, r::Float64)
+@inline function new_site_state(σᵢ::BrassState, sᵢ::Integer, p::Float64, r::Float64)
     W₀, W₁ = cumulative_transition_probabilities(σᵢ, sᵢ, p, r)
     tirage = rand()
-    σᵢ′ = tirage < W₀ ? 0 : tirage < W₁ ? +1 : -1
+    σᵢ′ = @match tirage begin
+        tirage < W₀ => TH0
+        tirage < W₁ => TH1
+        _ => TH2
+    end
     return σᵢ′
 end
 
+@doc raw"""
+    BrassCAMeanField
+
+Brass system with mean field interaction:
+Every spin interacts equally with every other spin.
+
+Since in the mean field model there is no concept of space and locality,
+we represent the state of the system simply by total number of spin up and spin down sites.
+
+An `AbstractVector{BrassState}` interface for the `BrassCAMeanField` type can be implemented
+if we assume that the all spin states are stored in a sorted vector with ``N = N₊ + N₋`` elements:
+
+    σ = (TH0, TH0, …, TH0, TH1, TH1, …, TH1, TH2, TH2, …, TH2)
+        |------ N₀ ------||------ N₁ ------||------ N₂ ------|
+        |------------------------- N ------------------------|
+
+Therefore, for an `brass::BrassCAMeanField` we can access the `i`-th spin `σᵢ = brass[i]`:
+If `i ≤ N₊` then `σᵢ = ↑` else (`N₊ < i ≤ N`) `σᵢ = ↓`.
+
+# Fields:
+- `state::NamedTuple{(:TH0, :TH1, :TH2),NTuple{3,Int64}}`: State of the system given by the number of sites in each state.
 """
-    advance!(ca::BrassCA, p::Float64, r::Float64, n_steps::Integer = 1)
+mutable struct BrassCAMeanField <: AbstractVector{BrassState}
+
+    "State of the system"
+    state::NamedTuple{(:TH0, :TH1, :TH2),NTuple{3,Int64}}
+
+    @doc raw"""
+        BrassCAMeanField(; up::Int64, down::Int64)
+
+    Construct an Brass system with mean field interaction with a given number of spins in each state.
+    """
+    BrassCAMeanField(; TH0::Integer = 0, TH1::Integer = 0, TH2::Integer = 0) = new((TH0 = TH0, TH1 = TH1, TH2 = TH2))
+
+    @doc raw"""
+        BrassCAMeanField(N::Integer, σ₀::BrassState)
+
+    Construct an Brass system with mean field interaction with `N` spins, all in a given initial state `σ₀`.
+    """
+    function BrassCAMeanField(N::Integer, σ₀::BrassState)
+        @match σ₀ begin
+            TH0 => return BrassCAMeanField(TH0 = N)
+            TH1 => return BrassCAMeanField(TH1 = N)
+            TH2 => return BrassCAMeanField(TH2 = N)
+        end
+    end
+
+    @doc raw"""
+        BrassCAMeanField(N::Integer, ::Val{:rand})
+
+    Construct an Brass system with mean field interaction with `N` spins in a random initial state.
+    """
+    function BrassCAMeanField(N::Integer, ::Val{:rand})
+        N₀, N′ = minmax(rand(1:N, 2)...)
+        N₁ = N′ - N₀
+        N₂ = N - N′
+        return new((TH0 = N₀, TH1 = N₁, TH2 = N₂))
+    end
+end
+
+@doc raw"""
+    length(ca::BrassCAMeanField)
+
+Total number of spins (`N`) in an Brass system with mean field interaction `ca`.
+"""
+Base.length(ca::BrassCAMeanField) = sum(ca.state)
+
+@doc raw"""
+    IndexStyle(::BrassCAMeanField)
+
+Use only linear indices for the `AbstractVector{BrassState}` interface for the `BrassCAMeanField` type.
+"""
+@inline Base.IndexStyle(::Type{<:BrassCAMeanField}) = IndexLinear()
+
+@doc raw"""
+    getindex(ca::BrassCAMeanField, i::Integer)
+
+Get the state of the `i`-th spin in the Brass system with mean field interaction `ca`.
+"""
+@inline function Base.getindex(ca::BrassCAMeanField, i::Integer)
+    N₀ = ca.state.TH0
+    N′ = N₀ + ca.state.TH1
+    σ = @match i begin
+        i <= N₀ => TH0
+        i <= N′ => TH1
+        _ => TH2
+    end
+    return σ
+end
+
+@doc raw"""
+    setindex!(ca::BrassCAMeanField, σ::BrassState, i::Integer)
+
+Set the state of the `i`-th spin to `σ` in the Brass system with mean field interaction `ca`.
+"""
+@inline function Base.setindex!(ca::BrassCAMeanField, σ::BrassState, i::Integer)
+    N₀ = ca.state.TH0
+    N₁ = ca.state.TH1
+    N₂ = ca.state.TH2
+    ca.state = @match ca[i] begin
+        TH0 => @match σ begin
+            TH0 => (TH0 = N₀, TH1 = N₁, TH2 = N₂)
+            TH1 => (TH0 = N₀ - 1, TH1 = N₁ + 1, TH2 = N₂)
+            TH2 => (TH0 = N₀ - 1, TH1 = N₁, TH2 = N₂ + 1)
+        end
+        TH1 => @match σ begin
+            TH0 => (TH0 = N₀ + 1, TH1 = N₁ - 1, TH2 = N₂)
+            TH1 => (TH0 = N₀, TH1 = N₁, TH2 = N₂)
+            TH2 => (TH0 = N₀, TH1 = N₁ - 1, TH2 = N₂ + 1)
+        end
+        TH2 => @match σ begin
+            TH0 => (TH0 = N₀ + 1, TH1 = N₁, TH2 = N₂ - 1)
+            TH1 => (TH0 = N₀, TH1 = N₁ + 1, TH2 = N₂ - 1)
+            TH2 => (TH0 = N₀, TH1 = N₁, TH2 = N₂)
+        end
+    end
+end
+
+@doc raw"""
+    firstindex(brass::BrassCAMeanField)
+
+The first spin in the `AbstractVector{BrassState}` interface of `BrassCAMeanField`.
+"""
+@inline Base.firstindex(ca::BrassCAMeanField) = 1
+
+@doc raw"""
+    lastindex(brass::BrassCAMeanField)
+
+The last spin in the `AbstractVector{BrassState}` interface of `BrassCAMeanField`.
+"""
+@inline Base.lastindex(ca::BrassCAMeanField) = length(ca)
+
+"""
+    set_state!(ca::BrassCAMeanField, σ₀::BrassState)
+
+Set the state of all sites of a Brass CA `ca` to a given site state `σ₀`.
+"""
+@inline function set_state!(ca::BrassCAMeanField, σ₀::BrassState)
+    N = length(ca)
+    ca.state = @match σ₀ begin
+        TH0 => (TH0 = N, TH1 = 0, TH2 = 0)
+        TH1 => (TH0 = 0, TH1 = N, TH2 = 0)
+        TH2 => (TH0 = 0, TH1 = 0, TH2 = N)
+    end
+end
+
+"""
+    set_state!(ca::BrassCAMeanField, ::Val{:rand})
+
+Set the state of each site of a Brass CA `ca` to a random state `σ ∈ {-1, 0, +1}`.
+"""
+@inline function set_state!(ca::BrassCAMeanField, ::Val{:rand})
+    N = length(ca)
+    N₀, N′ = minmax(rand(1:N, 2)...)
+    N₁ = N′ - N₀
+    N₂ = N - N′
+    ca.state = (TH0 = N₀, TH1 = N₁, TH2 = N₂)
+end
+
+@doc raw"""
+    state_count(ca::BrassCAMeanField)
+
+Number of each spin in the Brass cellular automaton `ca`.
+"""
+@inline state_count(ca::BrassCAMeanField) = (ca.state.TH0, ca.state.TH1, ca.state.TH2)
+
+@doc raw"""
+    magnet_total(brass::BrassCAMeanField)
+
+Total magnetization of the Brass cellular autamaton with mean field interaction `ca`.
+
+    ``M = N₁ - N₂``
+"""
+@inline magnet_total(ca::BrassCAMeanField) = ca.state.TH1 - ca.state.TH2
+
+@doc raw"""
+    nearest_neighbors_sum(ca::BrassCAMeanField, i::Integer)
+
+Sum of the nearest neighbors of the `i`-th site of the Brass cellular autamaton with mean field interaction `ca`.
+"""
+@inline nearest_neighbors_sum(ca::BrassCAMeanField, i::Integer) = magnet_total(ca) - Integer(ca[i])
+
+"""
+    BrassCAConcrete{N} <: AbstractArray{BrassState,N}
+
+Supertype for all Brass cellular automata that have a concrete representation of its state in memory
+in the form of a concrete array member `state::Array{BrassState,N}`.
+
+The whole indexing interface of the `state::Array{BrassState,N}` can be passed to the `::IsingConcrete{N}` object itself.
+"""
+abstract type BrassCAConcrete{N} <: AbstractArray{BrassState,N} end
+
+"""
+    length(ca::BrassCAConcrete)
+
+Total number of sites of a Brass cellular automaton `ca`.
+"""
+@inline Base.length(ca::BrassCAConcrete) = length(ca.state)
+
+"""
+    size(ca::BrassCAConcrete)
+
+Size of the state of a Brass cellular automaton `ca`.
+"""
+@inline Base.size(ca::BrassCAConcrete) = size(ca.state)
+
+"""
+    size(ca::BrassCAConcrete, dim::Integer)
+
+Size of the state of Brass cellular automaton `ca` along a given dimension `dim`.
+"""
+@inline Base.size(ca::BrassCAConcrete, dim::Integer) = size(ca.state, dim)
+
+"""
+    IndexStyle(::Type{<:BrassCAConcrete})
+
+Use cartesian indices for dimensions `N > 1`.
+"""
+@inline Base.IndexStyle(::Type{<:BrassCAConcrete}) = IndexCartesian()
+@inline Base.IndexStyle(::Type{<:BrassCAConcrete{1}}) = IndexLinear()
+
+"""
+    getindex(ca::BrassCAConcrete, i::Union{Integer,CartesianIndex{N}})
+
+Index the Ising system itself to access its state.
+"""
+@inline Base.getindex(ca::BrassCAConcrete{N}, i::Union{Integer,CartesianIndex{N}}) where {N} = ca.state[i]
+
+"""
+    setindex!(ising::BrassCAConcrete, σ::SpinState, i::Union{Integer,CartesianIndex{N}})
+
+Set the state of a given spin at site `i` to `σ` in the Ising system `ising`.
+"""
+@inline function Base.setindex!(ca::BrassCAConcrete{N}, σ::BrassState, i::Union{Integer,CartesianIndex{N}}) where {N}
+    ca.state[i] = σ
+end
+
+"""
+    firstindex(ising::BrassCAConcrete)
+
+Get the index of the first spin in the system.
+"""
+@inline Base.firstindex(ca::BrassCAConcrete) = firstindex(ca.state)
+
+"""
+    lastindex(ising::BrassCAConcrete)
+
+Get the index of the last spin in the system.
+"""
+@inline Base.lastindex(ca::BrassCAConcrete) = lastindex(ca.state)
+
+"""
+    set_state!(ca::BrassCAConcrete, σ₀::BrassState)
+
+Set the state of all sites of a Brass CA `ca` to a given site state `σ₀`.
+"""
+@inline function set_state!(ca::BrassCAConcrete, σ₀::BrassState)
+    fill!(ca, σ₀)
+end
+
+"""
+    set_state!(ca::BrassCAConcrete, ::Val{:rand})
+
+Set the state of each site of a Brass CA `ca` to a random state `σ ∈ {-1, 0, +1}`.
+"""
+@inline function set_state!(ca::BrassCAConcrete, ::Val{:rand})
+    rand!(ca, instances(BrassState))
+end
+
+"""
+    state_count(ca::BrassCAConcrete)
+
+Count each type cell on given Brass CA `ca`.
+
+# Returns:
+- `(N₀, N₁, N₂)::NTuple{3,Integer}`, where:
+    - `N₀`: TH0 cell count
+    - `N₁`: TH1 cell count
+    - `N₂`: TH2 cell count
+
+See also: [`state_concentration`](@ref).
+"""
+@inline function state_count(ca::BrassCAConcrete)
+    # Total number of sites
+    N = length(ca)
+    # Total magnetization
+    M = magnet_total(ca)
+    # Calculate N₁
+    N₁ = count(==(TH1), ca)
+    # Calculate remaining values
+    N₀ = N + M - 2 * N₁
+    N₂ = N₁ - M
+    # Return tuple
+    return (N₀, N₁, N₂)
+end
+
+@doc raw"""
+    magnet_total(ca::BrassCAConcrete)
+
+Total magnetization of a Brass CA `ca`.
+
+The total magnetization is defined as the sum of all site states:
+
+``M = ∑ᵢ σᵢ``
+
+See also: [`magnet`](@ref), [`magnet_moment`](@ref).
+"""
+@inline magnet_total(ca::BrassCAConcrete) = @inbounds sum(Integer, ca)
+
+"""
+     step!(ca::BrassCAConcrete{N}, state::Array{BrassState,N}, state′::Array{BrassState,N}, p::Float64, r::Float64) where {N}
+
+Single step of the Brass CA concrete.
+
+# Arguments:
+- `ca`: Brass CA
+- `σ`: Current state of the CA
+- `σ′`: Array to store resulting state of the CA
+- `p` and `r`: Probabilities of the model
+"""
+@inline function step!(ca::BrassCAConcrete{N}, state::Array{BrassState,N}, state′::Array{BrassState,N}, p::Float64, r::Float64) where {N}
+    # Iterate over every site
+    for i in eachindex(ca)
+        σᵢ = state[i]
+        # Get sign of the sum of nearest neighbors
+        sᵢ = sign(nearest_neighbors_sum(ca, state, i))
+        # Transition to new site state
+        state′[i] = new_site_state(σᵢ, sᵢ, p, r)
+    end
+end
+
+"""
+    step_parallel!(ca::BrassCAConcrete{N}, state::Array{BrassState,N}, state′::Array{BrassState,N}, p::Float64, r::Float64) where {N}
+
+Single step of the Brass CA.
+
+The sites are updated in parallel.
+
+# Arguments:
+- `ca`: Brass CA
+- `σ`: Current state of the CA
+- `σ′`: Array to store resulting state of the CA
+- `p` and `r`: Probabilities of the model
+"""
+@inline function step_parallel!(ca::BrassCAConcrete{N}, state::Array{BrassState,N}, state′::Array{BrassState,N}, p::Float64, r::Float64) where {N}
+    # Iterate over every site
+    @inbounds Threads.@threads for i in eachindex(ca)
+        σᵢ = state[i]
+        # Get sign of the sum of nearest neighbors
+        sᵢ = sign(nearest_neighbors_sum(ca, state, i))
+        # Transition to new site state
+        state′[i] = new_site_state(σᵢ, sᵢ, p, r)
+    end
+end
+
+"""
+    step_async!(ca::BrassCAConcrete{N}, i::CartesianIndex{N}, p::Float64, r::Float64) where {N}
+
+Single *asynchronous* step of the Brass CA, updating a given site.
+
+# Arguments:
+- `ca`: Brass CA
+- `i`: site to be updated
+- `p` and `r`: Probabilities of the model
+"""
+@inline function step_async!(ca::BrassCAConcrete{N}, i::CartesianIndex{N}, p::Float64, r::Float64) where {N}
+    σᵢ = ca[i]
+    # Get sign of the sum of nearest neighbors
+    sᵢ = sign(nearest_neighbors_sum(ca, ca.state, i))
+    # Transition to new site state
+    ca[i] = new_site_state(σᵢ, sᵢ, p, r)
+end
+
+"""
+    step_async!(ca::BrassCAConcrete, p::Float64, r::Float64)
+
+Single *asynchronous* step of the Brass CA, updating a random site.
+
+# Arguments:
+- `ca`: Brass CA
+- `p` and `r`: Probabilities of the model
+"""
+@inline function step_async!(ca::BrassCAConcrete, p::Float64, r::Float64)
+    i = rand(eachindex(ca))
+    step_async!(ca, i, p, r)
+end
+
+"""
+    advance!(ca::BrassCAConcrete, p::Float64, r::Float64, n_steps::Integer = 1)
 
 Advance the state of a Brass CA `ca` *synchronously* by `n_steps` time steps.
 
 The probabilities `p` and `r` are parameters of the model.
 
-Each specific type of Brass CA `BrassCASpecific` must provide its own implementation of the `step!(ca::BrassCASpecific, state::Array{StateType}, state′::Array{StateType}, p::Float64, r::Float64)` method.
+Each specific type of Brass CA `BrassCAConcreteSpecific` must provide its own implementation of the `step!(ca::BrassCAConcreteSpecific, state::Array{StateType}, state′::Array{StateType}, p::Float64, r::Float64)` method.
 
 See also [`step!`](@ref), [`advance_and_measure!`](@ref), [`advance_parallel!`](@ref), [`advance_async!`](@ref).
 """
-function advance!(ca::BrassCA, p::Float64, r::Float64, n_steps::Integer = 1)
+function advance!(ca::BrassCAConcrete, p::Float64, r::Float64, n_steps::Integer = 1)
     @assert n_steps > 0 "Number of steps must be positive."
     # Auxiliar state
     state′ = similar(ca.state)
@@ -358,7 +588,35 @@ function advance!(ca::BrassCA, p::Float64, r::Float64, n_steps::Integer = 1)
 end
 
 """
-    advance_and_measure!(measurement::Function, ca::BrassCA, p::Float64, r::Float64, n_steps::Integer = 1)
+    advance_parallel!(ca::BrassCAConcrete, p::Float64, r::Float64, n_steps::Integer = 1)
+
+Advance the state of a Brass CA `ca` *synchronously* by `n_steps` time steps.
+
+For each time step the sites of the CA are updated in parallel.
+
+The probabilities `p` and `r` are parameters of the model.
+
+Each specific type of Brass CA `BrassCAConcreteSpecific` must provide its own implementation of the `step_parallel!(ca::BrassCAConcreteSpecific, state::Array{StateType}, state′::Array{StateType}, p::Float64, r::Float64)` method.
+
+See also [`step_parallel!`](@ref), [`advance_parallel_and_measure!`](@ref), [`advance!`](@ref), [`advance_async!`](@ref).
+"""
+function advance_parallel!(ca::BrassCAConcrete, p::Float64, r::Float64, n_steps::Integer = 1)
+    @assert n_steps > 0 "Number of steps must be positive."
+    # Auxiliar state
+    state′ = similar(ca.state)
+    # Time steps iteration
+    @inbounds for _ in 1:floor(Int, n_steps / 2)
+        step_parallel!(ca, ca.state, state′, p, r)
+        step_parallel!(ca, state′, ca.state, p, r)
+    end
+    if isodd(n_steps)
+        step_parallel!(ca, ca.state, state′, p, r)
+        ca.state = state′
+    end
+end
+
+"""
+    advance_and_measure!(measurement::Function, ca::BrassCAConcrete, p::Float64, r::Float64, n_steps::Integer = 1)
 
 Advance the state of a Brass CA `ca` *synchronously* by `n_steps` time steps and performs a measurement given by the function `measurement` after wach time step.
 
@@ -366,17 +624,17 @@ The function `measurement` must take as its sole argument the state of CA.
 
     measurement::(Array -> ResultType)
 
-Each specific type of Brass CA `BrassCASpecific` must provide its own implementation of the `step!(ca::BrassCASpecific, state::Array{StateType}, state′::Array{StateType}, p::Float64, r::Float64)` method.
+Each specific type of Brass CA `BrassCAConcreteSpecific` must provide its own implementation of the `step!(ca::BrassCAConcreteSpecific, state::Array{StateType}, state′::Array{StateType}, p::Float64, r::Float64)` method.
 
 # Returns:
 - `results::Vector{ResultType}`: Vector containing the mearurements results
 
 See also [`step!`](@ref), [`advance!`](@ref), [`advance_parallel_and_measure!`](@ref), [`advance_async_and_measure!`](@ref).
 """
-function advance_and_measure!(measurement::Function, ca::BrassCA, p::Float64, r::Float64, n_steps::Integer = 1)
+function advance_and_measure!(measurement::Function, ca::BrassCAConcrete{N}, p::Float64, r::Float64, n_steps::Integer = 1) where {N}
     @assert n_steps > 0 "Number of steps must be positive."
     # Measurement results
-    ResultType = Base.return_types(measurement, (typeof(ca.state),))[1]
+    ResultType = Base.return_types(measurement, (Array{BrassState,N},))[1]
     results = Array{ResultType}(undef, n_steps + 1)
     # First measurement
     results[1] = measurement(ca.state)
@@ -398,35 +656,7 @@ function advance_and_measure!(measurement::Function, ca::BrassCA, p::Float64, r:
 end
 
 """
-    advance_parallel!(ca::BrassCA, p::Float64, r::Float64, n_steps::Integer = 1)
-
-Advance the state of a Brass CA `ca` *synchronously* by `n_steps` time steps.
-
-For each time step the sites of the CA are updated in parallel.
-
-The probabilities `p` and `r` are parameters of the model.
-
-Each specific type of Brass CA `BrassCASpecific` must provide its own implementation of the `step_parallel!(ca::BrassCASpecific, state::Array{StateType}, state′::Array{StateType}, p::Float64, r::Float64)` method.
-
-See also [`step_parallel!`](@ref), [`advance_parallel_and_measure!`](@ref), [`advance!`](@ref), [`advance_async!`](@ref).
-"""
-function advance_parallel!(ca::BrassCA, p::Float64, r::Float64, n_steps::Integer = 1)
-    @assert n_steps > 0 "Number of steps must be positive."
-    # Auxiliar state
-    state′ = similar(ca.state)
-    # Time steps iteration
-    @inbounds for _ in 1:floor(Int, n_steps / 2)
-        step_parallel!(ca, ca.state, state′, p, r)
-        step_parallel!(ca, state′, ca.state, p, r)
-    end
-    if isodd(n_steps)
-        step_parallel!(ca, ca.state, state′, p, r)
-        ca.state = state′
-    end
-end
-
-"""
-    advance_parallel_and_measure!(measurement::Function, ca::BrassCA, p::Float64, r::Float64, n_steps::Integer = 1)
+    advance_parallel_and_measure!(measurement::Function, ca::BrassCAConcrete, p::Float64, r::Float64, n_steps::Integer = 1)
 
 Advance the state of a Brass CA `ca` *synchronously* by `n_steps` time steps and performs a measurement given by the function `measurement` after wach time step.
 
@@ -436,17 +666,17 @@ The function `measurement` must take as its sole argument the state of CA.
 
     measurement::(Array -> ResultType)
 
-Each specific type of Brass CA `BrassCASpecific` must provide its own implementation of the `step_parallel!(ca::BrassCASpecific, state::Array{StateType}, state′::Array{StateType}, p::Float64, r::Float64)` method.
+Each specific type of Brass CA `BrassCAConcreteSpecific` must provide its own implementation of the `step_parallel!(ca::BrassCAConcreteSpecific, state::Array{StateType}, state′::Array{StateType}, p::Float64, r::Float64)` method.
 
 # Returns:
 - `results::Vector{ResultType}`: Vector containing the mearurements results
 
 See also [`step_parallel!`](@ref), [`advance_parallel!`](@ref), [`advance_and_measure!`](@ref), [`advance_async_and_measure!`](@ref).
 """
-function advance_parallel_and_measure!(measurement::Function, ca::BrassCA, p::Float64, r::Float64, n_steps::Integer = 1)
+function advance_parallel_and_measure!(measurement::Function, ca::BrassCAConcrete{N}, p::Float64, r::Float64, n_steps::Integer = 1) where {N}
     @assert n_steps > 0 "Number of steps must be positive."
     # Measurement results
-    ResultType = Base.return_types(measurement, (typeof(ca.state),))[1]
+    ResultType = Base.return_types(measurement, (Array{BrassState,N},))[1]
     results = Array{ResultType}(undef, n_steps + 1)
     # First measurement
     results[1] = measurement(ca.state)
@@ -468,17 +698,17 @@ function advance_parallel_and_measure!(measurement::Function, ca::BrassCA, p::Fl
 end
 
 """
-    advance_async!(ca::BrassCA, p::Float64, r::Float64, n_steps::Integer = 1)
+    advance_async!(ca::BrassCAConcrete, p::Float64, r::Float64, n_steps::Integer = 1)
 
 Advance the state of a Brass CA `ca` *asynchronously* by `n_steps` time steps.
 
 The probabilities `p` and `r` are parameters of the model.
 
-Each specific type of Brass CA `BrassCASpecific` must provide its own implementation of the `step_async!(ca::BrassCASpecific, p::Float64, r::Float64)` method.
+Each specific type of Brass CA `BrassCAConcreteSpecific` must provide its own implementation of the `step_async!(ca::BrassCAConcreteSpecific, p::Float64, r::Float64)` method.
 
 See also [`step_async!`](@ref), [`advance!`](@ref), [`advance_parallel!`](@ref), [`advance_async_and_measure!`](@ref).
 """
-function advance_async!(ca::BrassCA, p::Float64, r::Float64, n_steps::Integer = 1)
+function advance_async!(ca::BrassCAConcrete, p::Float64, r::Float64, n_steps::Integer = 1)
     @assert n_steps > 0 "Number of steps must be positive."
     # Time steps iteration
     @inbounds for _ in 1:n_steps
@@ -487,7 +717,7 @@ function advance_async!(ca::BrassCA, p::Float64, r::Float64, n_steps::Integer = 
 end
 
 """
-    advance_async_and_measure!(measurement::Function, ca::BrassCA, p::Float64, r::Float64, n_steps::Integer = 1)
+    advance_async_and_measure!(measurement::Function, ca::BrassCAConcrete, p::Float64, r::Float64, n_steps::Integer = 1)
 
 Advance the state of a Brass CA `ca` *asynchronously* by `n_steps` time steps and performs a measurement given by the function `measurement` after wach time step.
 
@@ -495,17 +725,17 @@ The function `measurement` must take as its sole argument the state of CA.
 
     measurement::(Array -> ResultType)
 
-Each specific type of Brass CA `BrassCASpecific` must provide its own implementation of the `step_async!(ca::BrassCASpecific, p::Float64, r::Float64)` method.
+Each specific type of Brass CA `BrassCAConcreteSpecific` must provide its own implementation of the `step_async!(ca::BrassCAConcreteSpecific, p::Float64, r::Float64)` method.
 
 # Returns:
 - `results::Vector{ResultType}`: Vector containing the mearurements results
 
 See also [`step_async!`](@ref), [`advance_async!`](@ref), [`advance_and_measure!`](@ref), [`advance_parallel_and_measure!`](@ref).
 """
-function advance_async_and_measure!(measurement::Function, ca::BrassCA, p::Float64, r::Float64, n_steps::Integer = 1)
+function advance_async_and_measure!(measurement::Function, ca::BrassCAConcrete{N}, p::Float64, r::Float64, n_steps::Integer = 1) where {N}
     @assert n_steps > 0 "Number of steps must be positive."
     # Measurement results
-    ResultType = Base.return_types(measurement, (typeof(ca.state),))[1]
+    ResultType = Base.return_types(measurement, (Array{BrassState,N},))[1]
     results = Array{ResultType}(undef, n_steps + 1)
     # First measurement
     results[1] = measurement(ca.state)
@@ -518,342 +748,153 @@ function advance_async_and_measure!(measurement::Function, ca::BrassCA, p::Float
 end
 
 """
-    BrassCAMeanField
+    BrassCASquareLattice{N} <: BrassCAConcrete{N}
 
-Brass CA with mean field interaction:
-Every site interacts with every other site.
-
-# Fields:
-- `state::Vector{StateType}`: State of the CA
-"""
-mutable struct BrassCAMeanField <: BrassCA
-
-    "State of the CA"
-    state::Vector{StateType}
-
-    @doc raw"""
-        BrassCAMeanField(N::Integer, σ₀::BrassState)
-
-    Construct a Brass CA with mean field interaction with `N` sites and a given initial state `σ₀`.
-    """
-    BrassCAMeanField(N::Integer, σ₀::BrassState) = new(fill(Integer(σ₀), N))
-
-    @doc raw"""
-        BrassCAMeanField(N::Integer, ::Val{:rand})
-
-    Construct a Brass CA with mean field interaction with `N` sites at a random initial state `σ ∈ BrassState`.
-    """
-    BrassCAMeanField(N::Integer, ::Val{:rand}) = new(rand(Integer.(instances(BrassState)), N))
-
-    @doc raw"""
-        BrassCAMeanField(N::Integer, (::Val{0} || ::Val{+1} || ::Val{-1}))
-
-    Construct a Brass CA with mean field interaction with `N` sites and a given initial state.
-    """
-    BrassCAMeanField(N::Integer, s::StateVals) = new(fill(StateType(extract_val(s)), N))
-end
-
-@doc raw"""
-    mean_field_nn_sum(state::Array, i::Integer)
-
-Brass CA mean field sum of nearest neighbors of site `i` given a state `state`.
-
-That is, the sum of every site in the CA except site `i`:
-
-``sᵢ = ∑_{k≠i} σₖ``
-
-"""
-@inline function mean_field_nn_sum(state::Array, i::Integer)
-    N = length(state)
-    sum(state[k] for ks in (1:(i-1), (i+1):N) for k in ks)
-end
-
-"""
-Single step of the Brass CA mean field.
-
-# Arguments:
-- `ca`: Brass CA mean field
-- `state`: Current state of the CA
-- `state′`: Array to store resulting state of the CA
-- `p` and `r`: Probabilities of the model
-"""
-@inline function step!(ca::BrassCAMeanField, state::Vector, state′::Vector, p::Float64, r::Float64)
-    # Iterate over every site
-    @inbounds for i in eachindex(ca.state)
-        σᵢ = state[i]
-        sᵢ = sign(mean_field_nn_sum(state, i))
-        state′[i] = new_site_state(σᵢ, sᵢ, p, r)
-    end
-end
-
-"""
-Single step of the Brass CA mean field.
-
-# Arguments:
-- `ca`: Brass CA mean field
-- `state`: Current state of the CA
-- `state′`: Array to store resulting state of the CA
-- `p` and `r`: Probabilities of the model
-"""
-@inline function step_parallel!(ca::BrassCAMeanField, state::Vector, state′::Vector, p::Float64, r::Float64)
-    # Iterate over every site
-    @inbounds Threads.@threads for i in eachindex(ca.state)
-        σᵢ = state[i]
-        sᵢ = sign(mean_field_nn_sum(state, i))
-        state′[i] = new_site_state(σᵢ, sᵢ, p, r)
-    end
-end
-
-"""
-Single *asynchronous* step of the Brass CA mean field, updating a given site.
-
-# Arguments:
-- `ca`: Brass CA mean field
-- `i`: site to be updated
-- `p` and `r`: Probabilities of the model
-"""
-@inline function step_async!(ca::BrassCAMeanField, i::Integer, p::Float64, r::Float64)
-    σᵢ = ca.state[i]
-    # Get sign of the sum of nearest neighbors
-    sᵢ = sign(mean_field_nn_sum(ca.state, i))
-    # Transition to new site state
-    ca.state[i] = new_site_state(σᵢ, sᵢ, p, r)
-end
-
-"""
-Single *asynchronous* step of the Brass CA mean field, updating a random site.
-
-# Arguments:
-- `ca`: Brass CA mean field
-- `p` and `r`: Probabilities of the model
-"""
-@inline function step_async!(ca::BrassCAMeanField, p::Float64, r::Float64)
-    i = rand(1:length(ca))
-    step_async!(ca, i, p, r)
-end
-
-"""
-    BrassCASquareLattice
-
-Brass CA on a periodic multidimensional square lattice.
+Brass cellular automaton on a periodic `N`-dimensional square lattice.
 
 # Fields:
-- `σ::Array{StateType}`: State of the CA
+- `σ::Array{BrassState}`: State of the CA
 """
-mutable struct BrassCASquareLattice{N} <: BrassCA
+mutable struct BrassCASquareLattice{N} <: BrassCAConcrete{N}
 
     "State of the CA"
-    σ::Array{StateType,N}
+    σ::Array{BrassState,N}
+
+    @doc raw"""
+        BrassCASquareLattice(state::Array{BrassState,N}) where {N}
+
+    Costruct a Brass CA with a given initial state `state`.
+    """
+    BrassCASquareLattice(state::Array{BrassState,N}) where {N} = new{N}(state)
+
+    @doc raw"""
+        BrassCASquareLattice(size::NTuple{N,Integer}, σ₀::BrassState) where {N}
+
+    Construct a Brass CA with dimensions `size` and random initial state `σ₀`.
+    """
+    BrassCASquareLattice(size::NTuple{N,Integer}, σ₀::BrassState) where {N} = new{N}(fill(σ₀, size))
 
     @doc raw"""
         BrassCASquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N}
 
-    Construct Brass CA with dimensions `size` and random initial state
+    Construct a Brass CA with dimensions `size` and random initial state.
     """
-    BrassCASquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N} = new{N}(rand(StateType[0, +1, -1], size))
+    BrassCASquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N} = new{N}(rand(instances(BrassState), size))
+
+    @doc raw"""
+        BrassCASquareLattice(::Val{N}, L::Integer, σ₀::BrassState) where {N}
+
+    Construct a `dim`-dimensional square Brass CA of side length `L` and a given initial state `σ₀`.
+    """
+    BrassCASquareLattice(::Val{N}, L::Integer, σ₀::BrassState) where {N} = BrassCASquareLattice{N}(ntuple(_ -> L, Val(N)), σ₀)
 
     @doc raw"""
         BrassCASquareLattice(::Val{N}, L::Integer, ::Val{:rand}) where {N}
 
-    Construct a `dim`-dimensional square Brass CA of side length `L` and random initial state
+    Construct a `dim`-dimensional square Brass CA of side length `L` and random initial state.
     """
-    BrassCASquareLattice(::Val{N}, L::Integer, ::Val{:rand}) where {N} = BrassCASquareLattice(ntuple(_ -> L, Val(N)), Val(:rand))
-
-    @doc raw"""
-        BrassCASquareLattice(size::NTuple{N,Integer}, (::Val{0} || ::Val{+1} || ::Val{-1})) where {N}
-
-    Construct Brass CA with dimensions `size` and a given initial state.
-    """
-    BrassCASquareLattice(size::NTuple{N,Integer}, s::StateVals) where {N} = new{N}(fill(StateType(extract_val(s)), size))
-
-    @doc raw"""
-        BrassCASquareLattice(::Val{N}, L::Integer, σ₀::StateType) where {N}
-
-    Construct a `dim`-dimensional square Brass CA of side length `L` and a given initial state.
-    """
-    BrassCASquareLattice(::Val{N}, L::Integer, s::StateVals) where {N} = BrassCASquareLattice(ntuple(_ -> L, Val(N)), s)
+    BrassCASquareLattice(::Val{N}, L::Integer, ::Val{:rand}) where {N} = BrassCASquareLattice{N}(ntuple(_ -> L, Val(N)), Val(:rand))
 
 end
 
 """
-Generated function for calculating the sum of nearest neighbors of a given site in a periodic multidimensional square lattice.
+    nearest_neighbors_sum(ca::BrassCASquareLattice{N}, state::Array{BrassState,N}, idx::CartesianIndex{N}) where {N}
+
+Sum of the states of the nearest neighbors of a given site at `idx` of a Brass cellular automaton `ca` with state `state` on a periodic `N`-dimensional square lattice.
 
 # Arguments:
-- `σ`: State of the lattice
+- `state`: State of the Brass CA
 - `idx`: Cartesian index of the chosen site
-
-# Returns:
-- Function that calculates the sum of the nearest neighbors of `idx`
 """
-@inline square_lattice_nn_sum(σ::Array{T,N}, idx::CartesianIndex{N}) where {T,N} = @inbounds Geometry.square_lattice_nearest_neighbors_sum(σ, idx)
-
-"""
-Single step of the Brass CA on a square lattice.
-
-# Arguments:
-- `ca`: Brass CA on a square lattice
-- `σ`: Current state of the CA
-- `σ′`: Array to store resulting state of the CA
-- `p` and `r`: Probabilities of the model
-"""
-@inline function step!(ca::BrassCASquareLattice, σ::Array, σ′::Array, p::Float64, r::Float64)
-    # Iterate over every site
-    for i in eachindex(ca.state)
-        σᵢ = σ[i]
-        # Get sign of the sum of nearest neighbors
-        sᵢ = sign(square_lattice_nn_sum(σ, i))
-        # Transition to new site state
-        σ′[i] = new_site_state(σᵢ, sᵢ, p, r)
-    end
-end
-
-"""
-Single step of the Brass CA on a square lattice.
-
-# Arguments:
-- `ca`: Brass CA on a square lattice
-- `σ`: Current state of the CA
-- `σ′`: Array to store resulting state of the CA
-- `p` and `r`: Probabilities of the model
-"""
-@inline function step_parallel!(ca::BrassCASquareLattice, σ::Array, σ′::Array, p::Float64, r::Float64)
-    # Iterate over every site
-    @inbounds Threads.@threads for i in eachindex(ca.state)
-        σᵢ = σ[i]
-        # Get sign of the sum of nearest neighbors
-        sᵢ = sign(square_lattice_nn_sum(σ, i))
-        # Transition to new site state
-        σ′[i] = new_site_state(σᵢ, sᵢ, p, r)
-    end
-end
-
-"""
-Single *asynchronous* step of the Brass CA on a square lattice, updating a given site.
-
-# Arguments:
-- `ca`: Brass CA on a square lattice
-- `i`: site to be updated
-- `p` and `r`: Probabilities of the model
-"""
-@inline function step_async!(ca::BrassCASquareLattice, i::CartesianIndex{dim}, p::Float64, r::Float64) where {dim}
-    σᵢ = ca.state[i]
-    # Get sign of the sum of nearest neighbors
-    sᵢ = sign(square_lattice_nn_sum(ca.state, i))
-    # Transition to new site state
-    ca.state[i] = new_site_state(σᵢ, sᵢ, p, r)
-end
-
-"""
-Single *asynchronous* step of the Brass CA on a square lattice, updating a random site.
-
-# Arguments:
-- `ca`: Brass CA on a square lattice
-- `p` and `r`: Probabilities of the model
-"""
-@inline function step_async!(ca::BrassCASquareLattice, p::Float64, r::Float64)
-    i = rand(CartesianIndices(ca.state))
-    step_async!(ca, i, p, r)
-end
+@inline nearest_neighbors_sum(ca::BrassCASquareLattice{N}, state::Array{BrassState,N}, idx::CartesianIndex{N}) where {N} = @inbounds Geometry.square_lattice_nearest_neighbors_sum(state, idx)
 
 """
 Brass CA on an abitrary graph `g` with states of each node stored in the vector `state`
 """
-mutable struct BrassCAGraph <: BrassCA
+mutable struct BrassCAGraph <: BrassCAConcrete{1}
 
     "Graph structure"
     g::Graph
 
     "State at each node"
-    state::Vector{StateType}
-
-    """
-        BrassCAGraph(g::Graph, ::Val{:rand})
-
-    Construct a new Brass CA with graph structure `g` and random initial states at each node.
-    """
-    BrassCAGraph(g::Graph, ::Val{:rand}) = new(g, rand(Integer.(instances(BrassState)), nv(g)))
+    state::Vector{BrassState}
 
     """
         BrassCAGraph(g::Graph, σ::BrassState)
 
     Construct a new Brass CA with graph structure `g` and a given initial state `σ` for all sites.
     """
-    BrassCAGraph(g::Graph, σ::BrassState) = new(g, fill(Integer(σ), nv(g)))
+    BrassCAGraph(g::Graph, σ::BrassState) = new(g, fill(σ, nv(g)))
 
     """
-        BrassCAGraph(g::Graph, (::Val{0} || ::Val{+1} || ::Val{-1}))
+        BrassCAGraph(g::Graph, ::Val{:rand})
 
-    Construct a new Brass CA with graph structure `g` and a given initial state for all sites.
+    Construct a new Brass CA with graph structure `g` and random initial states at each node.
     """
-    BrassCAGraph(g::Graph, σ::StateVals) = new(g, fill(StateType(extract_val(σ)), nv(g)))
+    BrassCAGraph(g::Graph, ::Val{:rand}) = new(g, rand(instances(BrassState), nv(g)))
 end
-
 """
-Single step of the Brass CA on an arbitrary graph.
+    nearest_neighbors_sum(state::Vector{BrassState,N}, idx::CartesianIndex{N}) where {N}
+
+Sum of the states of the nearest neighbors of a given site at `idx` of a Brass cellular automaton with state `state` on a periodic `N`-dimensional square lattice.
 
 # Arguments:
-- `ca`: Brass CA on an arbitrary graph
-- `state`: Current state of the CA
-- `state′`: Array to store resulting state of the CA
-- `p` and `r`: Probabilities of the model
+- `state`: State of the Brass CA
+- `idx`: Cartesian index of the chosen site
 """
-@inline function step!(ca::BrassCAGraph, state::Vector{StateType}, state′::Vector{StateType}, p::Float64, r::Float64)
-    # Iterate over every site
-    for i in 1:nv(ca.g)
-        σᵢ = state[i]
-        # Get sign of the sum of nearest neighbors
-        sᵢ = sign(sum(state[neighbors(ca.g, i)]))
-        # Transition to new site state
-        state′[i] = new_site_state(σᵢ, sᵢ, p, r)
-    end
-end
+@inline nearest_neighbors_sum(ca::BrassCAGraph, state::Vector{BrassState}, i::Integer) = @inbounds sum(Integer, state[nn] for nn ∈ neighbors(ca.g, i))
 
 """
-Single step of the Brass CA on an arbitrary graph.
+    BrassCA
 
-# Arguments:
-- `ca`: Brass CA on an arbitrary graph
-- `state`: Current state of the CA
-- `state′`: Array to store resulting state of the CA
-- `p` and `r`: Probabilities of the model
+Supertype for all Brass cellular automata.
 """
-@inline function step_parallel!(ca::BrassCAGraph, state::Vector{Int}, state′::Vector{Int}, p::Float64, r::Float64)
-    # Iterate over every site
-    @inbounds Threads.@threads for i in 1:nv(ca.g)
-        σᵢ = state[i]
-        # Get sign of the sum of nearest neighbors
-        sᵢ = sign(sum(state[neighbors(ca.g, i)]))
-        # Transition to new site state
-        state′[i] = new_site_state(σᵢ, sᵢ, p, r)
-    end
-end
+BrassCA = Union{BrassCAConcrete,BrassCAMeanField}
 
-"""
-Single *asynchronous* step of the Brass CA on a square lattice, updating a given site.
+@doc raw"""
+    state_concentration(ca::BassCA)
 
-# Arguments:
-- `ca`: Brass CA on a square lattice
-- `i`: site to be updated
-- `p` and `r`: Probabilities of the model
-"""
-@inline function step_async!(ca::BrassCAGraph, i::Integer, p::Float64, r::Float64)
-    σᵢ = ca.state[i]
-    # Get sign of the sum of nearest neighbors
-    sᵢ = sign(sum(ca.state[neighbors(ca.g, i)]))
-    # Transition to new site state
-    ca.state[i] = new_site_state(σᵢ, sᵢ, p, r)
-end
+Concentration of each type cell on given Brass CA state `state`.
 
-"""
-Single *asynchronous* step of the Brass CA on a square lattice, updating a random site.
+``cᵢ = Nᵢ/N``
 
-# Arguments:
-- `ca`: Brass CA on a square lattice
-- `p` and `r`: Probabilities of the model
+# Returns:
+- `(c₀,c₁,c₂)::NTuple{3,Float64}`, where:
+    - `c₀`: TH0 cell concentration
+    - `c₁`: TH1 cell concentration
+    - `c₂`: TH2 cell concentration
+
+See also: [`state_count`](@ref).
 """
-@inline function step_async!(ca::BrassCAGraph, p::Float64, r::Float64)
-    i = rand(1:length(ca))
-    step_async!(ca, i, p, r)
-end
+@inline state_concentration(ca::BrassCA) = state_count(ca) ./ length(ca)
+
+@doc raw"""
+    magnet_total_local(brass::BrassCA, i::Integer, σᵢ′::BrassState)
+
+Change in local magnetization of an Brass f the `i`-th were to be changed to `σᵢ′`.
+"""
+@inline magnet_total_local(ca::BrassCA, i::Integer, σᵢ′::BrassState) = Integer(σᵢ′) - Integer(ca[i])
+
+@doc raw"""
+    magnet(ca::BrassCA)
+
+Magnetization per site of a Brass CA `ca`.
+
+``m = M / N = ∑ᵢ σᵢ / N``
+
+See also: [`magnet_total`](@ref), [`magnet_moment`](@ref).
+"""
+@inline magnet(ca::BrassCA) = magnet_total(ca) / length(ca)
+
+@doc raw"""
+    magnet_moment(ca::BrassCA, k::integer)
+
+Calculates the k-th momentum of the magnetization of a brass CA `ca`.
+
+``mᵏ = 1/nᵏ (∑ᵢ σᵢ)ᵏ``
+
+See also: [`magnet`](@ref), [`magnet_total`](@ref).
+"""
+@inline magnet_moment(ca::BrassCA, k::Integer) = magnet(ca)^k
 
 end
