@@ -109,11 +109,6 @@ Since `({0, +1, -1}, *)` have a monoid structure, it is safe to define multiplic
 @inline Base.:*(σ₁::BrassState, σ₂::BrassState) = Integer(σ₁) * Integer(σ₂)
 
 function Base.show(io::IO, ::MIME"text/plain", σ::BrassState)
-    # brass_str = @match σ begin
-    #     TH0 => "TH0"
-    #     TH1 => "TH1"
-    #     _ => "TH2"
-    # end
     brass_str = σ == TH0 ? "TH0" : σ == TH1 ? "TH1" : "TH2"
     print(io, brass_str)
 end
@@ -167,11 +162,6 @@ See also [`cumulative_transition_probabilities`](@ref).
 @inline function new_site_state(σᵢ::BrassState, sᵢ::Integer, p::Float64, r::Float64)
     W₀, W₁ = cumulative_transition_probabilities(σᵢ, sᵢ, p, r)
     tirage = rand()
-    # σᵢ′ = @match tirage begin
-    #     tirage < W₀ => TH0
-    #     tirage < W₁ => TH1
-    #     _ => TH2
-    # end
     σᵢ′ = tirage < W₀ ? TH0 : tirage < W₁ ? TH1 : TH2
     return σᵢ′
 end
@@ -216,11 +206,6 @@ mutable struct BrassCAMeanField <: AbstractVector{BrassState}
     Construct an Brass system with mean field interaction with `N` spins, all in a given initial state `σ₀`.
     """
     function BrassCAMeanField(N::Integer, σ₀::BrassState)
-        # @match σ₀ begin
-        #     TH0 => return BrassCAMeanField(TH0 = N)
-        #     TH1 => return BrassCAMeanField(TH1 = N)
-        #     TH2 => return BrassCAMeanField(TH2 = N)
-        # end
         if σ₀ == TH0
             return BrassCAMeanField(TH0 = N)
         elseif σ₀ == TH1
@@ -276,13 +261,6 @@ Get the state of the `i`-th spin in the Brass system with mean field interaction
 @inline function Base.getindex(ca::BrassCAMeanField, i::Integer)
     N₀ = ca.state.TH0
     N′ = N₀ + ca.state.TH1
-    # σ = @match i begin
-    #     if i <= N₀
-    #     end => TH0
-    #     if i <= N′
-    #     end => TH1
-    #     _ => TH2
-    # end
     σ = i <= N₀ ? TH0 : i <= N′ ? TH1 : TH2
     return σ
 end
@@ -296,23 +274,6 @@ Set the state of the `i`-th spin to `σ` in the Brass system with mean field int
     N₀ = ca.state.TH0
     N₁ = ca.state.TH1
     N₂ = ca.state.TH2
-    # ca.state = @match ca[i] begin
-    #     TH0 => @match σ begin
-    #         TH0 => (TH0 = N₀, TH1 = N₁, TH2 = N₂)
-    #         TH1 => (TH0 = N₀ - 1, TH1 = N₁ + 1, TH2 = N₂)
-    #         TH2 => (TH0 = N₀ - 1, TH1 = N₁, TH2 = N₂ + 1)
-    #     end
-    #     TH1 => @match σ begin
-    #         TH0 => (TH0 = N₀ + 1, TH1 = N₁ - 1, TH2 = N₂)
-    #         TH1 => (TH0 = N₀, TH1 = N₁, TH2 = N₂)
-    #         TH2 => (TH0 = N₀, TH1 = N₁ - 1, TH2 = N₂ + 1)
-    #     end
-    #     TH2 => @match σ begin
-    #         TH0 => (TH0 = N₀ + 1, TH1 = N₁, TH2 = N₂ - 1)
-    #         TH1 => (TH0 = N₀, TH1 = N₁ + 1, TH2 = N₂ - 1)
-    #         TH2 => (TH0 = N₀, TH1 = N₁, TH2 = N₂)
-    #     end
-    # end
     ca.state = if ca[i] == TH0
         if σ == TH1
             (TH0 = N₀ - 1, TH1 = N₁ + 1, TH2 = N₂)
@@ -355,11 +316,6 @@ Set the state of all sites of a Brass CA `ca` to a given site state `σ₀`.
 """
 @inline function set_state!(ca::BrassCAMeanField, σ₀::BrassState)
     N = length(ca)
-    # ca.state = @match σ₀ begin
-    #     TH0 => (TH0 = N, TH1 = 0, TH2 = 0)
-    #     TH1 => (TH0 = 0, TH1 = N, TH2 = 0)
-    #     TH2 => (TH0 = 0, TH1 = 0, TH2 = N)
-    # end
     ca.state = if σ₀ == TH0
         (TH0 = N, TH1 = 0, TH2 = 0)
     elseif σ₀ == TH1
@@ -502,19 +458,20 @@ Count each type cell on given Brass CA `ca`.
 
 See also: [`state_concentration`](@ref).
 """
-@inline function state_count(ca::BrassCAConcrete)
+@inline function state_count(state::Array{BrassState})
     # Total number of sites
-    N = length(ca)
+    N = length(state)
     # Total magnetization
-    M = magnet_total(ca)
+    M = magnet_total(state)
     # Calculate N₁
-    N₁ = count(==(TH1), ca)
+    N₁ = count(==(TH1), state)
     # Calculate remaining values
     N₀ = N + M - 2 * N₁
     N₂ = N₁ - M
     # Return tuple
     return (N₀, N₁, N₂)
 end
+@inline state_count(ca::BrassCAConcrete) = state_count(ca.state)
 
 @doc raw"""
     magnet_total(ca::BrassCAConcrete)
@@ -527,7 +484,8 @@ The total magnetization is defined as the sum of all site states:
 
 See also: [`magnet`](@ref), [`magnet_moment`](@ref).
 """
-@inline magnet_total(ca::BrassCAConcrete) = @inbounds sum(Integer, ca)
+@inline magnet_total(state::Array{BrassState}) = @inbounds sum(Integer, state)
+@inline magnet_total(ca::BrassCAConcrete) = magnet_total(ca.state)
 
 """
      step!(ca::BrassCAConcrete{N}, state::Array{BrassState,N}, state′::Array{BrassState,N}, p::Float64, r::Float64) where {N}
