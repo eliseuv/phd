@@ -21,18 +21,16 @@ println("Running $(length(parameters_list)) simulations.")
 
 for params in parameters_list
 
-    display(params)
+    println(params)
 
     ca = BrassCASquareLattice(Val(2), params[:L], TH1)
     M_ts = magnet_ts_matrix!(ca, params[:p], params[:r], params[:n_steps], params[:n_samples])
-
-    display(M_ts)
 
     data = Dict{Symbol,Any}()
     merge!(data, params)
     data[:M_ts] = M_ts
 
-    filename = savename("BrassCA2DMagnetTSMatrix", params)
+    filename = savename("BrassCA2DMagnetTSMatrix", params, "jld2")
     println(filename)
     @tagsave filename data
 end
