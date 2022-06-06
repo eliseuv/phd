@@ -61,7 +61,7 @@ export BrassState, TH0, TH1, TH2,
     advance_parallel!, advance_parallel_and_measure!,
     advance_async!, advance_async_and_measure!
 
-using Statistics, Random, Graphs, Match
+using Statistics, Random, Graphs
 
 include("Metaprogramming.jl")
 include("Geometry.jl")
@@ -109,11 +109,12 @@ Since `({0, +1, -1}, *)` have a monoid structure, it is safe to define multiplic
 @inline Base.:*(σ₁::BrassState, σ₂::BrassState) = Integer(σ₁) * Integer(σ₂)
 
 function Base.show(io::IO, ::MIME"text/plain", σ::BrassState)
-    brass_str = @match σ begin
-        TH0 => "TH0"
-        TH1 => "TH1"
-        _ => "TH2"
-    end
+    # brass_str = @match σ begin
+    #     TH0 => "TH0"
+    #     TH1 => "TH1"
+    #     _ => "TH2"
+    # end
+    brass_str = σ == TH0 ? "TH0" : σ == TH1 ? "TH1" : "TH2"
     print(io, brass_str)
 end
 
@@ -166,11 +167,12 @@ See also [`cumulative_transition_probabilities`](@ref).
 @inline function new_site_state(σᵢ::BrassState, sᵢ::Integer, p::Float64, r::Float64)
     W₀, W₁ = cumulative_transition_probabilities(σᵢ, sᵢ, p, r)
     tirage = rand()
-    σᵢ′ = @match tirage begin
-        tirage < W₀ => TH0
-        tirage < W₁ => TH1
-        _ => TH2
-    end
+    # σᵢ′ = @match tirage begin
+    #     tirage < W₀ => TH0
+    #     tirage < W₁ => TH1
+    #     _ => TH2
+    # end
+    σᵢ′ = tirage < W₀ ? TH0 : tirage < W₁ ? TH1 : TH2
     return σᵢ′
 end
 
@@ -214,10 +216,17 @@ mutable struct BrassCAMeanField <: AbstractVector{BrassState}
     Construct an Brass system with mean field interaction with `N` spins, all in a given initial state `σ₀`.
     """
     function BrassCAMeanField(N::Integer, σ₀::BrassState)
-        @match σ₀ begin
-            TH0 => return BrassCAMeanField(TH0 = N)
-            TH1 => return BrassCAMeanField(TH1 = N)
-            TH2 => return BrassCAMeanField(TH2 = N)
+        # @match σ₀ begin
+        #     TH0 => return BrassCAMeanField(TH0 = N)
+        #     TH1 => return BrassCAMeanField(TH1 = N)
+        #     TH2 => return BrassCAMeanField(TH2 = N)
+        # end
+        if σ₀ == TH0
+            return BrassCAMeanField(TH0 = N)
+        elseif σ₀ == TH1
+            return BrassCAMeanField(TH1 = N)
+        else
+            return BrassCAMeanField(TH2 = N)
         end
     end
 
@@ -234,12 +243,23 @@ mutable struct BrassCAMeanField <: AbstractVector{BrassState}
     end
 end
 
+"""
+    show(io::IO, ::MIME"text/plain", ca::BrassCAMeanField)
+
+Plain text representation of Bass cellular autamaton with mean field interaction.
+"""
+function Base.show(io::IO, ::MIME"text/plain", ca::BrassCAMeanField)
+    print(io, ca.state)
+end
+
 @doc raw"""
     length(ca::BrassCAMeanField)
 
 Total number of spins (`N`) in an Brass system with mean field interaction `ca`.
 """
 Base.length(ca::BrassCAMeanField) = sum(ca.state)
+
+Base.size(ca::BrassCAMeanField) = (length(ca),)
 
 @doc raw"""
     IndexStyle(::BrassCAMeanField)
@@ -256,11 +276,14 @@ Get the state of the `i`-th spin in the Brass system with mean field interaction
 @inline function Base.getindex(ca::BrassCAMeanField, i::Integer)
     N₀ = ca.state.TH0
     N′ = N₀ + ca.state.TH1
-    σ = @match i begin
-        i <= N₀ => TH0
-        i <= N′ => TH1
-        _ => TH2
-    end
+    # σ = @match i begin
+    #     if i <= N₀
+    #     end => TH0
+    #     if i <= N′
+    #     end => TH1
+    #     _ => TH2
+    # end
+    σ = i <= N₀ ? TH0 : i <= N′ ? TH1 : TH2
     return σ
 end
 
@@ -273,21 +296,40 @@ Set the state of the `i`-th spin to `σ` in the Brass system with mean field int
     N₀ = ca.state.TH0
     N₁ = ca.state.TH1
     N₂ = ca.state.TH2
-    ca.state = @match ca[i] begin
-        TH0 => @match σ begin
-            TH0 => (TH0 = N₀, TH1 = N₁, TH2 = N₂)
-            TH1 => (TH0 = N₀ - 1, TH1 = N₁ + 1, TH2 = N₂)
-            TH2 => (TH0 = N₀ - 1, TH1 = N₁, TH2 = N₂ + 1)
+    # ca.state = @match ca[i] begin
+    #     TH0 => @match σ begin
+    #         TH0 => (TH0 = N₀, TH1 = N₁, TH2 = N₂)
+    #         TH1 => (TH0 = N₀ - 1, TH1 = N₁ + 1, TH2 = N₂)
+    #         TH2 => (TH0 = N₀ - 1, TH1 = N₁, TH2 = N₂ + 1)
+    #     end
+    #     TH1 => @match σ begin
+    #         TH0 => (TH0 = N₀ + 1, TH1 = N₁ - 1, TH2 = N₂)
+    #         TH1 => (TH0 = N₀, TH1 = N₁, TH2 = N₂)
+    #         TH2 => (TH0 = N₀, TH1 = N₁ - 1, TH2 = N₂ + 1)
+    #     end
+    #     TH2 => @match σ begin
+    #         TH0 => (TH0 = N₀ + 1, TH1 = N₁, TH2 = N₂ - 1)
+    #         TH1 => (TH0 = N₀, TH1 = N₁ + 1, TH2 = N₂ - 1)
+    #         TH2 => (TH0 = N₀, TH1 = N₁, TH2 = N₂)
+    #     end
+    # end
+    ca.state = if ca[i] == TH0
+        if σ == TH1
+            (TH0 = N₀ - 1, TH1 = N₁ + 1, TH2 = N₂)
+        elseif σ == TH2
+            (TH0 = N₀ - 1, TH1 = N₁, TH2 = N₂ + 1)
         end
-        TH1 => @match σ begin
-            TH0 => (TH0 = N₀ + 1, TH1 = N₁ - 1, TH2 = N₂)
-            TH1 => (TH0 = N₀, TH1 = N₁, TH2 = N₂)
-            TH2 => (TH0 = N₀, TH1 = N₁ - 1, TH2 = N₂ + 1)
+    elseif ca[i] == TH1
+        if σ == TH0
+            (TH0 = N₀ + 1, TH1 = N₁ - 1, TH2 = N₂)
+        elseif σ == TH2
+            (TH0 = N₀, TH1 = N₁ - 1, TH2 = N₂ + 1)
         end
-        TH2 => @match σ begin
-            TH0 => (TH0 = N₀ + 1, TH1 = N₁, TH2 = N₂ - 1)
-            TH1 => (TH0 = N₀, TH1 = N₁ + 1, TH2 = N₂ - 1)
-            TH2 => (TH0 = N₀, TH1 = N₁, TH2 = N₂)
+    else
+        if σ == TH0
+            (TH0 = N₀ + 1, TH1 = N₁, TH2 = N₂ - 1)
+        elseif σ == TH1
+            (TH0 = N₀, TH1 = N₁ + 1, TH2 = N₂ - 1)
         end
     end
 end
@@ -313,10 +355,17 @@ Set the state of all sites of a Brass CA `ca` to a given site state `σ₀`.
 """
 @inline function set_state!(ca::BrassCAMeanField, σ₀::BrassState)
     N = length(ca)
-    ca.state = @match σ₀ begin
-        TH0 => (TH0 = N, TH1 = 0, TH2 = 0)
-        TH1 => (TH0 = 0, TH1 = N, TH2 = 0)
-        TH2 => (TH0 = 0, TH1 = 0, TH2 = N)
+    # ca.state = @match σ₀ begin
+    #     TH0 => (TH0 = N, TH1 = 0, TH2 = 0)
+    #     TH1 => (TH0 = 0, TH1 = N, TH2 = 0)
+    #     TH2 => (TH0 = 0, TH1 = 0, TH2 = N)
+    # end
+    ca.state = if σ₀ == TH0
+        (TH0 = N, TH1 = 0, TH2 = 0)
+    elseif σ₀ == TH1
+        (TH0 = 0, TH1 = N, TH2 = 0)
+    else
+        (TH0 = 0, TH1 = 0, TH2 = N)
     end
 end
 
@@ -388,28 +437,25 @@ Size of the state of Brass cellular automaton `ca` along a given dimension `dim`
 @inline Base.size(ca::BrassCAConcrete, dim::Integer) = size(ca.state, dim)
 
 """
-    IndexStyle(::Type{<:BrassCAConcrete})
+    IndexStyle(::Type{<:BrassCAConcrete{N}}) where {N}
 
-Use cartesian indices for dimensions `N > 1`.
+Use same indexing style used to index the state array.
 """
-@inline Base.IndexStyle(::Type{<:BrassCAConcrete}) = IndexCartesian()
-@inline Base.IndexStyle(::Type{<:BrassCAConcrete{1}}) = IndexLinear()
+@inline Base.IndexStyle(::Type{<:BrassCAConcrete{N}}) where {N} = IndexStyle(Array{BrassState,N})
 
 """
-    getindex(ca::BrassCAConcrete, i::Union{Integer,CartesianIndex{N}})
+    getindex(ca::BrassCAConcrete{N}, inds::Union{Integer,CartesianIndex{N}}) where {N}
 
 Index the Ising system itself to access its state.
 """
-@inline Base.getindex(ca::BrassCAConcrete{N}, i::Union{Integer,CartesianIndex{N}}) where {N} = ca.state[i]
+@inline Base.getindex(ca::BrassCAConcrete, inds...) = getindex(ca.state, inds...)
 
 """
-    setindex!(ising::BrassCAConcrete, σ::SpinState, i::Union{Integer,CartesianIndex{N}})
+    setindex!(ising::BrassCAConcrete{N}, σ::SpinState, inds::Union{Integer,CartesianIndex{N}}) where {N}
 
 Set the state of a given spin at site `i` to `σ` in the Ising system `ising`.
 """
-@inline function Base.setindex!(ca::BrassCAConcrete{N}, σ::BrassState, i::Union{Integer,CartesianIndex{N}}) where {N}
-    ca.state[i] = σ
-end
+@inline Base.setindex!(ca::BrassCAConcrete, σ, inds...) = setindex!(ca.state, σ, inds...)
 
 """
     firstindex(ising::BrassCAConcrete)
@@ -758,7 +804,7 @@ Brass cellular automaton on a periodic `N`-dimensional square lattice.
 mutable struct BrassCASquareLattice{N} <: BrassCAConcrete{N}
 
     "State of the CA"
-    σ::Array{BrassState,N}
+    state::Array{BrassState,N}
 
     @doc raw"""
         BrassCASquareLattice(state::Array{BrassState,N}) where {N}
@@ -786,14 +832,14 @@ mutable struct BrassCASquareLattice{N} <: BrassCAConcrete{N}
 
     Construct a `dim`-dimensional square Brass CA of side length `L` and a given initial state `σ₀`.
     """
-    BrassCASquareLattice(::Val{N}, L::Integer, σ₀::BrassState) where {N} = BrassCASquareLattice{N}(ntuple(_ -> L, Val(N)), σ₀)
+    BrassCASquareLattice(::Val{N}, L::Integer, σ₀::BrassState) where {N} = BrassCASquareLattice(ntuple(_ -> L, Val(N)), σ₀)
 
     @doc raw"""
         BrassCASquareLattice(::Val{N}, L::Integer, ::Val{:rand}) where {N}
 
     Construct a `dim`-dimensional square Brass CA of side length `L` and random initial state.
     """
-    BrassCASquareLattice(::Val{N}, L::Integer, ::Val{:rand}) where {N} = BrassCASquareLattice{N}(ntuple(_ -> L, Val(N)), Val(:rand))
+    BrassCASquareLattice(::Val{N}, L::Integer, ::Val{:rand}) where {N} = BrassCASquareLattice(ntuple(_ -> L, Val(N)), Val(:rand))
 
 end
 
