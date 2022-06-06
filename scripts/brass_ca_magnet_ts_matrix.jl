@@ -12,8 +12,8 @@ const parameters_combi = Dict(
     :L => [32, 64, 128, 256],
     :n_samples => 512,
     :n_steps => 1024,
-    :p => 0.3,
-    :r => collect(range(0.0, 1.0, step = 0.1))
+    :p => parse(Float64, ARGS[1]),
+    :r => collect(range(0.0, 1.0, step = 0.01))
 )
 
 const parameters_list = dict_list(parameters_combi)
@@ -30,7 +30,7 @@ for params in parameters_list
     merge!(data, params)
     data[:M_ts] = M_ts
 
-    filename = savename("BrassCA2DMagnetTSMatrix", params, "jld2")
+    filename = datadir(savename("BrassCA2DMagnetTSMatrix", params, "jld2"))
     println(filename)
-    @tagsave filename data
+    safesave(filename, data)
 end
