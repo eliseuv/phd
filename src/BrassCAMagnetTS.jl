@@ -11,7 +11,7 @@ include("BrassCellularAutomaton.jl")
 using .BrassCellularAutomaton
 
 """
-    magnet_ts!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64; σ₀::Int8 = Int8(+1))
+    magnet_ts!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64; σ₀::BrassState = TH1)
 
 Calculate a magnetization time series for a Brass CA `ca` that starts with all its sites with the same value.
 
@@ -28,13 +28,13 @@ For each time step the sites of the CA are updated in parallel.
 # Returns:
 - Vector contaning the magnetization at each time step
 """
-function magnet_ts!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64; σ₀::Int8 = Int8(+1))
+function magnet_ts!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64; σ₀::BrassState = TH1)
     set_state!(ca, σ₀)
     advance_parallel_and_measure!(magnet, ca, p, r, n_steps)
 end
 
 """
-    magnet_ts_matrix!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::Int8 = Int8(+1))
+    magnet_ts_matrix!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::BrassState = TH1)
 
 Matrix (`n_steps+1` rows and `n_samples` columns) whose columns are different runs of the magnetization time series for a given Brass CA `ca`.
 
@@ -52,10 +52,10 @@ For each time step the sites of the CA are updated in parallel.
 # Returns:
 - Matrix contaning multiple samples of magnetization time series as columns
 """
-magnet_ts_matrix!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::Int8 = Int8(+1)) = hcat(ntuple(_ -> magnet_ts!(ca, p, r, n_steps; σ₀ = σ₀), n_samples)...)
+magnet_ts_matrix!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::BrassState = TH1) = hcat(ntuple(_ -> magnet_ts!(ca, p, r, n_steps; σ₀ = σ₀), n_samples)...)
 
 """
-    magnet_ts_avg!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::Int8 = Int8(+1))
+    magnet_ts_avg!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::BrassState = TH1)
 
 Calculate the average magnetization time series for a Brass CA that starts with all its sites with the same value over many samples.
 
@@ -73,7 +73,7 @@ For each time step the sites of the CA are updated in parallel.
 # Returns:
 - Data frame contaning the mean and variance of magnetization at each time step
 """
-function magnet_ts_avg!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::Int8 = Int8(+1))
+function magnet_ts_avg!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::BrassState = TH1)
     magnet_samples = magnet_ts_matrix!(ca, p, r, n_steps, n_samples; σ₀ = σ₀)
     magnet_mean = vec(mean(magnet_samples, dims = 2))
     magnet_var = vec(var(magnet_samples, dims = 2, mean = magnet_mean))
@@ -83,7 +83,7 @@ function magnet_ts_avg!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_s
 end
 
 """
-    magnet_ts_avg_parallel_loop!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::Int8 = Int8(+1))
+    magnet_ts_avg_parallel_loop!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::BrassState = TH1)
 
 Calculate the average magnetization time series for a Brass CA that starts with all its sites with the same value over many samples.
 
@@ -101,7 +101,7 @@ Each system is evolved in parallel.
 # Returns:
 - Data frame contaning the mean and variance of magnetization at each time step
 """
-function magnet_ts_avg_parallel_loop!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::Int8 = Int8(+1))
+function magnet_ts_avg_parallel_loop!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::BrassState = TH1)
     magnet_samples = Matrix{Float64}(undef, n_steps + 1, n_samples)
     cas = [deepcopy(ca) for _ in 1:Threads.nthreads()]
     @inbounds Threads.@threads for j in 1:n_samples
@@ -129,7 +129,7 @@ Calculate the average F₂ time series for a Brass CA that starts with all its s
 # Returns:
 - Data frame contaning the value of F₂ at each time step
 """
-function magnet_F2_ts_sample!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::Int8 = Int8(+1))
+function magnet_F2_ts_sample!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::BrassState = TH1)
     magnet_samples = hcat([magnet_ts!(ca, p, r, n_steps, σ₀ = σ₀) for _ in 1:n_samples]...)
     display(magnet_samples)
     magnet_mean = vec(mean(magnet_samples, dims = 2))

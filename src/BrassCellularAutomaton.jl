@@ -371,6 +371,8 @@ The whole indexing interface of the `state::Array{BrassState,N}` can be passed t
 """
 abstract type BrassCAConcrete{N} <: AbstractArray{BrassState,N} end
 
+
+
 """
     length(ca::BrassCAConcrete)
 
@@ -487,6 +489,8 @@ See also: [`magnet`](@ref), [`magnet_moment`](@ref).
 @inline magnet_total(state::Array{BrassState}) = @inbounds sum(Integer, state)
 @inline magnet_total(ca::BrassCAConcrete) = magnet_total(ca.state)
 
+@inline magnet(state::Array{BrassState}) = magnet_total(state) / length(state)
+
 """
      step!(ca::BrassCAConcrete{N}, state::Array{BrassState,N}, state′::Array{BrassState,N}, p::Float64, r::Float64) where {N}
 
@@ -524,7 +528,7 @@ The sites are updated in parallel.
 """
 @inline function step_parallel!(ca::BrassCAConcrete{N}, state::Array{BrassState,N}, state′::Array{BrassState,N}, p::Float64, r::Float64) where {N}
     # Iterate over every site
-    @inbounds Threads.@threads for i in eachindex(ca)
+    @inbounds Threads.@threads for i in CartesianIndices(ca)
         σᵢ = state[i]
         # Get sign of the sum of nearest neighbors
         sᵢ = sign(nearest_neighbors_sum(ca, state, i))
