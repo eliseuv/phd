@@ -371,8 +371,6 @@ The whole indexing interface of the `state::Array{BrassState,N}` can be passed t
 """
 abstract type BrassCAConcrete{N} <: AbstractArray{BrassState,N} end
 
-
-
 """
     length(ca::BrassCAConcrete)
 

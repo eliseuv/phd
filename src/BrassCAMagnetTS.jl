@@ -52,7 +52,9 @@ For each time step the sites of the CA are updated in parallel.
 # Returns:
 - Matrix contaning multiple samples of magnetization time series as columns
 """
-magnet_ts_matrix!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::BrassState = TH1) = hcat(ntuple(_ -> magnet_ts!(ca, p, r, n_steps; σ₀ = σ₀), n_samples)...)
+magnet_ts_matrix!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::BrassState = TH1) = hcat(map(1:n_samples) do _
+    magnet_ts!(ca, p, r, n_steps, σ₀ = σ₀)
+end...)
 
 """
     magnet_ts_avg!(ca::BrassCA, p::Float64, r::Float64, n_steps::Int64, n_samples::Int64; σ₀::BrassState = TH1)
