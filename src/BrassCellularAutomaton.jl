@@ -328,7 +328,7 @@ end
 """
     set_state!(ca::BrassCAMeanField, ::Val{:rand})
 
-Set the state of each site of a Brass CA `ca` to a random state `σ ∈ {-1, 0, +1}`.
+Set the state of each site of a Brass CA `ca` to a random state `σ₀ ∈ {TH0, TH1, TH2}`.
 """
 @inline function set_state!(ca::BrassCAMeanField, ::Val{:rand})
     N = length(ca)
@@ -439,7 +439,7 @@ end
 """
     set_state!(ca::BrassCAConcrete, ::Val{:rand})
 
-Set the state of each site of a Brass CA `ca` to a random state `σ ∈ {-1, 0, +1}`.
+Set the state of each site of a Brass CA `ca` to a random state `σ₀ ∈ {TH0, TH1, TH2}`.
 """
 @inline function set_state!(ca::BrassCAConcrete, ::Val{:rand})
     rand!(ca, instances(BrassState))

@@ -5,13 +5,23 @@ Utilities for reading and writing to data files.
 """
 module DataIO
 
-export get_extension, keep_extension,
+export script_show,
+    get_extension, keep_extension,
     filename, parse_filename
 
 using Logging, JLD2
 
 include("Metaprogramming.jl")
 using .Metaprogramming
+
+# Script preview
+
+"""
+    script_show(x...)
+
+Print the entities `x...` to standard output while in a script in the same way it prints in a REPL session.
+"""
+script_show(x...) = show(IOContext(stdout, :limit => true), "text/plain", x...)
 
 # Filenames
 
@@ -49,7 +59,7 @@ The dot `.` in the extension can be ommited: `ext=".csv"` and 'ext="csv"' are eq
 The default file extension is `.jld2`.
 To create a file without extension, use either `ext=nothing` or `ext=""`.
 """
-function filename(prefix::AbstractString, params::Dict{Symbol,Any}; sep::AbstractString = "_", ext::Union{AbstractString,Nothing} = "jld2")
+function filename(prefix::AbstractString, params::Dict{Symbol}; sep::AbstractString = "_", ext::Union{AbstractString,Nothing} = "jld2")
     # Prefix
     filename = prefix
     # Parameters in alphabetical order
@@ -65,6 +75,13 @@ function filename(prefix::AbstractString, params::Dict{Symbol,Any}; sep::Abstrac
         end
     end
     return filename
+end
+function filename(prefix::AbstractString, params::Dict{String}; sep::AbstractString = "_", ext::Union{AbstractString,Nothing} = "jld2")
+    params_symb = Dict{Symbol,Any}()
+    for (param_name, param_value) in params
+        params_symb[Symbol(param_name)] = param_value
+    end
+    return filename(prefix, params_symb, sep = sep, ext = ext)
 end
 
 @doc raw"""

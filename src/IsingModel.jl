@@ -3,6 +3,7 @@ module IsingModel
 export Ising, IsingMeanField, IsingSquareLattice, IsingGraph,
     SpinState, up, down,
     ISING_SQ_LAT_2D_BETA_CRIT,
+    set_state!,
     magnet_total, magnet, magnet_moment,
     magnet_total_local, energy_local,
     flip!,
@@ -10,7 +11,7 @@ export Ising, IsingMeanField, IsingSquareLattice, IsingGraph,
     nearest_neighbors,
     metropolis!, metropolis_and_measure_total_magnet!, metropolis_and_measure_energy!
 
-using Graphs
+using Random, Graphs
 
 include("Metaprogramming.jl")
 include("Geometry.jl")
@@ -164,6 +165,32 @@ The last spin in the `AbstractVector{SpinState}` interface of `IsingMeanField`.
 """
 @inline Base.lastindex(ising::IsingMeanField) = sum(ising.state)
 
+"""
+    set_state!(ca::IsingMeanField, σ₀::SpinState)
+
+Set the state of all sites of an Ising system `ising` to a given site state `σ₀`.
+"""
+@inline function set_state!(ising::IsingMeanField, σ₀::SpinState)
+    N = length(ising)
+    ising.state = if σ₀ == up
+        (up = N, down = 0)
+    else
+        (up = 0, down = N)
+    end
+end
+
+"""
+    set_state!(ca::IsingMeanField, ::Val{:rand})
+
+Set the state of each site of an Ising system `ising` to a random state `σ ∈ {↑, ↓}`.
+"""
+@inline function set_state!(ising::IsingMeanField, ::Val{:rand})
+    N = length(ising)
+    N₊ = rand(1:N)
+    N₋ = N - N₊
+    ising.state = (up = N₊, down = N₋)
+end
+
 @doc raw"""
     flip!(ising::IsingMeanField, i::Integer)
 
@@ -199,15 +226,22 @@ Total magnetization of an Ising system with mean field interaction.
 
 Change in local magnetization of an Ising system with mean field interaction if the `i`-th were to be flipped.
 """
-@inline magnet_total_local(ising::IsingMeanField, i::Integer) = -2 * Integer(ising[i])
+@inline magnet_total_local(ising::IsingMeanField, i::Integer) = @inbounds -2 * Integer(ising[i])
+
+@doc raw"""
+    nearest_neighbors_sum(ising::IsingMeanField, i::Integer)
+
+Sum of the values of the nearest neighbors of the `i`-th spin in the Ising mean field system `ising`.
+"""
+@inline nearest_neighbors_sum(ising::IsingMeanField, i::Integer) = @inbounds magnet_total(ising) - Integer(ising[i])
 
 @doc raw"""
     energy_local(ising::IsingMeanField, i::Integer, h::Real=0)
 
 Change in energy of an Ising system with mean field interaction if the `i`-th were to be flipped.
 """
-@inline energy_local(ising::IsingMeanField, i::Integer) = 2 * Integer(ising[i]) * (magnet_total(ising) - Integer(ising[i]))
-@inline energy_local(ising::IsingMeanField, i::Integer, h::Real) = 2 * Integer(ising[i]) * (magnet_total(ising) - Integer(ising[i]) + h)
+@inline energy_local(ising::IsingMeanField, i::Integer, h::Real) = @inbounds 2 * Integer(ising[i]) * (nearest_neighbors_sum(ising, i) + h)
+@inline energy_local(ising::IsingMeanField, i::Integer) = @inbounds 2 * Integer(ising[i]) * nearest_neighbors_sum(ising, i)
 
 """
     IsingConcrete{N} <: AbstractArray{SpinState,N}
@@ -277,6 +311,24 @@ Get the index of the last spin in the system.
 """
 @inline Base.lastindex(ising::IsingConcrete) = lastindex(ising.state)
 
+"""
+    set_state!(ca::IsingConcrete, σ₀::SpinState)
+
+Set the state of all sites of an Ising system `ising` to a given site state `σ₀`.
+"""
+@inline function set_state!(ising::IsingConcrete, σ₀::SpinState)
+    fill!(ising, σ₀)
+end
+
+"""
+    set_state!(ca::IsingConcrete, ::Val{:rand})
+
+Set the state of each site of an Ising system `ising` to a random state `σ₀ ∈ {↑, ↓}`.
+"""
+@inline function set_state!(ising::IsingConcrete, ::Val{:rand})
+    rand!(ising, instances(SpinState))
+end
+
 @doc raw"""
     magnet_total(ising::IsingConcrete)
 
@@ -319,6 +371,13 @@ The difference in total magnetization of an Ising system `ising` if the `i`-th s
 """
 @inline magnet_total_local(ising::IsingConcrete{N}, i::Union{Integer,CartesianIndex{N}}) where {N} = @inbounds -2 * Integer(ising[i])
 
+@doc raw"""
+    nearest_neighbors_sum(ising::IsingConcrete{N}, i::Union{Integer,CartesianIndex{N}})
+
+Sum of the values of the nearest neighbors of the `i`-th spin in the Ising system `ising`.
+"""
+@inline nearest_neighbors_sum(ising::IsingConcrete{N}, i::Union{Integer,CartesianIndex{N}}) where {N} = @inbounds sum(Integer, ising[nn] for nn ∈ nearest_neighbors(ising, i))
+
 """
     energy_local(ising::IsingConcrete{N}, i::Union{Integer,CartesianIndex{N}}, h::Real=0) where {N}
 
@@ -329,9 +388,8 @@ If no external magnetic field is provided, it is assumed to be `h=0`.
 
 This is the default implementation for any specific type of Ising model `IsingSpecific <: IsingConcrete` that provides an implementation of `nearest_neighbors(ising::IsingSpecific, i::Union{Integer,CartesianIndex{N}})`.
 """
-@inline energy_local(ising::IsingConcrete{N}, i::Union{Integer,CartesianIndex{N}}, h::Real) where {N} = @inbounds 2 * Integer(ising[i]) * (sum(Integer, ising[nn] for nn ∈ nearest_neighbors(ising, i)) + h)
-
-@inline energy_local(ising::IsingConcrete{N}, i::Union{Integer,CartesianIndex{N}}) where {N} = @inbounds 2 * Integer(ising[i]) * sum(Integer, ising[nn] for nn ∈ nearest_neighbors(ising, i))
+@inline energy_local(ising::IsingConcrete{N}, i::Union{Integer,CartesianIndex{N}}, h::Real) where {N} = @inbounds 2 * Integer(ising[i]) * (nearest_neighbors_sum(ising, i) + h)
+@inline energy_local(ising::IsingConcrete{N}, i::Union{Integer,CartesianIndex{N}}) where {N} = @inbounds 2 * Integer(ising[i]) * nearest_neighbors_sum(ising, i)
 
 """
     flip!(ising::IsingConcrete{N}, i::Union{Integer,CartesianIndex{N}}) where {N}
@@ -370,6 +428,20 @@ mutable struct IsingSquareLattice{N} <: IsingConcrete{N}
     with nearest neighbor interaction and with spins in random states.
     """
     IsingSquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N} = new{N}(rand(instances(SpinState), size))
+
+    @doc raw"""
+        IsingSquareLattice(::Val{N}, L::Integer, σ₀::BrassState) where {N}
+
+    Construct a `dim`-dimensional square Ising system of side length `L` and a given initial state `σ₀`.
+    """
+    IsingSquareLattice(::Val{N}, L::Integer, σ₀::SpinState) where {N} = IsingSquareLattice(ntuple(_ -> L, Val(N)), σ₀)
+
+    @doc raw"""
+        IsingSquareLattice(::Val{N}, L::Integer, ::Val{:rand}) where {N}
+
+    Construct a `dim`-dimensional square Ising system of side length `L` and random initial state.
+    """
+    IsingSquareLattice(::Val{N}, L::Integer, ::Val{:rand}) where {N} = IsingSquareLattice(ntuple(_ -> L, Val(N)), Val(:rand))
 end
 
 @doc raw"""
@@ -437,7 +509,14 @@ For a `N`-dimensional lattice each spin has 2`N` nearest neighbors.
 end
 
 @doc raw"""
-    energy_local(ising::IsingSquareLattice, idx::CartesianIndex, h::Real=0)
+    nearest_neighbors_sum(ising::IsingSquareLattice{N}, idx::CartesianIndex{N}) where {N}
+
+Sum of the values of the nearest neighbors of the spin at `idx` in the Ising system `ising`.
+"""
+@inline nearest_neighbors_sum(ising::IsingSquareLattice{N}, idx::CartesianIndex{N}) where {N} = @inbounds Geometry.square_lattice_nearest_neighbors_sum(ising, idx)
+
+@doc raw"""
+    energy_local(ising::IsingSquareLattice{N}, idx::CartesianIndex{N}, h::Real=0) where {N}
 
 Energy difference for an Ising system in a multidimensional square lattice with nearest neighbor interaction `ising`
 associated with a single spin flip at site `idx` subject to external magnetic field `h`.
@@ -449,9 +528,9 @@ If no external magnetic field is provided, it is assumed `h=0`.
 - `idx::CartesianIndex`: Spin site
 - `h::Real=0`: External magnetic field
 """
-@inline energy_local(ising::IsingSquareLattice, idx::CartesianIndex, h::Real) = @inbounds 2 * ising[idx] * (Geometry.square_lattice_nearest_neighbors_sum(ising, idx) + h)
+@inline energy_local(ising::IsingSquareLattice{N}, idx::CartesianIndex{N}, h::Real) where {N} = @inbounds 2 * Integer(ising[idx]) * (nearest_neighbors_sum(ising, idx) + h)
 
-@inline energy_local(ising::IsingSquareLattice, idx::CartesianIndex) = @inbounds 2 * ising[idx] * Geometry.square_lattice_nearest_neighbors_sum(ising, idx)
+@inline energy_local(ising::IsingSquareLattice{N}, idx::CartesianIndex{N}) where {N} = @inbounds 2 * Integer(ising[idx]) * nearest_neighbors_sum(ising, idx)
 
 @doc raw"""
     energy_local(ising::IsingSquareLattice, i::Integer, h::Real=0)
@@ -657,6 +736,28 @@ function metropolis_and_measure_total_magnet!(ising::Ising, β::Real, n_steps::I
             # Do NOT flip spin
             M_T[t+1] = M_T[t]
         end
+    end
+    return M_T
+end
+
+function metropolis_and_measure_total_magnet_2!(ising::Ising, β::Real, n_steps::Integer)
+    # Vector to store results
+    M_T = Vector{Int64}(undef, n_steps + 1)
+    # Initial magnetization
+    M_T[1] = magnet_total(ising)
+    N = length(ising)
+    # Sampling loop
+    @inbounds for t ∈ 1:n_steps
+        for i ∈ rand(1:N, N)
+            # Get energy difference
+            ΔH = energy_local(ising, i)
+            # Metropolis prescription
+            if ΔH < 0 || exp(-β * ΔH) > rand()
+                # Flip spin
+                flip!(ising, i)
+            end
+        end
+        M_T[t+1] = magnet_total(ising)
     end
     return M_T
 end

@@ -1,6 +1,7 @@
 module Matrices
 
-export cross_correlation_matrix
+export normalize_ts_matrix, normalize_ts_matrix!,
+    cross_correlation_matrix
 
 using LinearAlgebra, Statistics
 
