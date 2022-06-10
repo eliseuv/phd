@@ -2,8 +2,8 @@ module IsingModel
 
 export Ising, IsingMeanField, IsingSquareLattice, IsingGraph,
     SpinState, up, down,
-    ISING_SQ_LAT_2D_BETA_CRIT,
-    set_state!,
+    ISING_SQ_LAT_2D_BETA_CRIT, ising_square_lattice_2d_beta_critical,
+    set_state!, randomize_state!,
     magnet_total, magnet, magnet_moment,
     magnet_total_local, energy_local,
     flip!,
@@ -11,7 +11,7 @@ export Ising, IsingMeanField, IsingSquareLattice, IsingGraph,
     nearest_neighbors,
     metropolis!, metropolis_and_measure_total_magnet!, metropolis_and_measure_energy!
 
-using Random, Graphs
+using Random, Distributions, Graphs
 
 include("Metaprogramming.jl")
 include("Geometry.jl")
@@ -180,11 +180,19 @@ Set the state of all sites of an Ising system `ising` to a given site state `σ�
 end
 
 """
-    set_state!(ca::IsingMeanField, ::Val{:rand})
+    randomize_state!(ising::IsingMeanField, p::Real=0.5)
 
-Set the state of each site of an Ising system `ising` to a random state `σ ∈ {↑, ↓}`.
+Set the state of each site of an Ising system `ising` to a random state `σ ∈ {↑, ↓}` with a probability `p` of being `↑`.
 """
-@inline function set_state!(ising::IsingMeanField, ::Val{:rand})
+@inline function randomize_state!(ising::IsingMeanField, p::Real)
+    N = length(ising)
+    dist = Binomial(N, p)
+    N₊ = rand(dist)
+    N₋ = N - N₊
+    ising.state = (up = N₊, down = N₋)
+end
+
+@inline function randomize_state!(ising::IsingMeanField)
     N = length(ising)
     N₊ = rand(1:N)
     N₋ = N - N₊
@@ -219,6 +227,7 @@ Total magnetization of an Ising system with mean field interaction.
     ``H = \frac{N - M^2}{2} + Mh``
 """
 @inline energy(ising::IsingMeanField) = Integer((length(ising) - magnet_total(ising)^2) / 2)
+
 @inline energy(ising::IsingMeanField, h::Real) = energy(ising) + h * magnet_total(ising)
 
 @doc raw"""
@@ -241,6 +250,7 @@ Sum of the values of the nearest neighbors of the `i`-th spin in the Ising mean 
 Change in energy of an Ising system with mean field interaction if the `i`-th were to be flipped.
 """
 @inline energy_local(ising::IsingMeanField, i::Integer, h::Real) = @inbounds 2 * Integer(ising[i]) * (nearest_neighbors_sum(ising, i) + h)
+
 @inline energy_local(ising::IsingMeanField, i::Integer) = @inbounds 2 * Integer(ising[i]) * nearest_neighbors_sum(ising, i)
 
 """
@@ -275,27 +285,25 @@ Size of the state of an Ising system `ising` along a given dimension `dim`.
 @inline Base.size(ising::IsingConcrete, dim::Integer) = size(ising.state, dim)
 
 """
-    IndexStyle(ising::IsingConcrete)
+    IndexStyle(::Type{<:IsingConcrete{N}}) where {N}
 
-Use cartesian indices preferably.
+Use same indexing style used to index the state array.
 """
-@inline Base.IndexStyle(::Type{<:IsingConcrete}) = IndexCartesian()
+@inline Base.IndexStyle(::Type{<:IsingConcrete{N}}) where {N} = IndexStyle(Array{SpinState,N})
 
 """
-    getindex(ising::IsingConcrete, i::Union{Integer,CartesianIndex{N}})
+    getindex(ising::IsingConcrete, inds...)
 
 Index the Ising system itself to access its state.
 """
-@inline Base.getindex(ising::IsingConcrete{N}, i::Union{Integer,CartesianIndex{N}}) where {N} = ising.state[i]
+@inline Base.getindex(ising::IsingConcrete, inds...) = getindex(ising.state, inds...)
 
 """
-    setindex!(ising::IsingConcrete, σ::SpinState, i::Union{Integer,CartesianIndex{N}})
+    setindex!(ising::IsingConcrete, σ, inds...)
 
 Set the state of a given spin at site `i` to `σ` in the Ising system `ising`.
 """
-@inline function Base.setindex!(ising::IsingConcrete{N}, σ::SpinState, i::Union{Integer,CartesianIndex{N}}) where {N}
-    ising.state[i] = σ
-end
+@inline Base.setindex!(ising::IsingConcrete, σ, inds...) = setindex!(ising.state, σ, inds...)
 
 """
     firstindex(ising::IsingConcrete)
@@ -321,11 +329,18 @@ Set the state of all sites of an Ising system `ising` to a given site state `σ�
 end
 
 """
-    set_state!(ca::IsingConcrete, ::Val{:rand})
+    randomize_state!(ising::IsingConcrete, p::Real=0.5)
 
-Set the state of each site of an Ising system `ising` to a random state `σ₀ ∈ {↑, ↓}`.
+Set the state of each site of an Ising system `ising` to a random state `σ₀ ∈ {↑, ↓}` with probability of `p` of being `↑`.
 """
-@inline function set_state!(ising::IsingConcrete, ::Val{:rand})
+@inline function randomize_state!(ising::IsingConcrete, p::Real)
+    dist = Distributions.Bernoulli(p)
+    for idx ∈ eachindex(ising)
+        ising[idx] = rand(dist) ? up : down
+    end
+end
+
+@inline function randomize_state!(ising::IsingConcrete)
     rand!(ising, instances(SpinState))
 end
 
@@ -389,6 +404,7 @@ If no external magnetic field is provided, it is assumed to be `h=0`.
 This is the default implementation for any specific type of Ising model `IsingSpecific <: IsingConcrete` that provides an implementation of `nearest_neighbors(ising::IsingSpecific, i::Union{Integer,CartesianIndex{N}})`.
 """
 @inline energy_local(ising::IsingConcrete{N}, i::Union{Integer,CartesianIndex{N}}, h::Real) where {N} = @inbounds 2 * Integer(ising[i]) * (nearest_neighbors_sum(ising, i) + h)
+
 @inline energy_local(ising::IsingConcrete{N}, i::Union{Integer,CartesianIndex{N}}) where {N} = @inbounds 2 * Integer(ising[i]) * nearest_neighbors_sum(ising, i)
 
 """
@@ -452,6 +468,13 @@ Critical temperature for the Ising system on a 2D square lattice.
 ``β_c = \frac{\log{(1 + √{2})}}{2}``
 """
 const ISING_SQ_LAT_2D_BETA_CRIT = 0.5 * log1p(sqrt(2))
+
+@doc raw"""
+    ising_square_lattice_2d_beta_critical(τ::Real)
+
+Returns the critical β ``\beta_C`` for a given value of ``\tau = \frac{T}{T_C}``.
+"""
+ising_square_lattice_2d_beta_critical(τ::Real) = ISING_SQ_LAT_2D_BETA_CRIT / τ
 
 @doc raw"""
     energy(ising::IsingSquareLattice{N}, h::Real=0) where {N}
@@ -655,7 +678,7 @@ function metropolis!(ising::Ising, β::Real, n_steps::Integer, h::Real)
     # Sampling loop
     @inbounds for _ ∈ 1:n_steps
         # Select random spin
-        i = rand(1:length(ising))
+        i = rand(eachindex(ising))
         # Get energy difference
         ΔH = energy_local(ising, i, h)
         # Metropolis prescription
@@ -667,7 +690,7 @@ function metropolis!(ising::Ising, β::Real, n_steps::Integer)
     # Sampling loop
     @inbounds for _ ∈ 1:n_steps
         # Select random spin
-        i = rand(1:length(ising))
+        i = rand(eachindex(ising))
         # Get energy difference
         ΔH = energy_local(ising, i)
         # Metropolis prescription
@@ -700,7 +723,7 @@ function metropolis_and_measure_total_magnet!(ising::Ising, β::Real, h::Real, n
     # Sampling loop
     @inbounds for t ∈ 1:n_steps
         # Select random spin
-        i = rand(1:length(ising))
+        i = rand(eachindex(ising))
         # Get energy difference
         ΔH = energy_local(ising, i, h)
         # Metropolis prescription
@@ -724,7 +747,7 @@ function metropolis_and_measure_total_magnet!(ising::Ising, β::Real, n_steps::I
     # Sampling loop
     @inbounds for t ∈ 1:n_steps
         # Select random spin
-        i = rand(1:length(ising))
+        i = rand(eachindex(ising))
         # Get energy difference
         ΔH = energy_local(ising, i)
         # Metropolis prescription
@@ -787,7 +810,7 @@ function metropolis_and_measure_energy!(ising::Ising, β::Real, h::T, n_steps::I
     # Sampling loop
     @inbounds for t ∈ 1:n_steps
         # Select random spin
-        i = rand(1:length(ising))
+        i = rand(eachindex(ising))
         # Get energy difference
         ΔH = energy_local(ising, i, h)
         # Metropolis prescription
@@ -811,7 +834,7 @@ function metropolis_and_measure_energy!(ising::Ising, β::Real, n_steps::Integer
     # Sampling loop
     @inbounds for t ∈ 1:n_steps
         # Select random spin
-        i = rand(1:length(ising))
+        i = rand(eachindex(ising))
         # Get energy difference
         ΔH = energy_local(ising, i)
         # Metropolis prescription

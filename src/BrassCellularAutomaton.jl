@@ -52,7 +52,7 @@ export BrassState, TH0, TH1, TH2,
     BrassCA,
     BrassCAMeanField,
     BrassCAConcrete, BrassCASquareLattice, BrassCAGraph,
-    set_state!, state_count,
+    set_state!, randomize_state!, state_count,
     magnet_total,
     nearest_neighbors_sum,
     state_concentration,
@@ -326,11 +326,11 @@ Set the state of all sites of a Brass CA `ca` to a given site state `σ₀`.
 end
 
 """
-    set_state!(ca::BrassCAMeanField, ::Val{:rand})
+    randomize_state!(ca::BrassCAMeanField)
 
 Set the state of each site of a Brass CA `ca` to a random state `σ₀ ∈ {TH0, TH1, TH2}`.
 """
-@inline function set_state!(ca::BrassCAMeanField, ::Val{:rand})
+@inline function randomize_state!(ca::BrassCAMeanField)
     N = length(ca)
     N₀, N′ = minmax(rand(1:N, 2)...)
     N₁ = N′ - N₀
@@ -400,16 +400,16 @@ Use same indexing style used to index the state array.
 @inline Base.IndexStyle(::Type{<:BrassCAConcrete{N}}) where {N} = IndexStyle(Array{BrassState,N})
 
 """
-    getindex(ca::BrassCAConcrete{N}, inds::Union{Integer,CartesianIndex{N}}) where {N}
+    getindex(ca::BrassCAConcrete, inds...)
 
-Index the Ising system itself to access its state.
+Index the Brass CA system itself to access its state.
 """
 @inline Base.getindex(ca::BrassCAConcrete, inds...) = getindex(ca.state, inds...)
 
 """
-    setindex!(ising::BrassCAConcrete{N}, σ::SpinState, inds::Union{Integer,CartesianIndex{N}}) where {N}
+    setindex!(ca::BrassCAConcrete, σ, inds...)
 
-Set the state of a given spin at site `i` to `σ` in the Ising system `ising`.
+Set the state of a given spin at site `inds...` to `σ` in the Brass CA system `ca`.
 """
 @inline Base.setindex!(ca::BrassCAConcrete, σ, inds...) = setindex!(ca.state, σ, inds...)
 
@@ -437,11 +437,11 @@ Set the state of all sites of a Brass CA `ca` to a given site state `σ₀`.
 end
 
 """
-    set_state!(ca::BrassCAConcrete, ::Val{:rand})
+    randomize_state!(ca::BrassCAConcrete)
 
 Set the state of each site of a Brass CA `ca` to a random state `σ₀ ∈ {TH0, TH1, TH2}`.
 """
-@inline function set_state!(ca::BrassCAConcrete, ::Val{:rand})
+@inline function randomize_state!(ca::BrassCAConcrete)
     rand!(ca, instances(BrassState))
 end
 

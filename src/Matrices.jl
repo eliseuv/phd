@@ -41,7 +41,7 @@ Cross correlation matrix `G` of a given time series matrix `M_ts`.
 function cross_correlation_matrix(M_ts::AbstractMatrix)
     # Number of steps = number of rows
     n_steps = size(M_ts, 1)
-    return (1 / n_steps) * transpose(M_ts) * M_ts
+    return (1 / n_steps) .* (transpose(M_ts) * M_ts)
 end
 
 end
