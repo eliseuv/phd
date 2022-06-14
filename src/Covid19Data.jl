@@ -131,11 +131,4 @@ function covid19_time_series(gdf::GroupedDataFrame{DataFrame}, region::String, c
     df = transform!(df, :Date => ByRow(x -> Date(x)), renamecols = false)
 end
 
-function transpose_covid19_time_series!(df::DataFrame)
-    # Transpose dataframe
-    permutedims!(df, :Region, :Date)
-    # Convert dates to Date type
-    df[!, :Date] = Date.(df[!, :Date])
-end
-
 end
