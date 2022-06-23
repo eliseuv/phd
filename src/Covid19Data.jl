@@ -6,6 +6,9 @@ export Covid19TimeSeriesCategory, confirmed, recovered, deaths,
     join_covid19_time_series,
     covid19_time_series
 
+using DrWatson
+@quickactivate "phd"
+
 using Logging, Dates, CSV, DataFrames, DataFramesMeta
 
 # Information on the remote repository
@@ -26,7 +29,7 @@ covid19_time_series_remote_filenames(cat::Covid19TimeSeriesCategory) = "time_ser
 covid19_time_series_url(cat::Covid19TimeSeriesCategory) = "https://raw.githubusercontent.com/" * COVID19_DATA_REPO * "/master/" * COVID19_TIME_SERIES_PATH * "/" * covid19_time_series_remote_filenames(cat)
 
 # Canonical filename for time series data
-covid19_time_series_path(cat::Covid19TimeSeriesCategory) = joinpath("..", "data", "JHUCovid19Data_" * string(cat) * ".csv")
+covid19_time_series_path(cat::Covid19TimeSeriesCategory) = datadir("exp_raw", "jhu_covid19", "JHUCovid19Data_" * string(cat) * ".csv")
 
 function covid19_time_series_rename_cols(df::DataFrame)
     # Rename some long column names to avoid using `/`

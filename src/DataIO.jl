@@ -8,7 +8,8 @@ module DataIO
 export script_show,
     get_extension, keep_extension,
     filename, parse_filename,
-    print_dict
+    print_dict,
+    check_params
 
 using Logging, JLD2
 
@@ -136,5 +137,20 @@ function print_dict(dict::Dict)
         println(key, "=>", value)
     end
 end
+
+@doc raw"""
+    check_params(params::Dict{String}, reqs::Dict{String})
+
+Checks of the parameters dictionary `params` satisfies the values defined in the parameters requirements dictionary `reqs`.
+"""
+function check_params(params::Dict{String}, reqs::Dict{String})
+    for (req_key, req_value) in reqs
+        if !haskey(params, req_key) || params[req_key] != req_value
+            return false
+        end
+    end
+    return true
+end
+
 
 end

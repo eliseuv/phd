@@ -9,11 +9,15 @@ CairoMakie.activate!()
 include("../src/DataIO.jl")
 using .DataIO
 
+# Path for datafiles
 data_dirpath = datadir("ada-lovelace", "brass_ca_ts_matrix_eigvals")
 
 # Select parameters
-const p = 0.3
-const n_runs = 1000
+const params_req = Dict(
+    "prefix" => "BrassCA2DMagnetTSMatrix",
+    "p" => 0.3,
+    "n_runs" => 1000
+)
 
 for data_filename in readdir(data_dirpath)
 
@@ -21,9 +25,7 @@ for data_filename in readdir(data_dirpath)
     # script_show(filename_params)
 
     # Ignore unrelated data files
-    if filename_params["prefix"] != "BrassCA2DMagnetTSMatrix" ||
-       !haskey(filename_params, "p") || filename_params["p"] != p ||
-       !haskey(filename_params, "n_runs") || filename_params["n_runs"] != n_runs
+    if !check_params(parse_filename(data_filename), params_req)
         continue
     end
 
@@ -38,7 +40,7 @@ for data_filename in readdir(data_dirpath)
     r = round(params["r"], digits = 2)
 
     # Retrieve eigenvalues
-    λs = data["eigvals"]
+    λs = sort(vcat(data["eigvals"]...))
     script_show(λs)
     println()
 
@@ -59,7 +61,7 @@ for data_filename in readdir(data_dirpath)
     println()
 
     fig = Figure()
-    ax = Axis(fig[1, 1], title = L"r = %$(r)",
+    ax = Axis(fig[1, 1], title = L"p = %$(p), r = %$(r)",
         xlabel = L"\lambda", ylabel = L"\log_{10}(\rho(\lambda))",
         yminorticksvisible = true, yminorgridvisible = true,
         yminorticks = IntervalsBetween(8))
