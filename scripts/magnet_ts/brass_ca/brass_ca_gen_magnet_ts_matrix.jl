@@ -6,10 +6,10 @@ using DrWatson
 
 @quickactivate "phd"
 
-using JLD2, UnicodePlots
+using Logging, JLD2, UnicodePlots
 
-include("../src/DataIO.jl")
-include("../src/BrassCellularAutomaton.jl")
+include("../../../src/DataIO.jl")
+include("../../../src/BrassCellularAutomaton.jl")
 
 using .DataIO
 using .BrassCellularAutomaton
@@ -35,18 +35,17 @@ const parameters_combi = Dict(
     "n_samples" => 100,
     "n_runs" => 1000,
     "p" => 0.3,
-    "r" => collect(range(0, 1, length=11))
+    "r" => 0.194421 .+ collect(range(-0.07, 0.07, length = 51))
 )
 
 # Serialize parameters
 const parameters_list = dict_list(parameters_combi)
-println("Running $(length(parameters_list)) simulations.")
+@info "Running $(length(parameters_list)) simulations"
 
 # Loop on simulation parameters
 for params in parameters_list
 
-    println("Parameters:")
-    print_dict(params)
+    @info "Parameters:" params
 
     # Parameters
     p = params["p"]
@@ -60,37 +59,37 @@ for params in parameters_list
     ca = BrassCASquareLattice(Val(2), L, Val(:rand))
 
     # Generate magnetization time series matrices
+    @info "Generating magnetization time series matrices..."
     M_ts_samples = [map(1:n_runs) do _
         magnet_ts_matrix!(ca, p, r, n_steps, n_samples)
     end...]
 
     # Plot demo matrix
-    display(heatmap(hcat(M_ts_samples[1:3]...),
-        title="Magnet time series matrix (p = $p, r = $r)",
-        xlabel="i", ylabel="t", zlabel="mᵢ(t)",
-        width=125))
-    println()
+    # display(heatmap(hcat(M_ts_samples[1:3]...),
+    #     title = "Magnet time series matrix (p = $p, r = $r)",
+    #     xlabel = "i", ylabel = "t", zlabel = "mᵢ(t)",
+    #     width = 125))
+    # println()
 
     # Plot demo series
-    M_plot = M_ts_samples[begin][:, 1:10]
-    x_max = params["n_steps"] + 1
-    plt = lineplot(1:x_max, M_plot[:, 1],
-        xlim=(0, x_max), ylim=extrema(M_plot),
-        xlabel="t", ylabel="m",
-        width=125, height=25)
-    for k ∈ 2:size(M_plot, 2)
-        lineplot!(plt, 1:x_max, M_plot[:, k])
-    end
-    display(plt)
-    println()
+    # M_plot = M_ts_samples[begin][:, 1:10]
+    # x_max = params["n_steps"] + 1
+    # plt = lineplot(1:x_max, M_plot[:, 1],
+    #     xlim = (0, x_max), ylim = extrema(M_plot),
+    #     xlabel = "t", ylabel = "m",
+    #     width = 125, height = 25)
+    # for k ∈ 2:size(M_plot, 2)
+    #     lineplot!(plt, 1:x_max, M_plot[:, k])
+    # end
+    # display(plt)
+    # println()
 
     # Data to be saved
-    data_filepath = datadir("brass_ca_ts_matrix", savename("BrassCA2DMagnetTSMatrix", params, "jld2"))
-    println(data_filepath)
-
     data = Dict{String,Any}()
     data["Params"] = params
     data["M_ts_samples"] = M_ts_samples
 
+    data_filepath = datadir("sims", "brass_ca", "magnet_ts", "mult_mat", "rand_start", savename("BrassCA2DMagnetTSMatrix", params, "jld2"))
+    @info "Saving data:" data_filepath
     save(data_filepath, data)
 end

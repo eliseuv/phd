@@ -8,8 +8,10 @@ using DrWatson
 
 using Logging, JLD2, LinearAlgebra, UnicodePlots
 
-include("../src/DataIO.jl")
-include("../src/Matrices.jl")
+# include("../../../../src/DataIO.jl")
+# include("../../../../src/Matrices.jl")
+include(srcdir("DataIO.jl"))
+include(srcdir("Matrices.jl"))
 using .DataIO
 using .Matrices
 

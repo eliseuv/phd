@@ -8,7 +8,8 @@ using DrWatson
 
 using Logging, JLD2, Statistics, StatsBase, DataFrames, UnicodePlots, Gadfly, Cairo
 
-include("../src/DataIO.jl")
+include("../../../../src/DataIO.jl")
+# include(srcdir("DataIO.jl"))
 using .DataIO
 
 # Path for datafiles
