@@ -1,5 +1,5 @@
 @doc raw"""
-    Generate magnetization time series matrices for Brass cellular automaton
+    Generate several runs of the magnetization time series matrices for Brass cellular automaton
 """
 
 using DrWatson
@@ -35,7 +35,7 @@ const parameters_combi = Dict(
     "n_samples" => 100,
     "n_runs" => 1000,
     "p" => 0.3,
-    "r" => collect(range(0, 1, length = 11))
+    "r" => collect(range(0, 1, length=11))
 )
 
 # Serialize parameters
@@ -66,18 +66,18 @@ for params in parameters_list
 
     # Plot demo matrix
     display(heatmap(hcat(M_ts_samples[1:3]...),
-        title = "Magnet time series matrix (p = $p, r = $r)",
-        xlabel = "i", ylabel = "t", zlabel = "mᵢ(t)",
-        width = 125))
+        title="Magnet time series matrix (p = $p, r = $r)",
+        xlabel="i", ylabel="t", zlabel="mᵢ(t)",
+        width=125))
     println()
 
     # Plot demo series
     M_plot = M_ts_samples[begin][:, 1:10]
     x_max = params["n_steps"] + 1
     plt = lineplot(1:x_max, M_plot[:, 1],
-        xlim = (0, x_max), ylim = extrema(M_plot),
-        xlabel = "t", ylabel = "m",
-        width = 125, height = 25)
+        xlim=(0, x_max), ylim=extrema(M_plot),
+        xlabel="t", ylabel="m",
+        width=125, height=25)
     for k ∈ 2:size(M_plot, 2)
         lineplot!(plt, 1:x_max, M_plot[:, k])
     end
