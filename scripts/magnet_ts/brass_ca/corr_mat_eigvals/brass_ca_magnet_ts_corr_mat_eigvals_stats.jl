@@ -13,7 +13,7 @@ include("../../../../src/DataIO.jl")
 using .DataIO
 
 # Path for datafiles
-data_dirpath = datadir("ada-lovelace", "brass_ca_ts_matrix_eigvals")
+data_dirpath = datadir("sims", "brass_ca", "magnet_ts", "mult_mat", "rand_start")
 
 # Desired parameters
 prefix = "BrassCA2DMagnetTSMatrix"
@@ -30,7 +30,7 @@ const params_req = Dict(
 df = DataFrame(p = Float64[], r = Float64[], lambda_mean = Float64[], lambda_var = Float64[])
 df_hist = DataFrame(p = Float64[], r = Float64[], n_bins = Int64[], lambda_mean = Float64[], lambda_var = Float64[])
 
-n_bins_vals = [128, 256, 512, 1024, 2048, 4096]
+n_bins_vals = [128, 256, 512]
 
 for data_filename in readdir(data_dirpath)
 
@@ -111,14 +111,21 @@ display(df_hist)
 println()
 
 # Plot results
-plot_filepath = plotsdir("lambda_mean_hist.png")
-plt_hist = plot(df_hist, x = :r, y = :lambda_mean, color = :n_bins,
+plot_filepath = plotsdir("lambda_mean.png")
+plt = plot(df, x = :r, y = :lambda_mean,
     Geom.point, Geom.line,
     Guide.title("Brass CA correlation matrix eigenvalues mean (p = 0.3)"),
-    Guide.xlabel("r"), Guide.ylabel("⟨λ⟩"),
-    Guide.colorkey(title = "Bin count"), Scale.color_discrete)
-# push!(plt, layer(df, x = :r, y = :lambda_mean, Geom.point))
-draw(PNG(plot_filepath, 25cm, 15cm), plt_hist)
+    Guide.xlabel("r"), Guide.ylabel("⟨λ⟩"))
+draw(PNG(plot_filepath, 25cm, 15cm), plt)
+
+# Plot results
+# plot_filepath = plotsdir("lambda_mean_hist.png")
+# plt_hist = plot(df_hist, x = :r, y = :lambda_mean, color = :n_bins,
+#     Geom.point, Geom.line,
+#     Guide.title("Brass CA correlation matrix eigenvalues mean (p = 0.3)"),
+#     Guide.xlabel("r"), Guide.ylabel("⟨λ⟩"),
+#     Guide.colorkey(title = "Bin count"), Scale.color_discrete)
+# draw(PNG(plot_filepath, 25cm, 15cm), plt_hist)
 
 # Save results
 results_params = params_req

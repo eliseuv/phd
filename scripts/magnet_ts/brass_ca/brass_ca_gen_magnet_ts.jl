@@ -6,10 +6,10 @@ using DrWatson
 
 @quickactivate "phd"
 
-using JLD2, UnicodePlots
+using Logging, JLD2, UnicodePlots
 
-include("../src/DataIO.jl")
-include("../src/BrassCellularAutomaton.jl")
+include("../../../src/DataIO.jl")
+include("../../../src/BrassCellularAutomaton.jl")
 
 using .DataIO
 using .BrassCellularAutomaton
@@ -33,8 +33,8 @@ const parameters_combi = Dict(
     "L" => 100,
     "n_steps" => 300,
     "n_samples" => 1024,
-    "p" => collect(range(0.0, 0.2, step = 0.1)),
-    "r" => collect(range(0, 1, step = 0.05))
+    "p" => 0.3,
+    "r" => 0.194421 .+ collect(range(-0.07, 0.07, length = 51))
 )
 
 # Serialize parameters
@@ -44,8 +44,7 @@ println("Running $(length(parameters_list)) simulations.")
 # Loop on simulation parameters
 for params in parameters_list
 
-    println("Parameters:")
-    print_dict(params)
+    @info "Parameters:" params
 
     # Parameters
     p = params["p"]
@@ -54,10 +53,22 @@ for params in parameters_list
     n_steps = params["n_steps"]
     n_samples = params["n_samples"]
 
-    # Brass CA system
+    # Output filename
+    data_filepath = datadir("sims", "brass_ca", "magnet_ts", "single_mat", "th1_start", savename("BrassCA2DMagnetTS", params, "jld2"))
+    @info "Data file:" data_filepath
+
+    # Check if file already exists
+    if isfile(data_filepath)
+        @info "File already exists. Skipping..."
+        continue
+    end
+
+    # Create system
+    @info "Creating system..."
     ca = BrassCASquareLattice(Val(2), L, Val(:rand))
 
-    # Generate magnetization time series matrices
+    # Calculate magnetization time series matrix
+    @info "Calculating magnetization time series matrix..."
     M_ts = magnet_ts_matrix!(ca, p, r, n_steps, n_samples)
 
     # Plot demo matrix
@@ -81,12 +92,10 @@ for params in parameters_list
     println()
 
     # Data to be saved
-    data_filepath = datadir("brass_ca_ts_matrix", "TH1_start", savename("BrassCA2DMagnetTS", params, "jld2"))
-    println(data_filepath)
-
     data = Dict{String,Any}()
     data["Params"] = params
     data["M_ts"] = M_ts
 
+    # Save data
     save(data_filepath, data)
 end

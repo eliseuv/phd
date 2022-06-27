@@ -56,7 +56,7 @@ Generate a filname give an `prefix` a dictionary of parameters `params` and a fi
 
 Each parameter is written as `param_name=param_value` and separated by a `sep` string.
 
-The dot `.` in the extension can be ommited: `ext=".csv"` and 'ext="csv"' are equivalent.
+The dot `.` in the extension can be ommited: `ext=".csv"` and `ext="csv"` are equivalent.
 
 The default file extension is `.jld2`.
 To create a file without extension, use either `ext=nothing` or `ext=""`.

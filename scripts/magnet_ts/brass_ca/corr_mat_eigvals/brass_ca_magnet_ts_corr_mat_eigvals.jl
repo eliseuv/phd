@@ -16,7 +16,7 @@ using .DataIO
 using .Matrices
 
 # Path for datafiles
-data_dirpath = datadir("ada-lovelace", "brass_ca_ts_matrix_eigvals")
+data_dirpath = datadir("sims", "brass_ca", "magnet_ts", "mult_mat", "rand_start")
 
 # Desired parameters
 const params_req = Dict(
