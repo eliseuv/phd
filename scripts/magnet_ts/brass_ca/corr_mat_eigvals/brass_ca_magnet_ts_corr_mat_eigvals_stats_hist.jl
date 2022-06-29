@@ -6,7 +6,7 @@ using DrWatson
 
 @quickactivate "phd"
 
-using Logging, JLD2, Statistics, DataFrames, UnicodePlots, Gadfly, Cairo
+using Logging, JLD2, Statistics, StatsBase, DataFrames, UnicodePlots, Gadfly, Cairo
 
 include("../../../../src/DataIO.jl")
 # include(srcdir("DataIO.jl"))
@@ -19,24 +19,27 @@ data_dirpath = datadir("sims", "brass_ca", "magnet_ts", "mult_mat", "rand_start"
 prefix = "BrassCA2DMagnetTSMatrix"
 const params_req = Dict(
     "prefix" => prefix,
-    "L" => 256,
+    "L" => 100,
     "p" => 0.3,
     "n_runs" => 1000,
     "n_samples" => 100,
     "n_steps" => 300
 )
 
-# Resulting dataframe
+# Resulting dataframes
 df = DataFrame(p=Float64[], r=Float64[], lambda_mean=Float64[], lambda_var=Float64[])
+df_hist = DataFrame(p=Float64[], r=Float64[], n_bins=Int64[], lambda_mean=Float64[], lambda_var=Float64[])
 
-# Loop on datafiles
+n_bins_vals = [128, 256, 512]
+
 for data_filename in readdir(data_dirpath)
 
+    @info data_filename
     filename_params = parse_filename(data_filename)
-    @info data_filename filename_params
+    # script_show(filename_params)
 
     # Ignore unrelated data files
-    if !check_params(filename_params, params_req)
+    if !check_params(parse_filename(data_filename), params_req)
         @info "Skipping unrelated file..."
         continue
     end
@@ -75,27 +78,53 @@ for data_filename in readdir(data_dirpath)
     # Add data to dataframe
     push!(df, λ_stats)
 
+    # Calculate stats using histogram
+    for n_bins ∈ n_bins_vals
+        # Calculate histogram
+        hist = fit(Histogram, λs, range(extrema(λs)..., length=n_bins), closed=:left)
+
+        # Calculate expected value
+        bin_edges = collect(hist.edges[1])
+        λ_bins = bin_edges[1:end-1] + (diff(bin_edges) ./ 2)
+        λ_weights = hist.weights ./ sum(hist.weights)
+        λ_mean_hist = sum(λ_weights .* λ_bins)
+        λ_var_hist = sum((λ_bins .^ 2) .* λ_weights) - (λ_mean_hist^2)
+
+        λ_stats_hist = Dict(
+            :p => p,
+            :r => r,
+            :n_bins => n_bins,
+            :lambda_mean => λ_mean_hist,
+            :lambda_var => λ_var_hist
+        )
+
+        # Add data to dataframe
+        push!(df_hist, λ_stats_hist)
+    end
 end
 
 # Display result
 display(df)
 println()
+display(df_hist)
+println()
 
 # Plot results
-p = params_req["p"]
-L = params_req["L"]
 plot_filepath = plotsdir("lambda_mean.png")
 plt = plot(df, x=:r, y=:lambda_mean,
     Geom.point, Geom.line,
-    Guide.title("Brass CA correlation matrix eigenvalues mean (L = $L, p = $p)"),
+    Guide.title("Brass CA correlation matrix eigenvalues mean (p = 0.3)"),
     Guide.xlabel("r"), Guide.ylabel("⟨λ⟩"))
 draw(PNG(plot_filepath, 25cm, 15cm), plt)
-plot_filepath = plotsdir("lambda_var.png")
-plt = plot(df, x=:r, y=:lambda_var,
-    Geom.point, Geom.line,
-    Guide.title("Brass CA correlation matrix eigenvalues mean (L = $L, p = $p)"),
-    Guide.xlabel("r"), Guide.ylabel("⟨λ⟩"))
-draw(PNG(plot_filepath, 25cm, 15cm), plt)
+
+# Plot results
+# plot_filepath = plotsdir("lambda_mean_hist.png")
+# plt_hist = plot(df_hist, x = :r, y = :lambda_mean, color = :n_bins,
+#     Geom.point, Geom.line,
+#     Guide.title("Brass CA correlation matrix eigenvalues mean (p = 0.3)"),
+#     Guide.xlabel("r"), Guide.ylabel("⟨λ⟩"),
+#     Guide.colorkey(title = "Bin count"), Scale.color_discrete)
+# draw(PNG(plot_filepath, 25cm, 15cm), plt_hist)
 
 # Save results
 results_params = params_req

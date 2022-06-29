@@ -8,10 +8,8 @@ using DrWatson
 
 using Logging, JLD2, LinearAlgebra, UnicodePlots
 
-# include("../../../../src/DataIO.jl")
-# include("../../../../src/Matrices.jl")
-include(srcdir("DataIO.jl"))
-include(srcdir("Matrices.jl"))
+include("../../../../src/DataIO.jl")
+include("../../../../src/Matrices.jl")
 using .DataIO
 using .Matrices
 
@@ -21,7 +19,7 @@ data_dirpath = datadir("sims", "brass_ca", "magnet_ts", "mult_mat", "rand_start"
 # Desired parameters
 const params_req = Dict(
     "prefix" => "BrassCA2DMagnetTSMatrix",
-    "L" => 100,
+    "L" => 256,
     "p" => 0.3,
     "n_runs" => 1000,
     "n_samples" => 100,
@@ -88,10 +86,10 @@ for data_filename in readdir(data_dirpath)
     λs = map(eigvals, G_samples)
 
     # Plot eigenvalues histogram
-    display(histogram(vcat(λs...), nbins = 64, xscale = log10,
-        title = "Eigenvalues of cross correlation matrix (p = $p, r = $r)",
-        ylabel = "λ", xlabel = "ρ(λ)",
-        width = 125))
+    display(histogram(vcat(λs...), nbins=64, xscale=log10,
+        title="Eigenvalues of cross correlation matrix (p = $p, r = $r)",
+        ylabel="λ", xlabel="ρ(λ)",
+        width=125))
     println()
 
     # Store additional data
