@@ -27,7 +27,7 @@ const params_req = Dict(
 )
 
 # Resulting dataframe
-df = DataFrame(p=Float64[], r=Float64[], lambda_mean=Float64[], lambda_var=Float64[])
+df = DataFrame(p=Float64[], r=Float64[], lambda_mean=Float64[], lambda_var=Float64[], lambda_max_mean=Float64[])
 
 # Loop on datafiles
 for data_filename in readdir(data_dirpath)
@@ -62,14 +62,18 @@ for data_filename in readdir(data_dirpath)
     λs = vcat(data["eigvals"]...)
 
     # Calculate stats directly
-    λ_mean = sum(λs) / length(λs)
+    λ_mean = mean(λs)
     λ_var = varm(λs, λ_mean)
+
+    # Calculate avg max eigval
+    λ_max_mean = mean(maximum(hcat(data["eigvals"]...), dims=1))
 
     λ_stats = Dict(
         :p => p,
         :r => r,
         :lambda_mean => λ_mean,
-        :lambda_var => λ_var
+        :lambda_var => λ_var,
+        :lambda_max_mean => λ_max_mean
     )
 
     # Add data to dataframe
@@ -81,26 +85,38 @@ end
 display(df)
 println()
 
+# Save results
+results_params = params_req
+delete!(results_params, "prefix")
+results_prefix = prefix * "EigvalsStats"
+results_filepath = joinpath(data_dirpath, filename(results_prefix, results_params))
+@info "Saving data:" results_filepath
+JLD2.save(results_filepath, Dict("eigvals_stats" => df))
+
 # Plot results
 p = params_req["p"]
 L = params_req["L"]
-plot_filepath = plotsdir("lambda_mean.png")
+
+plot_prefix = prefix * "EigvalsMean"
+plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
 plt = plot(df, x=:r, y=:lambda_mean,
     Geom.point, Geom.line,
     Guide.title("Brass CA correlation matrix eigenvalues mean (L = $L, p = $p)"),
     Guide.xlabel("r"), Guide.ylabel("⟨λ⟩"))
 draw(PNG(plot_filepath, 25cm, 15cm), plt)
-plot_filepath = plotsdir("lambda_var.png")
+
+plot_prefix = prefix * "EigvalsVar"
+plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
 plt = plot(df, x=:r, y=:lambda_var,
     Geom.point, Geom.line,
-    Guide.title("Brass CA correlation matrix eigenvalues mean (L = $L, p = $p)"),
+    Guide.title("Brass CA correlation matrix eigenvalues variance (L = $L, p = $p)"),
     Guide.xlabel("r"), Guide.ylabel("⟨λ⟩"))
 draw(PNG(plot_filepath, 25cm, 15cm), plt)
 
-# Save results
-results_params = params_req
-results_prefix = params_req["prefix"] * "EigvalsStats"
-delete!(results_params, "prefix")
-results_filepath = joinpath(data_dirpath, filename(results_prefix, results_params))
-@info "Saving data:" results_filepath
-JLD2.save(results_filepath, Dict("eigvals_stats" => df))
+plot_prefix = prefix * "EigvalsMaxMean"
+plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
+plt = plot(df, x=:r, y=:lambda_max_mean,
+    Geom.point, Geom.line,
+    Guide.title("Brass CA correlation matrix average maximum eigenvalue (L = $L, p = $p)"),
+    Guide.xlabel("r"), Guide.ylabel("⟨λ⟩"))
+draw(PNG(plot_filepath, 25cm, 15cm), plt)

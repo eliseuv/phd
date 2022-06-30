@@ -1,7 +1,8 @@
 module IsingModel
 
 export Ising, IsingMeanField, IsingSquareLattice, IsingGraph,
-    SpinState, up, down,
+    SpinHalfState, down, up,
+    SpinOneState, down, zero, up,
     ISING_SQ_LAT_2D_BETA_CRIT, ising_square_lattice_2d_beta_critical,
     set_state!, randomize_state!,
     magnet_total, magnet, magnet_moment,
@@ -19,14 +20,11 @@ include("Geometry.jl")
 using .Metaprogramming
 
 """
-    SpinState::Int8
+    SpinState
 
-Enumeration of possible spin values.
+Supertype for all spin states.
 """
-@enum SpinState::Int8 begin
-    up = +1
-    down = -1
-end
+abstract type SpinState end
 
 """
     convert(::Type{T}, σ::SpinState) where {T<:Number}
@@ -53,12 +51,48 @@ end
 """
     *(σ₁::SpinState, σ₂::SpinState)
 
-Since `({-1, +1}, *)` have a group structure, it is safe to define multiplication of spin states.
+Multiplication of spin states.
 """
 @inline Base.:*(σ₁::SpinState, σ₂::SpinState) = Integer(σ₁) * Integer(σ₂)
 
-function Base.show(io::IO, ::MIME"text/plain", σ::SpinState)
+"""
+    SpinHalfState::Int8 <: SpinState
+
+Enumeration of possible spin `1/2` values.
+"""
+@enum SpinHalfState::Int8 <: SpinState begin
+    down = -1
+    up = +1
+end
+
+"""
+    SpinOneState::Int8 <: SpinState
+
+Enumeration of possible spin `1` values.
+"""
+@enum SpinOneState::Int8 <: SpinState begin
+    down = -1
+    zero = 0
+    up = +1
+end
+
+"""
+    show(io::IO, ::MIME"text/plain", σ::SpinHalfState)
+
+Text representation of `SpinHalfState`.
+"""
+function Base.show(io::IO, ::MIME"text/plain", σ::SpinHalfState)
     spin_char = σ == up ? '↑' : '↓'
+    print(io, spin_char)
+end
+
+"""
+    show(io::IO, ::MIME"text/plain", σ::SpinOneState)
+
+Text representation of `SpinOneState`.
+"""
+function Base.show(io::IO, ::MIME"text/plain", σ::SpinOneState)
+    spin_char = σ == up ? '↑' : σ == down ? '↓' : '-'
     print(io, spin_char)
 end
 
@@ -71,7 +105,7 @@ Every spin interacts equally with every other spin.
 Since in the mean field model there is no concept of space and locality,
 we represent the state of the system simply by total number of spin up and spin down sites.
 
-An `AbstractVector{SpinState}` interface for the `IsingMeanField` type can be implemented
+An `AbstractVector{SpinHalfState}` interface for the `IsingMeanField` type can be implemented
 if we assume that the all spin states are stored in a sorted vector with ``N = N₊ + N₋`` elements:
 
     σ = (↑, ↑, …, ↑, ↓, ↓, …, ↓)
@@ -84,7 +118,7 @@ If `i ≤ N₊` then `σᵢ = ↑` else (`N₊ < i ≤ N`) `σᵢ = ↓`.
 # Fields:
 - `state::NamedTuple{(:up, :down),NTuple{2,Int64}}`: State of the system given by the number of spins in each state.
 """
-mutable struct IsingMeanField <: AbstractVector{SpinState}
+mutable struct IsingMeanField <: AbstractVector{SpinHalfState}
 
     "State of the system"
     state::NamedTuple{(:up, :down),NTuple{2,Int64}}
@@ -94,15 +128,15 @@ mutable struct IsingMeanField <: AbstractVector{SpinState}
 
     Construct an Ising system with mean field interaction with a given number of spins in each state.
     """
-    IsingMeanField(; up::Integer = 0, down::Integer = 0) = new((up = up, down = down))
+    IsingMeanField(; up::Integer=0, down::Integer=0) = new((up=up, down=down))
 
     @doc raw"""
-        IsingMeanField(N::Integer, σ₀::SpinState)
+        IsingMeanField(N::Integer, σ₀::SpinHalfState)
 
     Construct an Ising system with mean field interaction with `N` spins, all in a given initial state `σ₀`.
     """
-    function IsingMeanField(N::Integer, σ₀::SpinState)
-        return σ₀ == up ? new((up = N, down = 0)) : new((up = 0, down = N))
+    function IsingMeanField(N::Integer, σ₀::SpinHalfState)
+        return σ₀ == up ? new((up=N, down=0)) : new((up=0, down=N))
     end
 
     @doc raw"""
@@ -113,7 +147,7 @@ mutable struct IsingMeanField <: AbstractVector{SpinState}
     function IsingMeanField(N::Integer, ::Val{:rand})
         N₊ = rand(1:N)
         N₋ = N - N₊
-        return new((up = N₊, down = N₋))
+        return new((up=N₊, down=N₋))
     end
 end
 
@@ -127,7 +161,7 @@ Base.length(ising::IsingMeanField) = sum(ising.state)
 @doc raw"""
     IndexStyle(::IsingMeanField)
 
-Use only linear indices for the `AbstractVector{SpinState}` interface for the `IsingMeanField` type.
+Use only linear indices for the `AbstractVector{SpinHalfState}` interface for the `IsingMeanField` type.
 """
 @inline Base.IndexStyle(::Type{<:IsingMeanField}) = IndexLinear()
 
@@ -139,43 +173,43 @@ Get the state of the `i`-th spin in the Ising system with mean field interaction
 @inline Base.getindex(ising::IsingMeanField, i::Integer) = i <= ising.state.up ? up : down
 
 @doc raw"""
-    setindex!(ising::IsingMeanField, σ::SpinState, i::Integer)
+    setindex!(ising::IsingMeanField, σ::SpinHalfState, i::Integer)
 
 Set the state of the `i`-th spin to `σ` in the Ising system with mean field interaction `ising`.
 """
-@inline function Base.setindex!(ising::IsingMeanField, σ::SpinState, i::Integer)
+@inline function Base.setindex!(ising::IsingMeanField, σ::SpinHalfState, i::Integer)
     if i <= ising.state.up && σ == down
-        ising.state = (up = ising.state.up - 1, down = ising.state.down + 1)
+        ising.state = (up=ising.state.up - 1, down=ising.state.down + 1)
     elseif σ == up
-        ising.state = (up = ising.state.up + 1, down = ising.state.down - 1)
+        ising.state = (up=ising.state.up + 1, down=ising.state.down - 1)
     end
 end
 
 @doc raw"""
     firstindex(ising::IsingMeanField)
 
-The first spin in the `AbstractVector{SpinState}` interface of `IsingMeanField`.
+The first spin in the `AbstractVector{SpinHalfState}` interface of `IsingMeanField`.
 """
 @inline Base.firstindex(ising::IsingMeanField) = 1
 
 @doc raw"""
     lastindex(ising::IsingMeanField)
 
-The last spin in the `AbstractVector{SpinState}` interface of `IsingMeanField`.
+The last spin in the `AbstractVector{SpinHalfState}` interface of `IsingMeanField`.
 """
 @inline Base.lastindex(ising::IsingMeanField) = sum(ising.state)
 
 """
-    set_state!(ca::IsingMeanField, σ₀::SpinState)
+    set_state!(ca::IsingMeanField, σ₀::SpinHalfState)
 
 Set the state of all sites of an Ising system `ising` to a given site state `σ₀`.
 """
-@inline function set_state!(ising::IsingMeanField, σ₀::SpinState)
+@inline function set_state!(ising::IsingMeanField, σ₀::SpinHalfState)
     N = length(ising)
     ising.state = if σ₀ == up
-        (up = N, down = 0)
+        (up=N, down=0)
     else
-        (up = 0, down = N)
+        (up=0, down=N)
     end
 end
 
@@ -189,14 +223,14 @@ Set the state of each site of an Ising system `ising` to a random state `σ ∈ 
     dist = Binomial(N, p)
     N₊ = rand(dist)
     N₋ = N - N₊
-    ising.state = (up = N₊, down = N₋)
+    ising.state = (up=N₊, down=N₋)
 end
 
 @inline function randomize_state!(ising::IsingMeanField)
     N = length(ising)
     N₊ = rand(1:N)
     N₋ = N - N₊
-    ising.state = (up = N₊, down = N₋)
+    ising.state = (up=N₊, down=N₋)
 end
 
 @doc raw"""
@@ -207,7 +241,7 @@ Flip the state of the `i`-th spin in the Ising system with mean field interactio
 @inline function flip!(ising::IsingMeanField, i::Integer)
     σᵢ = Integer(ising[i])
     N₊, N₋ = ising.state.up, ising.state.down
-    ising.state = (up = N₊ - σᵢ, down = N₋ + σᵢ)
+    ising.state = (up=N₊ - σᵢ, down=N₋ + σᵢ)
 end
 
 @doc raw"""
@@ -254,14 +288,14 @@ Change in energy of an Ising system with mean field interaction if the `i`-th we
 @inline energy_local(ising::IsingMeanField, i::Integer) = @inbounds 2 * Integer(ising[i]) * nearest_neighbors_sum(ising, i)
 
 """
-    IsingConcrete{N} <: AbstractArray{SpinState,N}
+    IsingConcrete{N} <: AbstractArray{SpinHalfState,N}
 
 Supertype for all Ising systems that have a concrete representation of its state in memory
-in the form of a concrete array member `state::Array{SpinState,N}`.
+in the form of a concrete array member `state::Array{SpinHalfState,N}`.
 
-The whole indexing interface of the `state::Array{SpinState,N}` can be passed to the `::IsingConcrete{N}` object itself.
+The whole indexing interface of the `state::Array{SpinHalfState,N}` can be passed to the `::IsingConcrete{N}` object itself.
 """
-abstract type IsingConcrete{N} <: AbstractArray{SpinState,N} end
+abstract type IsingConcrete{N} <: AbstractArray{SpinHalfState,N} end
 
 """
     length(ising::IsingConcrete)
@@ -278,18 +312,18 @@ Size of the state of an Ising system `ising`.
 @inline Base.size(ising::IsingConcrete) = size(ising.state)
 
 """
-    size(ising::IsingConcrete, dim::Integer)
+    size(ising::IsingConcrete, dim)
 
 Size of the state of an Ising system `ising` along a given dimension `dim`.
 """
-@inline Base.size(ising::IsingConcrete, dim::Integer) = size(ising.state, dim)
+@inline Base.size(ising::IsingConcrete, dim) = size(ising.state, dim)
 
 """
     IndexStyle(::Type{<:IsingConcrete{N}}) where {N}
 
 Use same indexing style used to index the state array.
 """
-@inline Base.IndexStyle(::Type{<:IsingConcrete{N}}) where {N} = IndexStyle(Array{SpinState,N})
+@inline Base.IndexStyle(::Type{<:IsingConcrete{N}}) where {N} = IndexStyle(Array{SpinHalfState,N})
 
 """
     getindex(ising::IsingConcrete, inds...)
@@ -320,11 +354,11 @@ Get the index of the last spin in the system.
 @inline Base.lastindex(ising::IsingConcrete) = lastindex(ising.state)
 
 """
-    set_state!(ca::IsingConcrete, σ₀::SpinState)
+    set_state!(ca::IsingConcrete, σ₀::SpinHalfState)
 
 Set the state of all sites of an Ising system `ising` to a given site state `σ₀`.
 """
-@inline function set_state!(ising::IsingConcrete, σ₀::SpinState)
+@inline function set_state!(ising::IsingConcrete, σ₀::SpinHalfState)
     fill!(ising, σ₀)
 end
 
@@ -341,7 +375,7 @@ Set the state of each site of an Ising system `ising` to a random state `σ₀ �
 end
 
 @inline function randomize_state!(ising::IsingConcrete)
-    rand!(ising, instances(SpinState))
+    rand!(ising, instances(SpinHalfState))
 end
 
 @doc raw"""
@@ -413,7 +447,7 @@ This is the default implementation for any specific type of Ising model `IsingSp
 Flips the `i`-th spin on the Ising system `ising`.
 """
 @inline function flip!(ising::IsingConcrete{N}, i::Union{Integer,CartesianIndex{N}}) where {N}
-    @inbounds ising[i] = SpinState(-Integer(ising[i]))
+    @inbounds ising[i] = SpinHalfState(-Integer(ising[i]))
 end
 
 """
@@ -422,20 +456,20 @@ end
 Ising system on a `N`-dimensional periodic square lattice with nearest neighbor interaction.
 
 # Fields:
-- `state::Array{SpinState,N}`: State of the system
+- `state::Array{SpinHalfState,N}`: State of the system
 """
 mutable struct IsingSquareLattice{N} <: IsingConcrete{N}
 
     "State of the Ising system"
-    state::Array{SpinState,N}
+    state::Array{SpinHalfState,N}
 
     """
-        IsingSquareLattice(size::NTuple{N,Integer}, σ₀::SpinState) where {N}
+        IsingSquareLattice(size::NTuple{N,Integer}, σ₀::SpinHalfState) where {N}
 
     Construct a new Ising system in a multidimensional square lattice of dimensions provided by `size`,
     with nearest neighbor interaction and with all spins with same initial state `σ₀`.
     """
-    IsingSquareLattice(size::NTuple{N,Integer}, σ₀::SpinState) where {N} = new{N}(fill(σ₀, size))
+    IsingSquareLattice(size::NTuple{N,Integer}, σ₀::SpinHalfState) where {N} = new{N}(fill(σ₀, size))
 
     """
         IsingSquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N}
@@ -443,14 +477,14 @@ mutable struct IsingSquareLattice{N} <: IsingConcrete{N}
     Construct a new Ising system in a multidimensional square lattice of dimensions provided by `size`,
     with nearest neighbor interaction and with spins in random states.
     """
-    IsingSquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N} = new{N}(rand(instances(SpinState), size))
+    IsingSquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N} = new{N}(rand(instances(SpinHalfState), size))
 
     @doc raw"""
         IsingSquareLattice(::Val{N}, L::Integer, σ₀::BrassState) where {N}
 
     Construct a `dim`-dimensional square Ising system of side length `L` and a given initial state `σ₀`.
     """
-    IsingSquareLattice(::Val{N}, L::Integer, σ₀::SpinState) where {N} = IsingSquareLattice(ntuple(_ -> L, Val(N)), σ₀)
+    IsingSquareLattice(::Val{N}, L::Integer, σ₀::SpinHalfState) where {N} = IsingSquareLattice(ntuple(_ -> L, Val(N)), σ₀)
 
     @doc raw"""
         IsingSquareLattice(::Val{N}, L::Integer, ::Val{:rand}) where {N}
@@ -614,21 +648,21 @@ mutable struct IsingGraph <: IsingConcrete{1}
     g::Graph
 
     "State at each node"
-    state::Vector{SpinState}
+    state::Vector{SpinHalfState}
 
     """
-        IsingGraph(g::Graph, σ₀::SpinState)
+        IsingGraph(g::Graph, σ₀::SpinHalfState)
 
     Construct a new Ising system with graph structure `g` with all spins with same initial state `σ₀`.
     """
-    IsingGraph(g::Graph, σ₀::SpinState) = new(g, fill(σ₀, nv(g)))
+    IsingGraph(g::Graph, σ₀::SpinHalfState) = new(g, fill(σ₀, nv(g)))
 
     """
         IsingGraph(g::Graph, ::Val{:rand})
 
     Construct a new Ising system with graph structure `g` and random initial states at each node.
     """
-    IsingGraph(g::Graph, ::Val{:rand}) = new(g, rand(instances(SpinState), nv(g)))
+    IsingGraph(g::Graph, ::Val{:rand}) = new(g, rand(instances(SpinHalfState), nv(g)))
 end
 
 """
@@ -722,18 +756,19 @@ function metropolis_and_measure_total_magnet!(ising::Ising, β::Real, h::Real, n
     M_T[1] = magnet_total(ising)
     # Sampling loop
     @inbounds for t ∈ 1:n_steps
-        # Select random spin
-        i = rand(eachindex(ising))
-        # Get energy difference
-        ΔH = energy_local(ising, i, h)
-        # Metropolis prescription
-        if ΔH < 0 || exp(-β * ΔH) > rand()
-            # Flip spin
-            M_T[t+1] = M_T[t] + magnet_total_local(ising, i)
-            flip!(ising, i)
-        else
-            # Do NOT flip spin
-            M_T[t+1] = M_T[t]
+        # Loop on site
+        for s in rand(eachindex(ising), length(ising))
+            # Get energy difference
+            ΔH = energy_local(ising, i, h)
+            # Metropolis prescription
+            if ΔH < 0 || exp(-β * ΔH) > rand()
+                # Flip spin
+                M_T[t+1] = M_T[t] + magnet_total_local(ising, i)
+                flip!(ising, i)
+            else
+                # Do NOT flip spin
+                M_T[t+1] = M_T[t]
+            end
         end
     end
     return M_T
