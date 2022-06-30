@@ -94,7 +94,7 @@ Supertype for all spin models.
 
 Since all site are indexable, they all inherit from `AbstractArray{SpinState}`.
 """
-abstract type SpinModel{T} where {T<:SpinState} end
+abstract type SpinModel end
 
 @doc raw"""
     MeanFieldSpinModel <: SpinModel

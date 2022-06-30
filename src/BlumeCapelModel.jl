@@ -1,30 +1,53 @@
 module BlumeCapelModel
 
-export SpinState,
+export SpinOneState,
     BlumeCapel, BlumeCapelConcrete, BlumeCapelSquareLattice,
     set_state!, randomize_state!,
     magnet_total, magnet,
     energy,
-    nearest_neighbors, nearest_neighbors_sum,
+    nearest_neighbors, magnet_total_local,
     heatbath_and_measure_total_magnet!
 
-using Random, StatsBase
+using EnumX, Random, StatsBase
 
 include("Metaprogramming.jl")
 include("Geometry.jl")
 
 using .Metaprogramming
 
-SpinState = Int8
+@enumx SpinOneState::Int8 begin
+    zero = 0
+    down = -1
+    up = +1
+end
 
-abstract type BlumeCapelConcrete{N} <: AbstractArray{SpinState,N} end
+@inline Base.convert(::Type{T}, σ::SpinOneState.T) where {T<:Number} = T(Integer(σ))
+
+@inline Base.promote_rule(T::Type, ::Type{SpinOneState.T}) = T
+
+# Arithmetic with numbers and Spin States
+for op in (:*, :/, :+, :-)
+    @eval begin
+        @inline Base.$op(x::Number, σ::SpinOneState.T) = $op(promote(x, σ)...)
+        @inline Base.$op(σ::SpinOneState.T, y::Number) = $op(promote(σ, y)...)
+    end
+end
+
+@inline Base.:*(σ₁::SpinOneState.T, σ₂::SpinOneState.T) = Integer(σ₁) * Integer(σ₂)
+
+function Base.show(io::IO, ::MIME"text/plain", σ::SpinOneState.T)
+    spin_char = σ == up ? '↑' : '↓'
+    print(io, spin_char)
+end
+
+abstract type BlumeCapelConcrete{N} <: AbstractArray{SpinOneState.T,N} end
 
 @inline Base.length(bc::BlumeCapelConcrete) = length(bc.state)
 
 @inline Base.size(bc::BlumeCapelConcrete) = size(bc.state)
 @inline Base.size(bc::BlumeCapelConcrete, dim) = size(bc.state, dim)
 
-@inline Base.IndexStyle(::Type{<:BlumeCapelConcrete{N}}) where {N} = IndexStyle(Array{SpinState,N})
+@inline Base.IndexStyle(::Type{<:BlumeCapelConcrete{N}}) where {N} = IndexStyle(Array{SpinOneState.T,N})
 
 @inline Base.getindex(bc::BlumeCapelConcrete, inds...) = getindex(bc.state, inds...)
 @inline Base.setindex!(bc::BlumeCapelConcrete, σ, inds...) = setindex!(bc.state, σ, inds...)
@@ -32,27 +55,28 @@ abstract type BlumeCapelConcrete{N} <: AbstractArray{SpinState,N} end
 @inline Base.firstindex(bc::BlumeCapelConcrete) = firstindex(bc.state)
 @inline Base.lastindex(bc::BlumeCapelConcrete) = lastindex(bc.state)
 
-@inline function set_state!(bc::BlumeCapelConcrete, σ₀::SpinState)
+@inline function set_state!(bc::BlumeCapelConcrete, σ₀::SpinOneState.T)
     fill!(bc, σ₀)
 end
 
 @inline function randomize_state!(bc::BlumeCapelConcrete)
-    rand!(bc, SpinState[-1, 0, +1])
+    rand!(bc, instances(SpinOneState.T))
 end
 
-@inline magnet_total(bc::BlumeCapelConcrete) = @inbounds sum(bc.state)
+@inline magnet_total(bc::BlumeCapelConcrete) = @inbounds sum(Integer, bc.state)
+
 @inline magnet(bc::BlumeCapelConcrete) = magnet_total(bc) / length(bc)
 
-@inline nearest_neighbors_sum(bc::BlumeCapelConcrete{N}, i::Union{Integer,CartesianIndex{N}}) where {N} = @inbounds sum(bc[nn] for nn ∈ nearest_neighbors(bc, i))
+@inline magnet_total_local(bc::BlumeCapelConcrete{N}, i::Union{Integer,CartesianIndex{N}}) where {N} = @inbounds sum(Integer, bc[nn] for nn ∈ nearest_neighbors(bc, i))
 
 mutable struct BlumeCapelSquareLattice{N} <: BlumeCapelConcrete{N}
 
-    state::Array{SpinState,N}
+    state::Array{SpinOneState.T,N}
 
-    BlumeCapelSquareLattice(size::NTuple{N,Integer}, σ₀::SpinState) where {N} = new{N}(fill(σ₀, size))
-    BlumeCapelSquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N} = new{N}(rand(SpinState[-1, 0, +1], size))
+    BlumeCapelSquareLattice(size::NTuple{N,Integer}, σ₀::SpinOneState.T) where {N} = new{N}(fill(σ₀, size))
+    BlumeCapelSquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N} = new{N}(rand(instances(SpinOneState.T), size))
 
-    BlumeCapelSquareLattice(::Val{N}, L::Integer, σ₀::SpinState) where {N} = BlumeCapelSquareLattice(ntuple(_ -> L, Val(N)), σ₀)
+    BlumeCapelSquareLattice(::Val{N}, L::Integer, σ₀::SpinOneState.T) where {N} = BlumeCapelSquareLattice(ntuple(_ -> L, Val(N)), σ₀)
     BlumeCapelSquareLattice(::Val{N}, L::Integer, ::Val{:rand}) where {N} = BlumeCapelSquareLattice(ntuple(_ -> L, Val(N)), Val(:rand))
 end
 
@@ -64,11 +88,11 @@ function energy(bc::BlumeCapelSquareLattice{N}) where {N}
         # Bulk
         front_bulk = selectdim(bc, d, 1:(size(bc, d)-1))
         back_bulk = selectdim(bc, d, 2:size(bc, d))
-        H -= sum(front_bulk .* back_bulk)
+        H -= sum(Integer, front_bulk .* back_bulk)
         # Periodic boundaries
         last_slice = selectdim(bc, d, size(bc, d))
         first_slice = selectdim(bc, d, 1)
-        H -= sum(last_slice .* first_slice)
+        H -= sum(Integer, last_slice .* first_slice)
     end
     return H
 end
@@ -76,8 +100,8 @@ end
 
 @inline nearest_neighbors(bc::BlumeCapelSquareLattice{N}, idx::CartesianIndex{N}) where {N} = @inbounds Geometry.square_lattice_nearest_neighbors_flat(bc, idx)
 
-@inline nearest_neighbors_sum(bc::BlumeCapelSquareLattice{N}, idx::CartesianIndex{N}) where {N} = @inbounds Geometry.square_lattice_nearest_neighbors_sum(bc, idx)
-@inline nearest_neighbors_sum(bc::BlumeCapelSquareLattice, idx::Integer) = nearest_neighbors_sum(bc, CartesianIndices(bc)[idx])
+@inline magnet_total_local(bc::BlumeCapelSquareLattice{N}, idx::CartesianIndex{N}) where {N} = @inbounds Geometry.square_lattice_nearest_neighbors_sum(bc, idx)
+@inline magnet_total_local(bc::BlumeCapelSquareLattice, idx::Integer) = magnet_total_local(bc, CartesianIndices(bc)[idx])
 
 function Base.show(io::IO, ::MIME"text/plain", bc::BlumeCapelSquareLattice{N}) where {N}
     # Get output from printing state
@@ -105,10 +129,10 @@ function heatbath_and_measure_total_magnet!(bc::BlumeCapel, β::Real, n_steps::I
         # Site loop
         @inbounds for i ∈ rand(eachindex(bc), length(bc))
             # Calculate weights
-            h_local = nearest_neighbors_sum(bc, i)
-            weights = ProbabilityWeights(map(x -> exp(β * h_local * x), [-1, 0, +1]))
+            h_local = magnet_total_local(bc, i)
+            weights = ProbabilityWeights(map(x -> exp(β * h_local * Integer(x)), [instances(SpinOneState.T)...]))
             # Update state
-            bc[i] = sample(Int8[-1, 0, +1], weights)
+            bc[i] = sample([instances(SpinOneState.T)...], weights)
         end
         # Update total magnetization vector
         M_t[t+1] = magnet_total(bc)
