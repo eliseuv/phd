@@ -76,12 +76,13 @@ end
 mutable struct BlumeCapelSquareLattice{N} <: BlumeCapelConcrete{N}
 
     state::Array{SpinOneState.T,N}
+    D::Real
 
-    BlumeCapelSquareLattice(size::NTuple{N,Integer}, σ₀::SpinOneState.T) where {N} = new{N}(fill(σ₀, size))
-    BlumeCapelSquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N} = new{N}(rand(instances(SpinOneState.T), size))
+    BlumeCapelSquareLattice(size::NTuple{N,Integer}, σ₀::SpinOneState.T, D::Real=0) where {N} = new{N}(fill(σ₀, size), D)
+    BlumeCapelSquareLattice(size::NTuple{N,Integer}, ::Val{:rand}, D::Real=0) where {N} = new{N}(rand(instances(SpinOneState.T), size), D)
 
-    BlumeCapelSquareLattice(::Val{N}, L::Integer, σ₀::SpinOneState.T) where {N} = BlumeCapelSquareLattice(ntuple(_ -> L, Val(N)), σ₀)
-    BlumeCapelSquareLattice(::Val{N}, L::Integer, ::Val{:rand}) where {N} = BlumeCapelSquareLattice(ntuple(_ -> L, Val(N)), Val(:rand))
+    BlumeCapelSquareLattice(::Val{N}, L::Integer, σ₀::SpinOneState.T, D::Real=0) where {N} = BlumeCapelSquareLattice(ntuple(_ -> L, Val(N)), σ₀, D)
+    BlumeCapelSquareLattice(::Val{N}, L::Integer, ::Val{:rand}, D::Real=0) where {N} = BlumeCapelSquareLattice(ntuple(_ -> L, Val(N)), Val(:rand), D)
 end
 
 function energy(bc::BlumeCapelSquareLattice{N}) where {N}
@@ -132,7 +133,7 @@ function heatbath_and_measure_total_magnet!(bc::BlumeCapel, β::Real, n_steps::I
         @inbounds for i ∈ rand(eachindex(bc), length(bc))
             # Calculate weights
             h_local = magnet_total_local(bc, i)
-            weights = ProbabilityWeights(map(x -> exp(β * h_local * Integer(x)), [instances(SpinOneState.T)...]))
+            weights = ProbabilityWeights(map(σ -> exp(β * (h_local * Integer(σ) - bc.D * abs(Integer(σ)))), [instances(SpinOneState.T)...]))
             # Update state
             bc[i] = sample([instances(SpinOneState.T)...], weights)
         end
