@@ -36,16 +36,18 @@ end
 @inline Base.:*(σ₁::SpinOneState.T, σ₂::SpinOneState.T) = Integer(σ₁) * Integer(σ₂)
 
 function Base.show(io::IO, ::MIME"text/plain", σ::SpinOneState.T)
-    spin_char = σ == up ? '↑' : '↓'
+    spin_char = σ == up ? '↑' : σ == down ? '↓' : '-'
     print(io, spin_char)
 end
 
-abstract type BlumeCapelConcrete{N} <: AbstractArray{SpinOneState.T,N} end
+abstract type SpinModel{T,N} <: AbstractArray{T,N} end
+
+abstract type BlumeCapel{N} <: SpinModel{SpinOneState.T,N} end
+
+abstract type BlumeCapelConcrete{N} <: BlumeCapel{N} end
 
 @inline Base.length(bc::BlumeCapelConcrete) = length(bc.state)
-
 @inline Base.size(bc::BlumeCapelConcrete) = size(bc.state)
-@inline Base.size(bc::BlumeCapelConcrete, dim) = size(bc.state, dim)
 
 @inline Base.IndexStyle(::Type{<:BlumeCapelConcrete{N}}) where {N} = IndexStyle(Array{SpinOneState.T,N})
 
@@ -64,6 +66,8 @@ end
 end
 
 @inline magnet_total(bc::BlumeCapelConcrete) = @inbounds sum(Integer, bc.state)
+
+@inline magnet_squared_total(bc::BlumeCapelConcrete) = @inbounds sum((x -> Integer(x)^2), bc.state)
 
 @inline magnet(bc::BlumeCapelConcrete) = magnet_total(bc) / length(bc)
 
@@ -96,7 +100,7 @@ function energy(bc::BlumeCapelSquareLattice{N}) where {N}
     end
     return H
 end
-@inline energy(bc::BlumeCapelSquareLattice, h::Real) = energy(bc) - h * magnet_total(bc)
+@inline energy(bc::BlumeCapelSquareLattice, D::Real) = energy(bc) + D * magnet_squared_total(bc)
 
 @inline nearest_neighbors(bc::BlumeCapelSquareLattice{N}, idx::CartesianIndex{N}) where {N} = @inbounds Geometry.square_lattice_nearest_neighbors_flat(bc, idx)
 
@@ -116,8 +120,6 @@ function Base.show(io::IO, ::MIME"text/plain", bc::BlumeCapelSquareLattice{N}) w
     # Output final result
     print(io, str)
 end
-
-BlumeCapel = Union{BlumeCapelConcrete}
 
 function heatbath_and_measure_total_magnet!(bc::BlumeCapel, β::Real, n_steps::Integer)
     # Magnetization vector

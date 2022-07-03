@@ -16,6 +16,9 @@ const n_steps = 1000
 @info "Creating system..."
 bc = BlumeCapelSquareLattice(Val(dim), L, Val(:rand))
 
+H = energy(bc)
+println("Energy = $H")
+
 @info "Simulating..."
 M_t = heatbath_and_measure_total_magnet!(bc, β, n_steps)
 
