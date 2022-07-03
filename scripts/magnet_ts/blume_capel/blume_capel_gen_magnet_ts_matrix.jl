@@ -27,7 +27,8 @@ const parameters_combi = Dict(
     "n_steps" => 300,
     "n_samples" => 100,
     "n_runs" => 1000,
-    "beta" => parse(Float64, ARGS[1])
+    "beta" => parse(Float64, ARGS[1]),
+    "D" => parse(Float64, ARGS[2])
 )
 
 # Serialize parameters
@@ -45,6 +46,7 @@ for params in parameters_list
 
     # Parameters
     β = params["beta"]
+    D = params["D"]
     L = params["L"]
     n_steps = params["n_steps"]
     n_samples = params["n_samples"]
@@ -52,7 +54,7 @@ for params in parameters_list
 
     # Blume-Capel system
     @info "Generating system..."
-    bc = BlumeCapelSquareLattice(Val(2), L, Val(:rand))
+    bc = BlumeCapelSquareLattice(Val(2), L, Val(:rand), D)
 
     # Generate magnetization time series matrices
     @info "Generating magnetization time series matrices..."
