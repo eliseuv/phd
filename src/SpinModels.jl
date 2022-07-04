@@ -7,16 +7,15 @@ SpinModels{<:SpinState}
 """
 module SpinModels
 
-using Graphs: AbstractSimpleGraph
-using Base: AbstractCartesianIndex
 export SingleSpinState, SpinHalfState, SpinOneState,
-    AbstractSpinState, MeanFieldSpinState, ConcreteSpinState, SquareLatticSpinState,
+    AbstractSpinState, MeanFieldSpinState, ConcreteSpinState, SquareLatticeSpinState,
+    SpinModel, IsingModel, BlumeCapelModel,
     set_state!, randomize_state!,
-    magnet_total, magnet_squared_total, magnet,
-    magnet_total_local,
-    nearest_neighbors
+    magnet, magnet_total, magnet_squared_total, magnet_function_total,
+    nearest_neighbors, nearest_neighbors_sum,
+    energy_interaction
 
-using EnumX, Random, StatsBase, Distributions, Graphs
+using Random, EnumX, Combinatorics
 
 include("Metaprogramming.jl")
 include("Geometry.jl")
@@ -50,8 +49,18 @@ end
     SingleSpinState
 
 Supertype for all spin states.
+
+They are usually enums, but even if they are not enums,
+all single spin states must provide a method `instances(<:SingleSpinState)` that returns a tuple with all possible single spin states.
 """
 SingleSpinState = Union{SpinOneState.T,SpinHalfState.T}
+
+"""
+    state_count(::T) where {T<:SingleSpinState}
+
+Get the total number of possible states for a single spin state.
+"""
+@inline state_count(::T) where {T<:SingleSpinState} = length(instances(T))
 
 """
     convert(::Type{T}, σ::SingleSpinState) where {T<:Number}
@@ -105,16 +114,27 @@ end
 # Spin States
 
 """
-    AbstractSpinState
+    AbstractSpinState{T<:SingleSpinState,N} <: AbstractArray{T,N}
 
 Supertype for all spin states.
+
+This type represents whole state of a spin system.
 
 Since all site are indexable, they all inherit from `AbstractArray{SingleSpinState}`.
 """
 abstract type AbstractSpinState{T<:SingleSpinState,N} <: AbstractArray{T,N} end
 
 @doc raw"""
-    MeanFieldSpinState <: AbstractSpinState
+    magnet(spins::AbstractSpinState)
+
+Magnetization of the spin system `spins`.
+
+``m = M / N = (1/N) ∑ᵢ sᵢ``
+"""
+@inline magnet(spins::AbstractSpinState) = magnet_total(spins) / length(spins)
+
+@doc raw"""
+    MeanFieldSpinState{T} <: AbstractSpinState{T,1}
 
 Spin system with mean field interaction:
 Every spin interacts equally with every other spin.
@@ -122,19 +142,27 @@ Every spin interacts equally with every other spin.
 Since in the mean field model there is no concept of space and locality,
 we represent the state of the system simply by total number of spins in each state.
 
-The `state` member is therefore of type `NamedTuple`.
+The `state` member is therefore of type `Dict{<:SingleSpinState,Int64}`.
 
 An `AbstractVector{SingleSpinState}` interface for the `MeanFieldSpinState` type can be implemented
 if we assume that the all spin states are stored in a sorted vector.
 
-Assume the possible spin values are `s₁`, `s₂`, etc.
+Assume the possible spin values are `σ₁`, `σ₂`, etc.
 
-    σ = (s₁, s₁, …, s₁, s₂, s₂, …, s₂, …)
-        |----- N₁ ----||----- N₂ ----|
-        |-------------- N ---------------|
+    state = (σ₁, σ₁, …, σ₁, σ₂, σ₂, …, σ₂, …)
+                            ↑ kᵢ
+            |----- N₁ ----||----- N₂ ----|
+            |-------------- N ---------------|
 
-Therefore, for an `spins::MeanFieldSpinState` we can access the `i`-th spin `σᵢ = spins[i]`:
-    σᵢ = sₖ if Nₖ₋₁ < i ≤ Nₖ
+We have `N₁` sites at state `σ₁` (all sites below index index `k₁ = N₁ + 1`),
+then we have `N₂` sites at state `σ₂` (all sites from index `k₁` and below index `k₂ = N₁ + N₂ + 1 = k₁ + N₂`),
+and so on until the last possible single spin state `σₘ`.
+
+The values `k₁`, `k₂`, …, `kₘ₋₁` are called split indices and can be used to access the `i`-th spin site.
+Note that we always have `kₘ = N`.
+
+For a `spins::MeanFieldSpinState` we can access the `i`-th spin `sᵢ = spins[i]`:
+    sᵢ = σⱼ if kⱼ₋₁ ≤ i < kⱼ
 """
 abstract type MeanFieldSpinState{T} <: AbstractSpinState{T,1} end
 
@@ -144,6 +172,13 @@ abstract type MeanFieldSpinState{T} <: AbstractSpinState{T,1} end
 Get the tuple containig the number of sites in each single spin state.
 """
 @inline state(spins::MeanFieldSpinState) = spins.state
+
+"""
+    split_indices(spins::MeanFieldSpinState{T}) where {T<:SingleSpinState}
+
+Get a tuple with the values of the split indices `kⱼ` for the spin state with mean field interaction `spins`.
+"""
+@inline split_indices(spins::MeanFieldSpinState{T}) where {T<:SingleSpinState} = cumsum(state(spins)[σᵢ] for σᵢ ∈ instances(T)[1:end-1])
 
 @doc raw"""
     length(spins::MeanFieldSpinState)
@@ -161,6 +196,33 @@ Use only linear indices for the `AbstractVector{SingleSpinState}` interface for 
 @inline Base.IndexStyle(::Type{<:MeanFieldSpinState}) = IndexLinear()
 
 @doc raw"""
+    getindex(spins::MeanFieldSpinState{T}, i::Integer) where {T<:SingleSpinState}
+
+Get the state of the `i`-th spin in the spin state with mean field interaction `spins`.
+"""
+@inline function Base.getindex(spins::MeanFieldSpinState{T}, i::Integer) where {T<:SingleSpinState}
+    # Iterate on the possible spin indices and return if smaller than a given split index
+    for (σᵢ, split_index) ∈ zip(instances(T), split_indices(spins))
+        if i < split_index
+            return σᵢ
+        end
+    end
+    # If `i` is not smaller than any split indices, return the last spin value
+    return instances(T)[end]
+end
+
+"""
+    setindex!(spins::MeanFieldSpinState{T}, σ_new::T, i::Integer) where {T<:SingleSpinState}
+
+Set the state of the `i`-th spin site to `σ′` in the spin state with mean field interaction `spins`.
+"""
+@inline function Base.setindex!(spins::MeanFieldSpinState{T}, σ′::T, i::Integer) where {T<:SingleSpinState}
+    σ = spins[i]
+    state(spins)[σ] -= 1
+    state(spins)[σ′] += 1
+end
+
+@doc raw"""
     firstindex(spins::MeanFieldSpinState)
 
 Index of the first spin site in the `AbstractVector{SingleSpinState}` interface of `MeanFieldSpinState` is `1`.
@@ -173,6 +235,95 @@ Index of the first spin site in the `AbstractVector{SingleSpinState}` interface 
 Index of the last spin site in the `AbstractVector{SingleSpinState}` interface of `MeanFieldSpinState` is equal the total number of sites `N`.
 """
 @inline Base.lastindex(spins::MeanFieldSpinState) = length(spins)
+
+"""
+    set_state!(spins::MeanFieldSpinState{T}, σ₀::T) where {T<:SingleSpinState}
+
+Set the state of all spins to `σ₀` in a mean field spin state `spins`.
+"""
+function set_state!(spins::MeanFieldSpinState{T}, σ₀::T) where {T<:SingleSpinState}
+    # Set all values in the state count to zero
+    for σ ∈ instances(T)
+        state(spins)[σ] = 0
+    end
+    # Set the selected state count to `N`
+    N = length(spins)
+    state(spins)[σ₀] = N
+end
+
+"""
+    randomize_state!(spins::MeanFieldSpinState{T}) where {T<:SingleSpinState}
+
+Randomize the state of a mean field spin state `spins`.
+"""
+function randomize_state!(spins::MeanFieldSpinState{T}) where {T<:SingleSpinState}
+    N = length(spins)
+    splits = sort(rand(1:N, state_count(T) - 1))
+    state = diff([0, splits..., N])
+    for (σᵢ, Nᵢ) ∈ zip(instances(T), state)
+        state(spins)[σᵢ] = Nᵢ
+    end
+end
+
+@doc raw"""
+    magnet_total(spins::MeanFieldSpinState)
+
+Total magnetization of mean files spin state `spins`.
+
+``M = ∑ᵢ sᵢ``
+"""
+@inline magnet_total(spins::MeanFieldSpinState) = @inbounds sum(Nᵢ * Integer(σᵢ) for (σᵢ, Nᵢ) ∈ state(spins))
+
+@doc raw"""
+    magnet_squared_total(spins::MeanFieldSpinState)
+
+Total magnetization squared of mean files spin state `spins`.
+
+``∑ᵢ sᵢ²``
+"""
+@inline magnet_squared_total(spins::MeanFieldSpinState) = @inbounds sum(Nᵢ * Integer(σᵢ)^2 for (σᵢ, Nᵢ) ∈ state(spins))
+
+@doc raw"""
+    magnet_function_total(spins::MeanFieldSpinState)
+
+Total magnetization squared of mean files spin state `spins`.
+
+``∑ᵢ f(sᵢ)``
+"""
+@inline magnet_function_total(f::Function, spins::MeanFieldSpinState) = @inbounds sum(Nᵢ * f(Integer(σᵢ)) for (σᵢ, Nᵢ) ∈ state(spins))
+
+"""
+    nearest_neighbors(spins::MeanFieldSpinState, i::Integer)
+
+Get vector with the indices of the nearest neighobrs sites of the `i`-th site in the mean files spin state `spins`.
+That is, all sites except for `i`.
+"""
+@inline nearest_neighbors(spins::MeanFieldSpinState, i::Integer) = [1:(i-1)..., (i+1):length(spins)...]
+
+"""
+    nearest_neighbors_sum(spins::MeanFieldSpinState, i::Integer)
+
+Get sum of the nearest neighbors spins of site `i` in the mean field spin state `spins`.
+"""
+@inline nearest_neighbors_sum(spins::MeanFieldSpinState, i::Integer) = magnet_total(spins) - Integer(spins[i])
+
+"""
+    energy_interaction(spins::MeanFieldSpinState)
+
+Get the interaction energy of the mean field spin state `spins`.
+"""
+function energy_interaction(spins::MeanFieldSpinState{T}) where {T<:SingleSpinState}
+    S_equal = sum(instances(T)) do σₖ
+        Nₖ = state(spins)[σₖ]
+        return ((Nₖ * (Nₖ - 1)) ÷ 2) * Integer(σₖ)^2
+    end
+    S_diff = sum(combinations(instances(T), 2)) do (σₖ, σₗ)
+        Nₖ = state(spins)[σₖ]
+        Nₗ = state(spins)[σₗ]
+        return Nₖ * Nₗ * Integer(σₖ) * Integer(σₗ)
+    end
+    return S_equal + S_diff
+end
 
 @doc raw"""
     ConcreteSpinState <: AbstractSpinState
@@ -273,20 +424,13 @@ Sum of the squares of all spin states in the concrete spin system `spins`.
 @inline magnet_squared_total(spins::ConcreteSpinState) = @inbounds sum(σ -> Integer(σ)^2, state(spins))
 
 """
-    magnet(spins::ConcreteSpinState)
+    nearest_neighbors_sum(spins::ConcreteSpinState{T,N}, i::Union{Integer,CartesianIndex{N}}) where {T,N}
 
-Magnetization of the concrete spin system `spins`.
-"""
-@inline magnet(spins::ConcreteSpinState) = magnet_total(spins) / length(spins)
-
-"""
-    magnet_total_local(spins::ConcreteSpinState{T,N}, i::Union{Integer,CartesianIndex{N}}) where {T,N}
-
-Total local magnetization at a site `i` for a concrete spin model `spins`.
+Sum of the nearest neighbors of the `i`-th site for a concrete spin model `spins`.
 
 Every `spins::ConcreteSpinState` subtype must provide its own implementation of `nearest_neighbors(spins::ConcreteSpinState{T,N}, i::Union{Integer,CartesianIndex{N}})::AbstractVector{IndexStyle(ConcreteSpinState)}`
 """
-@inline magnet_total_local(spins::ConcreteSpinState{T,N}, i::Union{Integer,CartesianIndex{N}}) where {T,N} = @inbounds sum(Integer, spins[nn] for nn ∈ nearest_neighbors(spins, i))
+@inline nearest_neighbors_sum(spins::ConcreteSpinState{T,N}, i::Union{Integer,CartesianIndex{N}}) where {T,N} = @inbounds sum(Integer, spins[nn] for nn ∈ nearest_neighbors(spins, i))
 
 """
     SquareLatticeSpinState{T,N} <: ConcreteSpinState{T,N}
@@ -313,12 +457,12 @@ Gets a vector containing the site that are nearest neighbors to a given site `i`
 @inline nearest_neighbors(spins::SquareLatticeSpinState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Geometry.square_lattice_nearest_neighbors_flat(state(spins), i)
 
 """
-    magnet_total_local(spins::SquareLatticeSpinState{T,N}, i::CartesianIndex{N}) where {T,N}
+    nearest_neighbors_sum(spins::SquareLatticeSpinState{T,N}, i::CartesianIndex{N}) where {T,N}
 
-Total local magnetization at a site `i` for a concrete spin model `spins`, optimized for square lattice systems.
+Sum of the nearest neighbors of the `i`-th site for a concrete spin model `spins`, optimized for square lattice systems.
 """
-@inline magnet_total_local(spins::SquareLatticeSpinState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Geometry.square_lattice_nearest_neighbors_sum(state(spins), i)
-@inline magnet_total_local(spins::SquareLatticeSpinState{T,N}, i::Integer) where {T,N} = magnet_total_local(state(spins), CartesianIndices(spins)[i])
+@inline nearest_neighbors_sum(spins::SquareLatticeSpinState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Geometry.square_lattice_nearest_neighbors_sum(state(spins), i)
+@inline nearest_neighbors_sum(spins::SquareLatticeSpinState{T,N}, i::Integer) where {T,N} = nearest_neighbors_sum(state(spins), CartesianIndices(spins)[i])
 
 @doc raw"""
     energy_interaction(spins::SquareLatticeSpinState{N}) where {N}
@@ -347,10 +491,22 @@ end
 """
     SpinModel
 
-Supertype for all spin models
+Supertype for all spin models.
 """
 abstract type SpinModel{T<:AbstractSpinState} end
 
+"""
+    spin_state_type(::SpinModel{T}) where {T}
+
+Get the type of the spin state of a given spin model.
+"""
+@inline spin_state_type(::SpinModel{T}) where {T} = T
+
+"""
+    spin_instances(::SpinModel{<:AbstractSpinState{S}}) where {S}
+
+Get
+"""
 @inline spin_instances(::SpinModel{<:AbstractSpinState{S}}) where {S} = instances(S)
 
 """
@@ -360,6 +516,7 @@ Get the spin state associated with a given spin model.
 """
 @inline spins(spinmodel::SpinModel) = spinmodel.spins
 
+# Pass measurements from the spin model to the spin state
 for func in (:magnet_total, :magnet, :magnet_squared_total, :energy_interaction)
     @eval begin
         @inline $func(spinmodel::SpinModel) = $func(spins(spinmodel))
@@ -386,7 +543,12 @@ function heatbath_and_measure!(measurement::Function, spinmodel::SpinModel, β::
     return results
 end
 
-struct BlumeCapelModel{N} <: SpinModel{T} where {T<:AbstractSpinState{SpinOneState.T,N}}
+
+struct IsingModel{T} <: SpinModel{T}
+    spins::T
+end
+
+struct BlumeCapelModel{T} <: SpinModel{T}
 
     spins::T
     D::Real
