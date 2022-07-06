@@ -3,24 +3,27 @@ using DrWatson
 
 using Logging, DataFrames, Gadfly
 
-include("../../../src/BlumeCapelModel.jl")
-using .BlumeCapelModel
+include("../../../src/SpinModels.jl")
+using .SpinModels
 
 # Parameters
 const dim = 2
 const L = 256
-const β = 0.1
-const n_steps = 1000
+const D = 0
+const β = Inf
+# const D = 1.96582
+# const β = 1 / (0.60858)
+const n_steps = 100
 
 # System
 @info "Creating system..."
-bc = BlumeCapelSquareLattice(Val(dim), L, Val(:rand))
+blumecapel = BlumeCapelModel(SquareLatticeSpinState(Val(dim), L, SpinOneState.T, Val(:rand)), D)
 
-H = energy(bc)
+H = energy(blumecapel)
 println("Energy = $H")
 
 @info "Simulating..."
-M_t = heatbath_and_measure_total_magnet!(bc, β, n_steps)
+M_t = heatbath_measure!(magnet_total, blumecapel, β, n_steps)
 
 df = DataFrame(t=0:n_steps,
     M=M_t)
