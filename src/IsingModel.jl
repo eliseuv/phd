@@ -445,14 +445,14 @@ mutable struct IsingSquareLattice{N} <: IsingConcrete{N}
     """
     IsingSquareLattice(size::NTuple{N,Integer}, ::Val{:rand}) where {N} = new{N}(rand(instances(SpinHalfState), size))
 
-    @doc raw"""
+    """
         IsingSquareLattice(::Val{N}, L::Integer, σ₀::BrassState) where {N}
 
     Construct a `dim`-dimensional square Ising system of side length `L` and a given initial state `σ₀`.
     """
     IsingSquareLattice(::Val{N}, L::Integer, σ₀::SpinHalfState) where {N} = IsingSquareLattice(ntuple(_ -> L, Val(N)), σ₀)
 
-    @doc raw"""
+    """
         IsingSquareLattice(::Val{N}, L::Integer, ::Val{:rand}) where {N}
 
     Construct a `dim`-dimensional square Ising system of side length `L` and random initial state.
