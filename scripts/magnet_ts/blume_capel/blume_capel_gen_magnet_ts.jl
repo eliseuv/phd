@@ -9,10 +9,10 @@ using .SpinModels
 # Parameters
 const dim = 2
 const L = 256
-const D = 0
-const β = Inf
-# const D = 1.96582
-# const β = 1 / (0.60858)
+# const D = 0
+# const β = Inf
+const D = 1.96582
+const β = 1 / (0.60858)
 const n_steps = 100
 
 # System
@@ -23,7 +23,7 @@ H = energy(blumecapel)
 println("Energy = $H")
 
 @info "Simulating..."
-M_t = heatbath_measure!(magnet_total, blumecapel, β, n_steps)
+M_t = heatbath_measure!(energy, blumecapel, β, n_steps)
 
 df = DataFrame(t=0:n_steps,
     M=M_t)
