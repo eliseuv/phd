@@ -18,7 +18,7 @@ using .SpinModels
 """
 magnet_ts_matrix!(spinmodel::AbstractSpinModel, β::Real, n_steps::Integer, n_samples::Integer) = hcat(map(1:n_samples) do _
     randomize_state!(spinmodel)
-    return heatbath_measure!(magnet_total, spinmodel, β, n_steps)
+    return metropolis_measure!(magnet_total, spinmodel, β, n_steps)
 end...)
 
 # Parameters to be run

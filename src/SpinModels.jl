@@ -882,7 +882,7 @@ function metropolis_measure!(measurement::Function, spinmodel::T, β::Real, n_st
             # Metropolis prescription
             if ΔH < 0 || exp(-β * ΔH) > rand()
                 # Flip spin
-                flip!(spinmodel, i)
+                flip!(spinmodel.spins, i)
             end
         end
         # Update results vector
