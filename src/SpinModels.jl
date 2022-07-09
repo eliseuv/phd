@@ -738,7 +738,7 @@ Get the spin state associated with a given spin model.
 
 Get the type of the spin state of a given spin model.
 """
-@inline state_type(spinmodel::AbstractSpinModel) = typeof(spins(spinmodel))
+# @inline state_type(spinmodel::AbstractSpinModel) = typeof(spins(spinmodel))
 
 """
     length(spinmodel::AbstractSpinModel)
@@ -840,13 +840,13 @@ function metropolis_measure!(measurement::Function, spinmodel::T, β::Real, n_st
         # Site loop
         @inbounds for i ∈ rand(eachindex(spinmodel), length(spinmodel))
             # Select random new state
-            σᵢ′ = new_rand_state(spinmodel[i])
+            sᵢ′ = new_rand_state(spinmodel[i])
             # Get energy difference
-            ΔH = energy_diff(spinmodel, i, σᵢ′)
+            ΔH = energy_diff(spinmodel, i, sᵢ′)
             # Metropolis prescription
             if ΔH < 0 || exp(-β * ΔH) > rand()
                 # Change spin
-                spinmodel[i] = σᵢ′
+                spinmodel[i] = sᵢ′
             end
         end
         # Update results vector
