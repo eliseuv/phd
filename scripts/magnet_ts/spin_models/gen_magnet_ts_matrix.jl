@@ -54,7 +54,7 @@ for params in parameters_list
 
     # Blume-Capel system
     @info "Generating system..."
-    spinmodel = IsingModel(SquareLatticeSpinState(Val(dim), L, SpinHalfType.T, Val(:rand)))
+    spinmodel = IsingModel(SquareLatticeSpinState(Val(dim), L, SpinHalfState.T, Val(:rand)))
 
     # Generate magnetization time series matrices
     @info "Generating magnetization time series matrices..."
