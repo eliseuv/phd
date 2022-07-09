@@ -81,15 +81,15 @@ for params in parameters_list
     # println()
 
     # Plot demo series
-    M_plot = M_ts_samples[begin][:, 1:10]
-    x_max = params["n_steps"] + 1
-    plt = lineplot(1:x_max, M_plot[:, 1],
-        xlim=(0, x_max), ylim=extrema(M_plot),
-        xlabel="t", ylabel="m",
-        width=125, height=25)
-    for k ∈ 2:size(M_plot, 2)
-        lineplot!(plt, 1:x_max, M_plot[:, k])
-    end
-    display(plt)
-    println()
+    # M_plot = M_ts_samples[begin][:, 1:10]
+    # x_max = params["n_steps"] + 1
+    # plt = lineplot(1:x_max, M_plot[:, 1],
+    #     xlim=(0, x_max), ylim=extrema(M_plot),
+    #     xlabel="t", ylabel="m",
+    #     width=125, height=25)
+    # for k ∈ 2:size(M_plot, 2)
+    #     lineplot!(plt, 1:x_max, M_plot[:, k])
+    # end
+    # display(plt)
+    # println()
 end
