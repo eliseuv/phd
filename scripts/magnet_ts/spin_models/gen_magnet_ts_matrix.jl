@@ -58,7 +58,8 @@ for params in parameters_list
 
     # Generate magnetization time series matrices
     @info "Generating magnetization time series matrices..."
-    M_ts_samples = [map(1:n_runs) do _
+    M_ts_samples = [map(1:n_runs) do t
+        println("Matrix $t")
         magnet_ts_matrix!(spinmodel, β, n_steps, n_samples)
     end...]
 

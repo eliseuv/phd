@@ -6,21 +6,21 @@ using DrWatson
 
 @quickactivate "phd"
 
-using Logging, JLD2, Statistics, DataFrames, UnicodePlots, Gadfly, Cairo
+using Logging, JLD2, Statistics, DataFrames, Gadfly, Cairo
 
 include("../../../../src/DataIO.jl")
 # include(srcdir("DataIO.jl"))
 using .DataIO
 
 # Path for datafiles
-data_dirpath = datadir("sims", "blume_capel", "magnet_ts", "mult_mat", "rand_start")
+data_dirpath = datadir("sims", "ising", "magnet_ts", "mult_mat", "rand_start")
 
-# Desired parameters
-prefix = "BlumeCapel2DMagnetTSMatrix"
+# Selected parameters
+prefix = "IsingMagnetTSMatrix"
 const params_req = Dict(
     "prefix" => prefix,
+    "dim" => 2,
     "L" => 100,
-    "D" => 0,
     "n_runs" => 1000,
     "n_samples" => 100,
     "n_steps" => 300
@@ -86,12 +86,17 @@ for data_filename in readdir(data_dirpath)
 
 end
 
+# Process data
+# blume_capel_D0_beta_crit = 0.590395
+ising_2d_temp_crit = 2 / log1p(sqrt(2))
+df[!, :T] = 1.0 ./ (df[!, :beta] .* ising_2d_temp_crit)
+
 # Display result
 display(df)
 println()
 
 # Save results
-results_params = params_req
+results_params = deepcopy(params_req)
 delete!(results_params, "prefix")
 results_prefix = prefix * "EigvalsStats"
 results_filepath = joinpath(data_dirpath, filename(results_prefix, results_params))
@@ -101,41 +106,43 @@ JLD2.save(results_filepath, Dict("eigvals_stats" => df))
 # Plot results
 @info "Plotting results..."
 L = params_req["L"]
-plot_title = "Blume-Capel (D = 0, L = $L)"
-xintercept = [0.590395]
+plot_title = "Ising (L = $L)"
+xdata = :T => "T/T_C"
+xintercept = [1]
 
 plot_prefix = prefix * "EigvalsMean"
 plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
-plt = plot(df, x=:beta, y=:lambda_mean,
+plt = plot(df, x=xdata.first, y=:lambda_mean,
     Geom.point, Geom.line,
     Guide.title(plot_title * " correlation matrix eigenvalues mean"),
-    Guide.xlabel("β"), Guide.ylabel("⟨λ⟩"),
+    Guide.xlabel(xdata.second), Guide.ylabel("⟨λ⟩"),
+    Coord.cartesian(ymin=0),
     xintercept=xintercept, Geom.vline)
 draw(PNG(plot_filepath, 25cm, 15cm), plt)
 
 plot_prefix = prefix * "EigvalsVar"
 plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
-plt = plot(df, x=:beta, y=:lambda_var,
+plt = plot(df, x=xdata.first, y=:lambda_var,
     Geom.point, Geom.line,
     Guide.title(plot_title * " correlation matrix eigenvalues variance"),
-    Guide.xlabel("β"), Guide.ylabel("⟨λ²⟩ - ⟨λ⟩²"),
+    Guide.xlabel(xdata.second), Guide.ylabel("⟨λ²⟩ - ⟨λ⟩²"),
     xintercept=xintercept, Geom.vline)
 draw(PNG(plot_filepath, 25cm, 15cm), plt)
 
 plot_prefix = prefix * "EigvalsMaxMean"
 plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
-plt = plot(df, x=:beta, y=:lambda_max_mean,
+plt = plot(df, x=xdata.first, y=:lambda_max_mean,
     Geom.point, Geom.line,
     Guide.title(plot_title * " correlation matrix average maximum eigenvalue"),
-    Guide.xlabel("β"), Guide.ylabel("λ₀"),
+    Guide.xlabel(xdata.second), Guide.ylabel("λ₀"),
     xintercept=xintercept, Geom.vline)
 draw(PNG(plot_filepath, 25cm, 15cm), plt)
 
 plot_prefix = prefix * "EigvalsGapMean"
 plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
-plt = plot(df, x=:beta, y=:lambda_gap_mean,
+plt = plot(df, x=xdata.first, y=:lambda_gap_mean,
     Geom.point, Geom.line,
     Guide.title(plot_title * " correlation matrix average eigenvalue gap"),
-    Guide.xlabel("β"), Guide.ylabel("⟨Δλ⟩"),
+    Guide.xlabel(xdata.second), Guide.ylabel("⟨Δλ⟩"),
     xintercept=xintercept, Geom.vline)
 draw(PNG(plot_filepath, 25cm, 15cm), plt)

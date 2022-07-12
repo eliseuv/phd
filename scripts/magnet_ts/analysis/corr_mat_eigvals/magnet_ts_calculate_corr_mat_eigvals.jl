@@ -14,12 +14,12 @@ using .DataIO
 using .Matrices
 
 # Path for datafiles
-data_dirpath = datadir("sims", "blume_capel", "magnet_ts", "mult_mat", "rand_start")
+data_dirpath = datadir("sims", "ising", "magnet_ts", "mult_mat", "rand_start")
 
 # Desired parameters
 const params_req = Dict(
-    "prefix" => "BlumeCapel2DMagnetTSMatrix",
-    "D" => 0,
+    "prefix" => "IsingMagnetTSMatrix",
+    "dim" => 2,
     "L" => 100,
     "n_runs" => 1000,
     "n_samples" => 100,
@@ -61,7 +61,7 @@ for data_filename in readdir(data_dirpath)
     # display(heatmap(M_ts_samples[begin],
     #     title="Time series matrix (β = $β)",
     #     xlabel="i", ylabel="t", zlabel="mᵢ(t)",
-    #     width=120))
+    #     width=110))
     # println()
 
     # Normalize time series matrix
@@ -70,7 +70,7 @@ for data_filename in readdir(data_dirpath)
     # display(heatmap(M_ts_norm_samples[begin],
     #     title="Normalized time series matrix (β = $β)",
     #     xlabel="i", ylabel="t", zlabel="̄mᵢ(t)",
-    #     width=120))
+    #     width=110))
     # println()
 
     # Calculate correlation matrix
@@ -79,7 +79,7 @@ for data_filename in readdir(data_dirpath)
     # display(heatmap(G_samples[begin],
     #     title="Cross correlation matrix (β = $β)",
     #     xlabel="i", ylabel="j", zlabel="Gᵢⱼ",
-    #     width=120))
+    #     width=110))
     # println()
 
     # Calculate eigenvalues
@@ -90,7 +90,7 @@ for data_filename in readdir(data_dirpath)
     display(histogram(vcat(λs...), nbins=64, xscale=log10,
         title="Eigenvalues of cross correlation matrix (β = $β)",
         ylabel="λ", xlabel="ρ(λ)",
-        width=120))
+        width=110))
     println()
 
     # Store additional data

@@ -50,7 +50,7 @@ Keep only the files from `paths` with a given extension `ext`.
 keep_extension(ext::AbstractString, paths::AbstractVector{AbstractString}) = filter(path -> (get_extension(path) == ext), paths)
 
 @doc raw"""
-    filename(prefix::AbstractString, params::Dict{Symbol,Any}; sep::AbstractString = "_", ext::Union{AbstractString,Nothing} = "jld2")
+    filename(prefix::AbstractString, params::Dict{String,Any}; sep::AbstractString = "_", ext::Union{AbstractString,Nothing} = "jld2")
 
 Generate a filname give an `prefix` a dictionary of parameters `params` and a file extension `ext`.
 
@@ -61,11 +61,11 @@ The dot `.` in the extension can be ommited: `ext=".csv"` and `ext="csv"` are eq
 The default file extension is `.jld2`.
 To create a file without extension, use either `ext=nothing` or `ext=""`.
 """
-function filename(prefix::AbstractString, params::Dict{Symbol}; sep::AbstractString = "_", ext::Union{AbstractString,Nothing} = "jld2")
+function filename(prefix::AbstractString, params::Dict{String}; sep::AbstractString="_", ext::Union{AbstractString,Nothing}="jld2")
     # Prefix
     filename = prefix
     # Parameters in alphabetical order
-    for (param_name, param_value) in sort(collect(params), by = x -> x.first)
+    for (param_name, param_value) in sort(collect(params), by=x -> x.first)
         filename = filename * sep * string(param_name) * '=' * string(param_value)
     end
     # Extension
@@ -77,13 +77,6 @@ function filename(prefix::AbstractString, params::Dict{Symbol}; sep::AbstractStr
         end
     end
     return filename
-end
-function filename(prefix::AbstractString, params::Dict{String}; sep::AbstractString = "_", ext::Union{AbstractString,Nothing} = "jld2")
-    params_symb = Dict{Symbol,Any}()
-    for (param_name, param_value) in params
-        params_symb[Symbol(param_name)] = param_value
-    end
-    return filename(prefix, params_symb, sep = sep, ext = ext)
 end
 
 @doc raw"""
@@ -108,7 +101,7 @@ Retuns a `Dict{Symbol,Any}` with keys being the names of the parameters as symbo
     first_param => foo (SubString{String})
     ```
 """
-function parse_filename(path::AbstractString; sep::AbstractString = "_")
+function parse_filename(path::AbstractString; sep::AbstractString="_")
     filename = splitext(basename(path))[1]
     namechunks = split(filename, sep)
     param_dict = Dict{String,Any}()
@@ -118,7 +111,11 @@ function parse_filename(path::AbstractString; sep::AbstractString = "_")
         while !occursin("=", param) && length(namechunks) != 0
             param = param * sep * popfirst!(namechunks)
         end
-        (param_name, param_value) = split(param, "=")
+        if occursin("=", param)
+            (param_name, param_value) = split(param, "=")
+        else
+            break
+        end
         # Try to infer type
         ParamType = infer_type(param_value)
         if ParamType != Any
@@ -152,5 +149,21 @@ function check_params(params::Dict{String}, reqs::Dict{String})
     return true
 end
 
+@doc raw"""
+    check_params(params::Dict{String}, req::Pair{String})
+
+Checks of the parameters dictionary `params` has the key-value pair specified by the pair `req`.
+"""
+function check_params(params::Dict{String}, req::Pair{String})
+    (key, value) = req
+    return haskey(params, key) && params[key] == value
+end
+
+@doc raw"""
+    check_params(params::Dict{String}, reqs...)
+
+Checks of the parameters dictionary `params` satisfies the values defined in the parameters dictionaries and pairs `reqs...`.
+"""
+check_params(params::Dict{String}, reqs...) = all(x -> check_params(params, x), reqs)
 
 end
