@@ -5,7 +5,19 @@
 """
 module FiniteStates
 
-export AbstractFiniteState
+export AbstractSiteState, instance_count,
+    # Abstract finite state
+    AbstractFiniteState,
+    set_state!, randomize_state!,
+    nearest_neighbors, nearest_neighbors_sum,
+    # Mean field finite state
+    MeanFieldFiniteState, clear, split_indices, site_counts_from_split_indices,
+    # Concrete finite state
+    ConcreteFiniteState, state,
+    # Square lattice finite state
+    SquareLatticeFiniteState,
+    # Simple graph finite state
+    SimpleGraphFiniteState
 
 using Random, Graphs
 
@@ -27,7 +39,7 @@ Total number of possible instances associated with a single site state.
 @inline instance_count(::Type{T}) where {T<:AbstractSiteState} = length(instances(T))
 
 """
-    AbstracFiniteState{T<:AbstractSiteState,N},N} <: AbstractArray{T,N}
+    AbstractFiniteState{T<:AbstractSiteState,N},N} <: AbstractArray{T,N}
 
 Supertype for all finite states.
 """
@@ -61,7 +73,7 @@ The values `k₁`, `k₂`, …, `kₘ₋₁` are called split indices and can be
 
 Note that we always have `kₘ = N`.
 
-For a `mfss::MeanFieldFiniteState` we can access the `i`-th site `sᵢ = mfss[i]`:
+For a `fs::MeanFieldFiniteState` we can access the `i`-th site `sᵢ = fs[i]`:
     sᵢ = σⱼ if kⱼ₋₁ < i ≤ kⱼ
 """
 mutable struct MeanFieldFiniteState{T} <: AbstractFiniteState{T,1}
@@ -95,11 +107,20 @@ mutable struct MeanFieldFiniteState{T} <: AbstractFiniteState{T,1}
 end
 
 """
-    split_indices(mfss::MeanFieldFiniteState{T}) where {T}
+    clear(fs::MeanFieldFiniteState{T,U}) where {T<:AbstractSiteState,U<:Unsigned}
 
-Get a tuple with the values of the split indices `kⱼ` for the mean field finite state `mfss`.
+Clears the state of the mean field finites state `fs` by setting the site count to all states to zero.
 """
-@inline split_indices(mfss::MeanFieldFiniteState{T}) where {T} = cumsum(mfss.state[σᵢ] for σᵢ ∈ instances(T))
+@inline function clear(fs::MeanFieldFiniteState{T}) where {T<:AbstractSiteState}
+    fs.state = Dict(instances(T) .=> zero(UInt64))
+end
+
+"""
+    split_indices(fs::MeanFieldFiniteState{T}) where {T}
+
+Get a tuple with the values of the split indices `kⱼ` for the mean field finite state `fs`.
+"""
+@inline split_indices(fs::MeanFieldFiniteState{T}) where {T} = @inbounds cumsum(fs.state[σᵢ] for σᵢ ∈ instances(T))
 
 """
     site_counts_from_split_indices(split_indices::Vector{Integer})
@@ -109,36 +130,27 @@ Get the number of spins in each state given the split indices `split_indices`.
 @inline site_counts_from_split_indices(split_indices::Vector{Unsigned}) = [split_indices[begin], diff(split_indices)]
 
 """
-    clear(mfss::MeanFieldFiniteState{T,U}) where {T<:AbstractSiteState,U<:Unsigned}
+    getindex(fs::MeanFieldFiniteState{T}, σ::T) where {T<:AbstractSiteState}
 
-Clears the state of the mean field finites state `mfss` by setting the site count to all states to zero.
+Allow the site count for a given state `σ` to be accessed directly using the mean field finite state `fs`.
 """
-@inline function clear(mfss::MeanFieldFiniteState{T}) where {T<:AbstractSiteState}
-    mfss.state = Dict(instances(T) .=> zero(UInt64))
-end
+@inline Base.getindex(fs::MeanFieldFiniteState{T}, σ::T) where {T<:AbstractSiteState} = fs.state[σ]
 
 """
-    getindex(mfss::MeanFieldFiniteState{T}, σ::T) where {T<:AbstractSiteState}
+    setindex!(fs::MeanFieldFiniteState{T}, Nᵢ::Unsigned, σᵢ::T) where {T<:AbstractSiteState}
 
-Allow the site count for a given state `σ` to be accessed directly using the mean field finite state `mfss`.
+Set the site count to `Nᵢ` for a given site `σᵢ` in the mean field finite state `fs`.
 """
-@inline Base.getindex(mfss::MeanFieldFiniteState{T}, σ::T) where {T<:AbstractSiteState} = mfss.state[σ]
-
-"""
-    setindex!(mfss::MeanFieldFiniteState{T}, Nᵢ::Unsigned, σᵢ::T) where {T<:AbstractSiteState}
-
-Set the site count to `Nᵢ` for a given site `σᵢ` in the mean field finite state `mfss`.
-"""
-@inline function Base.setindex!(mfss::MeanFieldFiniteState{T}, Nᵢ::Unsigned, σᵢ::T) where {T<:AbstractSiteState}
-    mfss.state[σᵢ] = Nᵢ
+@inline function Base.setindex!(fs::MeanFieldFiniteState{T}, Nᵢ::Unsigned, σᵢ::T) where {T<:AbstractSiteState}
+    fs.state[σᵢ] = Nᵢ
 end
 
 @doc raw"""
     length(spins::MeanFieldFiniteState)
 
-Get the total number of sites `N` in an mean field finite state `mfss`.
+Get the total number of sites `N` in an mean field finite state `fs`.
 """
-@inline Base.length(spins::MeanFieldFiniteState) = sum(values(spins.state))
+@inline Base.length(spins::MeanFieldFiniteState) = @inbounds sum(values(spins.state))
 
 @doc raw"""
     IndexStyle(::Type{<:MeanFieldFiniteState})
@@ -148,13 +160,13 @@ Use only linear indices for the `AbstractVector{AbstractSiteState}` interface fo
 @inline Base.IndexStyle(::Type{<:MeanFieldFiniteState}) = IndexLinear()
 
 @doc raw"""
-    getindex(mfss::MeanFieldFiniteState{T}, i::Integer) where {T<:SingleSpinState}
+    getindex(fs::MeanFieldFiniteState{T}, i::Integer) where {T<:SingleSpinState}
 
-Get the state of the `i`-th site in the mean field finite state `mfss`.
+Get the state of the `i`-th site in the mean field finite state `fs`.
 """
-@inline function Base.getindex(mfss::MeanFieldFiniteState{T}, i::Integer) where {T<:AbstractSiteState}
+@inline function Base.getindex(fs::MeanFieldFiniteState{T}, i::Integer) where {T<:AbstractSiteState}
     # Iterate on the possible state indices and return if smaller than a given split index
-    for (σᵢ, split_index) ∈ zip(instances(T)[1:end-1], split_indices(mfss))
+    for (σᵢ, split_index) ∈ zip(instances(T)[1:end-1], split_indices(fs))
         if i < split_index
             return σᵢ
         end
@@ -164,14 +176,14 @@ Get the state of the `i`-th site in the mean field finite state `mfss`.
 end
 
 """
-    setindex!(mfss::MeanFieldFiniteState{T}, σ_new::T, i::Integer) where {T<:AbstractSiteState}
+    setindex!(fs::MeanFieldFiniteState{T}, σ_new::T, i::Integer) where {T<:AbstractSiteState}
 
-Set the state of the `i`-th site to `σᵢ′` in the mean field finite state `mfss`.
+Set the state of the `i`-th site to `σᵢ′` in the mean field finite state `fs`.
 """
-@inline function Base.setindex!(mfss::MeanFieldFiniteState{T}, σᵢ′::T, i::Integer) where {T<:AbstractSiteState}
-    σᵢ = mfss[i]
-    mfss[σᵢ] -= 1
-    mfss[σᵢ′] += 1
+@inline function Base.setindex!(fs::MeanFieldFiniteState{T}, σᵢ′::T, i::Integer) where {T<:AbstractSiteState}
+    σᵢ = fs[i]
+    fs[σᵢ] -= 1
+    fs[σᵢ′] += 1
 end
 
 @doc raw"""
@@ -182,73 +194,73 @@ Index of the first site in the `AbstractVector{AbstractSiteState}` interface of 
 @inline Base.firstindex(::MeanFieldFiniteState) = 1
 
 @doc raw"""
-    lastindex(mfss::MeanFieldFiniteState)
+    lastindex(fs::MeanFieldFiniteState)
 
 Index of the last site in the `AbstractVector{AbstractSiteState}` interface of `MeanFieldFiniteState` is equal the total number of sites `N`.
 """
-@inline Base.lastindex(mfss::MeanFieldFiniteState) = length(mfss)
+@inline Base.lastindex(fs::MeanFieldFiniteState) = length(fs)
 
 """
-    set_state!(mfss::MeanFieldFiniteState{T}, σ₀::T) where {T<:AbstractSiteState}
+    sum(f::Function=identity, fs::MeanFieldFiniteState)
 
-Set the state of all sites to `σ₀` in a mean field finite state `mfss`.
+Get the sum of the states of all sites in the mean field finite state `fs` with the function `f` applied to each.
 """
-function set_state!(mfss::MeanFieldFiniteState{T}, σ₀::T) where {T<:AbstractSiteState}
-    N = length(mfss)
-    # Set all values in the state count to zero
-    clear(mfss)
-    # Set the selected state site count to `N`
-    mfss[σ₀] = N
-end
-
-"""
-    randomize_state!(mfss::MeanFieldFiniteState{T}) where {T<:AbstractSiteState}
-
-Randomize the state of a mean field finite state `mfss`.
-"""
-function randomize_state!(mfss::MeanFieldFiniteState{T}) where {T<:AbstractSiteState}
-    N = length(mfss)
-    split_indices = [sort(rand(0:N, instance_count(T) - 1))..., N]
-    site_counts = site_counts_from_split_indices(split_indices)
-    mfss.state = Dict(instances(T) .=> site_counts)
-end
-
-"""
-    nearest_neighbors(mfss::MeanFieldFiniteState)
-
-Get iterator over all pairs of nearest neighbors for the mean field finite system `mfss`.
-That is, all possible pairs of sites.
-"""
-@inline nearest_neighbors(mfss::MeanFieldFiniteState) = Iterators.Stateful((i => j) for i ∈ 2:length(mfss) for j ∈ 1:(i-1))
-
-"""
-    nearest_neighbors(mfss::MeanFieldFiniteState, i::Integer)
-
-Get vector with the indices of the nearest neighobrs sites of the `i`-th site in the mean files spin state `mfss`.
-That is, all sites except for `i`.
-"""
-@inline nearest_neighbors(mfss::MeanFieldFiniteState, i::Integer) = Iterators.Stateful([1:(i-1)..., (i+1):length(mfss)...])
-
-"""
-    sum(f::Function=identity, mfss::MeanFieldFiniteState)
-
-Get the sum of the states of all sites in the mean field finite state `mfss` with the function `f` applied to each.
-"""
-@inline Base.sum(f::Function, mfss::MeanFieldFiniteState) =
-    sum(mfss.state) do (σᵢ, Nᵢ)
+@inline Base.sum(f::Function, fs::MeanFieldFiniteState) =
+    @inbounds sum(fs.state) do (σᵢ, Nᵢ)
         Nᵢ * f(Integer(σᵢ))
     end
-@inline Base.sum(mfss::MeanFieldFiniteState) =
-    sum(mfss.state) do (σᵢ, Nᵢ)
+@inline Base.sum(fs::MeanFieldFiniteState) =
+    @inbounds sum(fs.state) do (σᵢ, Nᵢ)
         Nᵢ * Integer(σᵢ)
     end
 
 """
-    nearest_neighbors_sum(mfss::MeanFieldFiniteState, i::Integer)
+    set_state!(fs::MeanFieldFiniteState{T}, σ₀::T) where {T<:AbstractSiteState}
 
-Get sum of the nearest neighbors of site `i` in the mean field finite state `mfss`.
+Set the state of all sites to `σ₀` in a mean field finite state `fs`.
 """
-@inline nearest_neighbors_sum(mfss::MeanFieldFiniteState, i::Integer) = sum(mfss) - Integer(mfss[i])
+function set_state!(fs::MeanFieldFiniteState{T}, σ₀::T) where {T<:AbstractSiteState}
+    N = length(fs)
+    # Set all values in the state count to zero
+    clear(fs)
+    # Set the selected state site count to `N`
+    fs[σ₀] = N
+end
+
+"""
+    randomize_state!(fs::MeanFieldFiniteState{T}) where {T<:AbstractSiteState}
+
+Randomize the state of a mean field finite state `fs`.
+"""
+function randomize_state!(fs::MeanFieldFiniteState{T}) where {T<:AbstractSiteState}
+    N = length(fs)
+    split_indices = [sort(rand(0:N, instance_count(T) - 1))..., N]
+    site_counts = site_counts_from_split_indices(split_indices)
+    fs.state = Dict(instances(T) .=> site_counts)
+end
+
+"""
+    nearest_neighbors(fs::MeanFieldFiniteState)
+
+Get iterator over all pairs of nearest neighbors for the mean field finite system `fs`.
+That is, all possible pairs of sites.
+"""
+@inline nearest_neighbors(fs::MeanFieldFiniteState) = Iterators.Stateful((i => j) for i ∈ 2:length(fs) for j ∈ 1:(i-1))
+
+"""
+    nearest_neighbors(fs::MeanFieldFiniteState, i::Integer)
+
+Get vector with the indices of the nearest neighobrs sites of the `i`-th site in the mean files spin state `fs`.
+That is, all sites except for `i`.
+"""
+@inline nearest_neighbors(fs::MeanFieldFiniteState, i::Integer) = Iterators.Stateful([1:(i-1)..., (i+1):length(fs)...])
+
+"""
+    nearest_neighbors_sum(fs::MeanFieldFiniteState, i::Integer)
+
+Get sum of the nearest neighbors of site `i` in the mean field finite state `fs`.
+"""
+@inline nearest_neighbors_sum(fs::MeanFieldFiniteState, i::Integer) = sum(fs) - Integer(fs[i])
 
 @doc raw"""
     ConcreteFiniteState <: AbstractSpinState
@@ -261,25 +273,25 @@ The whole indexing interface of the `state` can be passed to the `ConcreteFinite
 abstract type ConcreteFiniteState{T,N} <: AbstractFiniteState{T,N} end
 
 """
-    state(cfs::ConcreteFiniteState)
+    state(fs::ConcreteFiniteState)
 
 Returns the state representation stored in memory
 """
-@inline state(cfs::ConcreteFiniteState) = cfs.state
+@inline state(fs::ConcreteFiniteState) = fs.state
 
 """
-    length(cfs::ConcreteFiniteState)
+    length(fs::ConcreteFiniteState)
 
-Total number of sites of a concrete finite state `cfs`.
+Total number of sites of a concrete finite state `fs`.
 """
-@inline Base.length(cfs::ConcreteFiniteState) = length(state(cfs))
+@inline Base.length(fs::ConcreteFiniteState) = length(state(fs))
 
 """
-    size(cfs::ConcreteFiniteState)
+    size(fs::ConcreteFiniteState)
 
-Size of the concrete finite state `cfs`.
+Size of the concrete finite state `fs`.
 """
-@inline Base.size(cfs::ConcreteFiniteState) = size(state(cfs))
+@inline Base.size(fs::ConcreteFiniteState) = size(state(fs))
 
 """
     IndexStyle(::Type{<:ConcreteFiniteState{T,N}}) where {T<:AbstractSiteState,N}
@@ -291,59 +303,67 @@ Use same indexing style used to index the state array.
 # @inline Base.IndexStyle(::Type{<:ConcreteFiniteState{T,1}}) where {T} = IndexLinear()
 
 """
-    getindex(cfs::ConcreteFiniteState, inds...)
+    getindex(fs::ConcreteFiniteState, inds...)
 
 Index the concrete finite state itself to access its state.
 """
-@inline Base.getindex(cfs::ConcreteFiniteState, inds...) = getindex(state(cfs), inds...)
+@inline Base.getindex(fs::ConcreteFiniteState, inds...) = getindex(state(fs), inds...)
 
 """
-    setindex!(cfs::ConcreteFiniteState, σ, inds...)
+    setindex!(fs::ConcreteFiniteState, σ, inds...)
 
 Index the concrete finite state itself to access its state.
 """
-@inline Base.setindex!(cfs::ConcreteFiniteState, σ, inds...) = setindex!(state(cfs), σ, inds...)
+@inline Base.setindex!(fs::ConcreteFiniteState, σ, inds...) = setindex!(state(fs), σ, inds...)
 
 """
-    firstindex(cfs::ConcreteFiniteState)
+    firstindex(fs::ConcreteFiniteState)
 
-Get the index of the first site in the concrete finite state `cfs`.
+Get the index of the first site in the concrete finite state `fs`.
 """
-@inline Base.firstindex(cfs::ConcreteFiniteState) = firstindex(state(cfs))
+@inline Base.firstindex(fs::ConcreteFiniteState) = firstindex(state(fs))
 
 """
     lastindex(spins::ConcreteFiniteState)
 
-Get the index of the last site in the concrete finite state `cfs`.
+Get the index of the last site in the concrete finite state `fs`.
 """
-@inline Base.lastindex(cfs::ConcreteFiniteState) = lastindex(state(cfs))
+@inline Base.lastindex(fs::ConcreteFiniteState) = lastindex(state(fs))
 
 """
-    set_state!(cfs::ConcreteFiniteState{T}, σ₀::T) where {T<:AbstractSiteState}
+    sum(f::Function=identity, fs::ConcreteFiniteState)
 
-Set the state of all sites of a concrete finite state `cfs` to a given state `σ₀`.
+Get the sum of the states of all sites in the concrete finite state `fs` with the function `f` applied to each.
 """
-@inline function set_state!(cfs::ConcreteFiniteState{T}, σ₀::T) where {T<:AbstractSiteState}
-    fill!(state(cfs), σ₀)
+@inline Base.sum(f::Function, fs::ConcreteFiniteState) = @inbounds sum(sᵢ -> f(Integer(sᵢ)), state(fs))
+@inline Base.sum(fs::ConcreteFiniteState) = @inbounds sum(Integer, state(fs))
+
+"""
+    set_state!(fs::ConcreteFiniteState{T}, σ₀::T) where {T<:AbstractSiteState}
+
+Set the state of all sites of a concrete finite state `fs` to a given state `σ₀`.
+"""
+@inline function set_state!(fs::ConcreteFiniteState{T}, σ₀::T) where {T<:AbstractSiteState}
+    fill!(state(fs), σ₀)
 end
 
 """
     randomize_state!(spins::ConcreteFiniteState{T}) where {T<:AbstractSiteState}
 
-Set the state of all sites of a concrete finite state `cfs` to a random state `σ ∈ AbstractSiteState`.
+Set the state of all sites of a concrete finite state `fs` to a random state `σ ∈ AbstractSiteState`.
 """
 @inline function randomize_state!(spins::ConcreteFiniteState{T}) where {T<:AbstractSiteState}
     rand!(state(spins), instances(T))
 end
 
 """
-    nearest_neighbors_sum(cfs::ConcreteFiniteState{T,N}, i::Union{Integer,CartesianIndex{N}}) where {T,N}
+    nearest_neighbors_sum(fs::ConcreteFiniteState{T,N}, i::Union{Integer,CartesianIndex{N}}) where {T,N}
 
-Sum of the nearest neighbors of the `i`-th site for a concrete finite state `cfs`.
+Sum of the nearest neighbors of the `i`-th site for a concrete finite state `fs`.
 
-Every subtype of `ConcreteFiniteState` must provide its own implementation of `nearest_neighbors(cfs::ConcreteFiniteState{T,N}, i::Union{Integer,CartesianIndex{N}})::AbstractVector{IndexStyle(ConcreteFiniteState)}`
+Every subtype of `ConcreteFiniteState` must provide its own implementation of `nearest_neighbors(fs::ConcreteFiniteState{T,N}, i::Union{Integer,CartesianIndex{N}})::AbstractVector{IndexStyle(ConcreteFiniteState)}`
 """
-@inline nearest_neighbors_sum(cfs::ConcreteFiniteState{T,N}, i::Union{Integer,CartesianIndex{N}}) where {T,N} = @inbounds sum(Integer, cfs[nn] for nn ∈ nearest_neighbors(cfs, i))
+@inline nearest_neighbors_sum(fs::ConcreteFiniteState{T,N}, i::Union{Integer,CartesianIndex{N}}) where {T,N} = @inbounds sum(Integer, fs[nn] for nn ∈ nearest_neighbors(fs, i))
 
 """
     SquareLatticeFiniteState{T,N} <: ConcreteFiniteState{T,N}
@@ -396,16 +416,16 @@ Prefer cartesian indices for multidimensional square lattice finite states.
 # Base.IndexStyle(::Type{<:SquareLatticeFiniteState}) = IndexCartesian()
 
 """
-    nearest_neighbors(sqlatfs::SquareLatticeFiniteState{T,N}, idx::CartesianIndex{N}) where {T,N}
+    nearest_neighbors(fs::SquareLatticeFiniteState{T,N}, idx::CartesianIndex{N}) where {T,N}
 
-Gets a vector containing the indices of the nearest neighbors to the `i`-site in the square lattice finite state `sqlatfs`.
+Gets a vector containing the indices of the nearest neighbors to the `i`-site in the square lattice finite state `fs`.
 """
-@inline nearest_neighbors(sqlatfs::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Lattices.square_lattice_nearest_neighbors_flat(sqlatfs.state, i)
+@inline nearest_neighbors(fs::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Lattices.square_lattice_nearest_neighbors_flat(fs.state, i)
 
 """
-    nearest_neighbors_sum(sqlatfs::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N}
+    nearest_neighbors_sum(fs::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N}
 
-Sum of the nearest neighbors of the `i`-th site for a multidimensional square lattice finites state `sqlatfs`.
+Sum of the nearest neighbors of the `i`-th site for a multidimensional square lattice finites state `fs`.
 """
 @inline nearest_neighbors_sum(spins::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Lattices.square_lattice_nearest_neighbors_sum(spins.state, i)
 # @inline nearest_neighbors_sum(spins::SquareLatticeFiniteState{T,N}, i::Integer) where {T,N} = nearest_neighbors_sum(spins, CartesianIndices(spins)[i])
@@ -440,17 +460,17 @@ mutable struct SimpleGraphFiniteState{T} <: ConcreteFiniteState{T,1}
 end
 
 """
-    nearest_neighbors(sgraphfs::SimpleGraphFiniteState)
+    nearest_neighbors(fs::SimpleGraphFiniteState)
 
-Get list of all nearest neighbors pairs in the simple graph finite state `sgraphfs`.
+Get list of all nearest neighbors pairs in the simple graph finite state `fs`.
 """
-@inline nearest_neighbors(sgraphfs::SimpleGraphFiniteState) = edges(sgraphfs.graph)
+@inline nearest_neighbors(fs::SimpleGraphFiniteState) = edges(fs.graph)
 
 """
-    nearest_neighbors(sgraphfs::SimpleGraphFiniteState, i::Integer)
+    nearest_neighbors(fs::SimpleGraphFiniteState, i::Integer)
 
-Get the indices of the nearest neighbors of `i`-th site in the simple graph finite state `sgraphfs`.
+Get the indices of the nearest neighbors of `i`-th site in the simple graph finite state `fs`.
 """
-@inline nearest_neighbors(sgraphfs::SimpleGraphFiniteState, i::Integer) = neighbors(sgraphfs.graph, i)
+@inline nearest_neighbors(fs::SimpleGraphFiniteState, i::Integer) = neighbors(fs.graph, i)
 
 end
