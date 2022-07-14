@@ -6,7 +6,7 @@ using DrWatson
 
 @quickactivate "phd"
 
-using Logging, JLD2, Statistics, DataFrames, Gadfly, Cairo
+using Logging, JLD2, Statistics, StatsBase, DataFrames, Gadfly, Cairo
 
 include("../../../../src/DataIO.jl")
 # include(srcdir("DataIO.jl"))
@@ -30,7 +30,9 @@ const params_req = Dict(
 df = DataFrame(beta=Float64[],
     lambda_mean=Float64[], lambda_var=Float64[],
     lambda_max_mean=Float64[],
-    lambda_gap_mean=Float64[])
+    lambda_gap_mean=Float64[],
+    lambda_hist_mean=Float64[],
+    lambda_hist_var=Float64[])
 
 # Loop on datafiles
 for data_filename in readdir(data_dirpath)
@@ -73,23 +75,31 @@ for data_filename in readdir(data_dirpath)
     # Calculate average eigenvalue gap
     λ_gap_mean = mean(diff(λs, dims=1))
 
-    λ_stats = Dict(
+    # Histogram analysis
+    n_bins = 100
+    hist = fit(Histogram, vec(λs), range(extrema(λs)..., length=n_bins))
+    hist_bins = (x -> x[1:end-1] - (diff(x) ./ 2))(collect(hist.edges[1]))
+    hist_weights = (x -> (x ./ sum(x)))(hist.weights)
+    λ_hist_mean = hist_bins'hist_weights
+    λ_hist_var = ((hist_bins .^ 2)'hist_weights) - λ_hist_mean^2
+
+    # Add data to dataframe
+    push!(df, Dict(
         :beta => β,
         :lambda_mean => λ_mean,
         :lambda_var => λ_var,
         :lambda_max_mean => λ_max_mean,
-        :lambda_gap_mean => λ_gap_mean
-    )
-
-    # Add data to dataframe
-    push!(df, λ_stats)
+        :lambda_gap_mean => λ_gap_mean,
+        :lambda_hist_mean => λ_hist_mean,
+        :lambda_hist_var => λ_hist_var
+    ))
 
 end
 
 # Process data
 # blume_capel_D0_beta_crit = 0.590395
 ising_2d_temp_crit = 2 / log1p(sqrt(2))
-df[!, :T] = 1.0 ./ (df[!, :beta] .* ising_2d_temp_crit)
+df[!, :tau] = 1.0 ./ (df[!, :beta] .* ising_2d_temp_crit)
 
 # Display result
 display(df)
@@ -107,7 +117,7 @@ JLD2.save(results_filepath, Dict("eigvals_stats" => df))
 @info "Plotting results..."
 L = params_req["L"]
 plot_title = "Ising (L = $L)"
-xdata = :T => "T/T_C"
+xdata = :tau => "τ"
 xintercept = [1]
 
 plot_prefix = prefix * "EigvalsMean"
@@ -144,5 +154,24 @@ plt = plot(df, x=xdata.first, y=:lambda_gap_mean,
     Geom.point, Geom.line,
     Guide.title(plot_title * " correlation matrix average eigenvalue gap"),
     Guide.xlabel(xdata.second), Guide.ylabel("⟨Δλ⟩"),
+    xintercept=xintercept, Geom.vline)
+draw(PNG(plot_filepath, 25cm, 15cm), plt)
+
+plot_prefix = prefix * "EigvalsHistMean"
+plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
+plt = plot(df, x=xdata.first, y=:lambda_hist_mean,
+    Geom.point, Geom.line,
+    Guide.title(plot_title * " correlation matrix eigenvalues mean (histogram)"),
+    Guide.xlabel(xdata.second), Guide.ylabel("⟨λ⟩"),
+    Coord.cartesian(ymin=0),
+    xintercept=xintercept, Geom.vline)
+draw(PNG(plot_filepath, 25cm, 15cm), plt)
+
+plot_prefix = prefix * "EigvalsHistVar"
+plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
+plt = plot(df, x=xdata.first, y=:lambda_hist_var,
+    Geom.point, Geom.line,
+    Guide.title(plot_title * " correlation matrix eigenvalues variance (histogram)"),
+    Guide.xlabel(xdata.second), Guide.ylabel("⟨λ²⟩ - ⟨λ⟩²"),
     xintercept=xintercept, Geom.vline)
 draw(PNG(plot_filepath, 25cm, 15cm), plt)

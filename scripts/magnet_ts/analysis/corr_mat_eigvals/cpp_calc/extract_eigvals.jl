@@ -60,7 +60,9 @@ for data_filename in readdir(data_dirpath)
 
     # Output file
     output_params = deepcopy(params_req)
-    output_params["beta"] = β
+    ising_2d_temp_crit = 2 / log1p(sqrt(2))
+    τ = round(1 / (β * ising_2d_temp_crit), digits=3)
+    output_params["tau"] = τ
     output_filepath = joinpath(data_dirpath, "csv_eigvals", filename(prefix * "Eigvals", output_params, ext=".csv"))
     mkpath(dirname(output_filepath))
     @info "Saving output file:" output_filepath

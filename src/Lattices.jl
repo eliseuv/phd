@@ -1,9 +1,9 @@
 @doc raw"""
-    Geometry
+    Lattices
 
-General geometric utilities.
+Lattice geometry utilities.
 """
-module Geometry
+module Lattices
 
 export square_gird_iter,
     square_lattice_nearest_neighbors, square_lattice_nearest_neighbors_flat,

@@ -64,7 +64,7 @@ export BrassState, TH0, TH1, TH2,
 using Statistics, Random, Graphs
 
 include("Metaprogramming.jl")
-include("Geometry.jl")
+include("Lattices.jl")
 
 using .Metaprogramming
 
@@ -198,7 +198,7 @@ mutable struct BrassCAMeanField <: AbstractVector{BrassState}
 
     Construct an Brass system with mean field interaction with a given number of spins in each state.
     """
-    BrassCAMeanField(; TH0::Integer = 0, TH1::Integer = 0, TH2::Integer = 0) = new((TH0 = TH0, TH1 = TH1, TH2 = TH2))
+    BrassCAMeanField(; TH0::Integer=0, TH1::Integer=0, TH2::Integer=0) = new((TH0=TH0, TH1=TH1, TH2=TH2))
 
     @doc raw"""
         BrassCAMeanField(N::Integer, σ₀::BrassState)
@@ -207,11 +207,11 @@ mutable struct BrassCAMeanField <: AbstractVector{BrassState}
     """
     function BrassCAMeanField(N::Integer, σ₀::BrassState)
         if σ₀ == TH0
-            return BrassCAMeanField(TH0 = N)
+            return BrassCAMeanField(TH0=N)
         elseif σ₀ == TH1
-            return BrassCAMeanField(TH1 = N)
+            return BrassCAMeanField(TH1=N)
         else
-            return BrassCAMeanField(TH2 = N)
+            return BrassCAMeanField(TH2=N)
         end
     end
 
@@ -224,7 +224,7 @@ mutable struct BrassCAMeanField <: AbstractVector{BrassState}
         N₀, N′ = minmax(rand(1:N, 2)...)
         N₁ = N′ - N₀
         N₂ = N - N′
-        return new((TH0 = N₀, TH1 = N₁, TH2 = N₂))
+        return new((TH0=N₀, TH1=N₁, TH2=N₂))
     end
 end
 
@@ -276,21 +276,21 @@ Set the state of the `i`-th spin to `σ` in the Brass system with mean field int
     N₂ = ca.state.TH2
     ca.state = if ca[i] == TH0
         if σ == TH1
-            (TH0 = N₀ - 1, TH1 = N₁ + 1, TH2 = N₂)
+            (TH0=N₀ - 1, TH1=N₁ + 1, TH2=N₂)
         elseif σ == TH2
-            (TH0 = N₀ - 1, TH1 = N₁, TH2 = N₂ + 1)
+            (TH0=N₀ - 1, TH1=N₁, TH2=N₂ + 1)
         end
     elseif ca[i] == TH1
         if σ == TH0
-            (TH0 = N₀ + 1, TH1 = N₁ - 1, TH2 = N₂)
+            (TH0=N₀ + 1, TH1=N₁ - 1, TH2=N₂)
         elseif σ == TH2
-            (TH0 = N₀, TH1 = N₁ - 1, TH2 = N₂ + 1)
+            (TH0=N₀, TH1=N₁ - 1, TH2=N₂ + 1)
         end
     else
         if σ == TH0
-            (TH0 = N₀ + 1, TH1 = N₁, TH2 = N₂ - 1)
+            (TH0=N₀ + 1, TH1=N₁, TH2=N₂ - 1)
         elseif σ == TH1
-            (TH0 = N₀, TH1 = N₁ + 1, TH2 = N₂ - 1)
+            (TH0=N₀, TH1=N₁ + 1, TH2=N₂ - 1)
         end
     end
 end
@@ -317,11 +317,11 @@ Set the state of all sites of a Brass CA `ca` to a given site state `σ₀`.
 @inline function set_state!(ca::BrassCAMeanField, σ₀::BrassState)
     N = length(ca)
     ca.state = if σ₀ == TH0
-        (TH0 = N, TH1 = 0, TH2 = 0)
+        (TH0=N, TH1=0, TH2=0)
     elseif σ₀ == TH1
-        (TH0 = 0, TH1 = N, TH2 = 0)
+        (TH0=0, TH1=N, TH2=0)
     else
-        (TH0 = 0, TH1 = 0, TH2 = N)
+        (TH0=0, TH1=0, TH2=N)
     end
 end
 
@@ -335,7 +335,7 @@ Set the state of each site of a Brass CA `ca` to a random state `σ₀ ∈ {TH0,
     N₀, N′ = minmax(rand(1:N, 2)...)
     N₁ = N′ - N₀
     N₂ = N - N′
-    ca.state = (TH0 = N₀, TH1 = N₁, TH2 = N₂)
+    ca.state = (TH0=N₀, TH1=N₁, TH2=N₂)
 end
 
 @doc raw"""
@@ -578,7 +578,7 @@ Each specific type of Brass CA `BrassCAConcreteSpecific` must provide its own im
 
 See also [`step!`](@ref), [`advance_and_measure!`](@ref), [`advance_parallel!`](@ref), [`advance_async!`](@ref).
 """
-function advance!(ca::BrassCAConcrete, p::Float64, r::Float64, n_steps::Integer = 1)
+function advance!(ca::BrassCAConcrete, p::Float64, r::Float64, n_steps::Integer=1)
     @assert n_steps > 0 "Number of steps must be positive."
     # Auxiliar state
     state′ = similar(ca.state)
@@ -606,7 +606,7 @@ Each specific type of Brass CA `BrassCAConcreteSpecific` must provide its own im
 
 See also [`step_parallel!`](@ref), [`advance_parallel_and_measure!`](@ref), [`advance!`](@ref), [`advance_async!`](@ref).
 """
-function advance_parallel!(ca::BrassCAConcrete, p::Float64, r::Float64, n_steps::Integer = 1)
+function advance_parallel!(ca::BrassCAConcrete, p::Float64, r::Float64, n_steps::Integer=1)
     @assert n_steps > 0 "Number of steps must be positive."
     # Auxiliar state
     state′ = similar(ca.state)
@@ -637,7 +637,7 @@ Each specific type of Brass CA `BrassCAConcreteSpecific` must provide its own im
 
 See also [`step!`](@ref), [`advance!`](@ref), [`advance_parallel_and_measure!`](@ref), [`advance_async_and_measure!`](@ref).
 """
-function advance_and_measure!(measurement::Function, ca::BrassCAConcrete{N}, p::Float64, r::Float64, n_steps::Integer = 1) where {N}
+function advance_and_measure!(measurement::Function, ca::BrassCAConcrete{N}, p::Float64, r::Float64, n_steps::Integer=1) where {N}
     @assert n_steps > 0 "Number of steps must be positive."
     # Measurement results
     ResultType = Base.return_types(measurement, (Array{BrassState,N},))[1]
@@ -679,7 +679,7 @@ Each specific type of Brass CA `BrassCAConcreteSpecific` must provide its own im
 
 See also [`step_parallel!`](@ref), [`advance_parallel!`](@ref), [`advance_and_measure!`](@ref), [`advance_async_and_measure!`](@ref).
 """
-function advance_parallel_and_measure!(measurement::Function, ca::BrassCAConcrete{N}, p::Float64, r::Float64, n_steps::Integer = 1) where {N}
+function advance_parallel_and_measure!(measurement::Function, ca::BrassCAConcrete{N}, p::Float64, r::Float64, n_steps::Integer=1) where {N}
     @assert n_steps > 0 "Number of steps must be positive."
     # Measurement results
     ResultType = Base.return_types(measurement, (Array{BrassState,N},))[1]
@@ -714,7 +714,7 @@ Each specific type of Brass CA `BrassCAConcreteSpecific` must provide its own im
 
 See also [`step_async!`](@ref), [`advance!`](@ref), [`advance_parallel!`](@ref), [`advance_async_and_measure!`](@ref).
 """
-function advance_async!(ca::BrassCAConcrete, p::Float64, r::Float64, n_steps::Integer = 1)
+function advance_async!(ca::BrassCAConcrete, p::Float64, r::Float64, n_steps::Integer=1)
     @assert n_steps > 0 "Number of steps must be positive."
     # Time steps iteration
     @inbounds for _ in 1:n_steps
@@ -738,7 +738,7 @@ Each specific type of Brass CA `BrassCAConcreteSpecific` must provide its own im
 
 See also [`step_async!`](@ref), [`advance_async!`](@ref), [`advance_and_measure!`](@ref), [`advance_parallel_and_measure!`](@ref).
 """
-function advance_async_and_measure!(measurement::Function, ca::BrassCAConcrete{N}, p::Float64, r::Float64, n_steps::Integer = 1) where {N}
+function advance_async_and_measure!(measurement::Function, ca::BrassCAConcrete{N}, p::Float64, r::Float64, n_steps::Integer=1) where {N}
     @assert n_steps > 0 "Number of steps must be positive."
     # Measurement results
     ResultType = Base.return_types(measurement, (Array{BrassState,N},))[1]
@@ -812,7 +812,7 @@ Sum of the states of the nearest neighbors of a given site at `idx` of a Brass c
 - `state`: State of the Brass CA
 - `idx`: Cartesian index of the chosen site
 """
-@inline nearest_neighbors_sum(ca::BrassCASquareLattice{N}, state::Array{BrassState,N}, idx::CartesianIndex{N}) where {N} = @inbounds Geometry.square_lattice_nearest_neighbors_sum(state, idx)
+@inline nearest_neighbors_sum(::BrassCASquareLattice{N}, state::Array{BrassState,N}, idx::CartesianIndex{N}) where {N} = @inbounds Lattices.square_lattice_nearest_neighbors_sum(state, idx)
 
 """
 Brass CA on an abitrary graph `g` with states of each node stored in the vector `state`

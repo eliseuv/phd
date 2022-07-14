@@ -43,7 +43,7 @@ export SingleSpinState, SpinHalfState, SpinOneState,
 
 using Random, EnumX, Combinatorics, StatsBase, Distributions, Graphs
 
-include("Geometry.jl")
+include("Lattices.jl")
 
 """
     SpinHalfState::Int8 <: SingleSpinState
@@ -298,7 +298,6 @@ Total magnetization squared of mean files spin state `spins`.
 """
 @inline magnet_function_total(f::Function, spins::MeanFieldSpinState) = @inbounds sum(Nᵢ * f(Integer(σᵢ)) for (σᵢ, Nᵢ) ∈ spins.state)
 
-
 """
     split_indices(spins::MeanFieldSpinState{T}) where {T<:SingleSpinState}
 
@@ -319,7 +318,7 @@ Get the number of spins in each state given the split indices `split_indices` an
 Total number of spins (`N`) in an spin system with mean field interaction `spins`
 is simply the sum of the number of spins in each state.
 """
-@inline Base.length(spins::MeanFieldSpinState) = sum(spins.state)
+@inline Base.length(spins::MeanFieldSpinState) = sum(values(spins.state))
 
 @doc raw"""
     IndexStyle(::MeanFieldSpinState)
@@ -375,10 +374,10 @@ Index of the last spin site in the `AbstractVector{SingleSpinState}` interface o
 Set the state of all spins to `σ₀` in a mean field spin state `spins`.
 """
 function set_state!(spins::MeanFieldSpinState{T}, σ₀::T) where {T<:SingleSpinState}
+    N = length(spins)
     # Set all values in the state count to zero
     spins.state = Dict(instances(T) .=> zero(Int64))
     # Set the selected state count to `N`
-    N = length(spins)
     spins.state[σ₀] = N
 end
 
@@ -414,7 +413,6 @@ end
     spins.state = Dict(SpinHalfState.up => N₊,
         SpinHalfState.down => N₋)
 end
-
 
 """
     nearest_neighbors(spins::MeanFieldSpinState)
@@ -626,14 +624,14 @@ Base.IndexStyle(::Type{<:SquareLatticeSpinState}) = IndexCartesian()
 
 Gets a vector containing the site that are nearest neighbors to a given site `i` in the square lattice spin system `spins`.
 """
-@inline nearest_neighbors(spins::SquareLatticeSpinState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Geometry.square_lattice_nearest_neighbors_flat(spins.state, i)
+@inline nearest_neighbors(spins::SquareLatticeSpinState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Lattices.square_lattice_nearest_neighbors_flat(spins.state, i)
 
 """
     nearest_neighbors_sum(spins::SquareLatticeSpinState{T,N}, i::CartesianIndex{N}) where {T,N}
 
 Sum of the nearest neighbors of the `i`-th site for a concrete spin model `spins`, optimized for square lattice systems.
 """
-@inline nearest_neighbors_sum(spins::SquareLatticeSpinState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Geometry.square_lattice_nearest_neighbors_sum(spins.state, i)
+@inline nearest_neighbors_sum(spins::SquareLatticeSpinState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Lattices.square_lattice_nearest_neighbors_sum(spins.state, i)
 # @inline nearest_neighbors_sum(spins::SquareLatticeSpinState{T,N}, i::Integer) where {T,N} = nearest_neighbors_sum(spins, CartesianIndices(spins)[i])
 
 @doc raw"""
