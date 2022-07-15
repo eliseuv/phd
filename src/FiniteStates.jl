@@ -3,21 +3,21 @@
 
 
 """
-module FiniteStates
+# module FiniteStates
 
-export AbstractSiteState, instance_count,
-    # Abstract finite state
-    AbstractFiniteState,
-    set_state!, randomize_state!,
-    nearest_neighbors, nearest_neighbors_sum,
-    # Mean field finite state
-    MeanFieldFiniteState, clear, split_indices, site_counts_from_split_indices,
-    # Concrete finite state
-    ConcreteFiniteState, state,
-    # Square lattice finite state
-    SquareLatticeFiniteState,
-    # Simple graph finite state
-    SimpleGraphFiniteState
+# export AbstractSiteState, instance_count,
+#     # Abstract finite state
+#     AbstractFiniteState,
+#     set_state!, randomize_state!,
+#     nearest_neighbors, nearest_neighbors_sum,
+#     # Mean field finite state
+#     MeanFieldFiniteState, clear, split_indices, site_counts_from_split_indices,
+#     # Concrete finite state
+#     ConcreteFiniteState, state,
+#     # Square lattice finite state
+#     SquareLatticeFiniteState,
+#     # Simple graph finite state
+#     SimpleGraphFiniteState
 
 using Random, Graphs
 
@@ -298,9 +298,9 @@ Size of the concrete finite state `fs`.
 
 Use same indexing style used to index the state array.
 """
-@inline Base.IndexStyle(::Type{<:ConcreteFiniteState{T,N}}) where {T<:AbstractSiteState,N} = IndexStyle(Array{T,N})
-# @inline Base.IndexStyle(::Type{<:ConcreteFiniteState{T,N}}) where {T,N} = IndexCartesian()
-# @inline Base.IndexStyle(::Type{<:ConcreteFiniteState{T,1}}) where {T} = IndexLinear()
+# @inline Base.IndexStyle(::Type{<:ConcreteFiniteState{T,N}}) where {T<:AbstractSiteState,N} = IndexStyle(Array{T,N})
+@inline Base.IndexStyle(::Type{<:ConcreteFiniteState{T,N}}) where {T,N} = IndexCartesian()
+@inline Base.IndexStyle(::Type{<:ConcreteFiniteState{T,1}}) where {T} = IndexLinear()
 
 """
     getindex(fs::ConcreteFiniteState, inds...)
@@ -382,7 +382,6 @@ mutable struct SquareLatticeFiniteState{T,N} <: ConcreteFiniteState{T,N}
     with all sites with same initial state `σ₀`.
     """
     SquareLatticeFiniteState(size::NTuple{N,Integer}, σ₀::T) where {T,N} = new{T,N}(fill(σ₀, size))
-
 
     """
         SquareLatticeFiniteState(size::NTuple{N,Integer}, ::Val{:rand}) where {T,N}
@@ -473,4 +472,4 @@ Get the indices of the nearest neighbors of `i`-th site in the simple graph fini
 """
 @inline nearest_neighbors(fs::SimpleGraphFiniteState, i::Integer) = neighbors(fs.graph, i)
 
-end
+# end

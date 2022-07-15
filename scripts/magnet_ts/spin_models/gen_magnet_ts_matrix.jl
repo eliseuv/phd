@@ -12,12 +12,11 @@ include("../../../src/DataIO.jl")
 include("../../../src/SpinModels.jl")
 
 using .DataIO
-using .SpinModels
 
 @doc raw"""
 """
 magnet_ts_matrix!(spinmodel::AbstractSpinModel, β::Real, n_steps::Integer, n_samples::Integer) = hcat(map(1:n_samples) do _
-    randomize_state!(spinmodel)
+    randomize_state!(spinmodel.spins)
     return metropolis_measure!(magnet_total, spinmodel, β, n_steps)
 end...)
 
@@ -54,7 +53,7 @@ for params in parameters_list
 
     # Blume-Capel system
     @info "Generating system..."
-    spinmodel = IsingModel(SquareLatticeSpinState(Val(dim), L, SpinHalfState.T, Val(:rand)))
+    spinmodel = IsingModel(SquareLatticeFiniteState(Val(dim), L, SpinHalfState.T, Val(:rand)))
 
     # Generate magnetization time series matrices
     @info "Generating magnetization time series matrices..."
@@ -69,28 +68,28 @@ for params in parameters_list
     data["M_ts_samples"] = M_ts_samples
 
     # Output data file
-    output_data_filename = savename("IsingMagnetTSMatrix", params, "jld2")
-    output_data_filepath = joinpath(output_data_path, output_data_filename)
-    @info "Saving data:" output_data_filepath
-    save(output_data_filepath, data)
+    # output_data_filename = savename("IsingMagnetTSMatrix", params, "jld2")
+    # output_data_filepath = joinpath(output_data_path, output_data_filename)
+    # @info "Saving data:" output_data_filepath
+    # save(output_data_filepath, data)
 
     # Plot demo matrix
-    # display(heatmap(hcat(M_ts_samples[1:3]...),
-    #     title="Blume Capel magnet time series matrix (L = $L, β = $β)",
-    #     xlabel="i", ylabel="t", zlabel="mᵢ(t)",
-    #     width=125))
-    # println()
+    display(heatmap(hcat(M_ts_samples[1:3]...),
+        title="Blume Capel magnet time series matrix (L = $L, β = $β)",
+        xlabel="i", ylabel="t", zlabel="mᵢ(t)",
+        width=125))
+    println()
 
     # Plot demo series
-    # M_plot = M_ts_samples[begin][:, 1:10]
-    # x_max = params["n_steps"] + 1
-    # plt = lineplot(1:x_max, M_plot[:, 1],
-    #     xlim=(0, x_max), ylim=extrema(M_plot),
-    #     xlabel="t", ylabel="m",
-    #     width=125, height=25)
-    # for k ∈ 2:size(M_plot, 2)
-    #     lineplot!(plt, 1:x_max, M_plot[:, k])
-    # end
-    # display(plt)
-    # println()
+    M_plot = M_ts_samples[begin][:, 1:10]
+    x_max = params["n_steps"] + 1
+    plt = lineplot(1:x_max, M_plot[:, 1],
+        xlim=(0, x_max), ylim=extrema(M_plot),
+        xlabel="t", ylabel="m",
+        width=125, height=25)
+    for k ∈ 2:size(M_plot, 2)
+        lineplot!(plt, 1:x_max, M_plot[:, k])
+    end
+    display(plt)
+    println()
 end
