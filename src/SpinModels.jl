@@ -348,6 +348,61 @@ Get the index of the last spin in the system.
 #     end
 # end
 
+function metropolis!(spinmodel::AbstractSpinModel, β::Real, n_steps::Integer)
+    @inbounds for i ∈ rand(eachindex(state(spinmodel)), n_steps)
+        # Select random new state
+        sᵢ′ = rand_new_spin(spinmodel[i])
+        # Get energy difference
+        ΔH = energy_diff(spinmodel, i, sᵢ′)
+        # Metropolis prescription
+        if ΔH < 0 || exp(-β * ΔH) > rand()
+            # Change spin
+            spinmodel[i] = sᵢ′
+        end
+    end
+end
+
+function metropolis_energy!(spinmodel::T, β::Real, n_steps::Integer) where {T<:AbstractSpinModel}
+    EnergyType = Base.return_types(energy, (T,))[1]
+    ΔH_total = zero(EnergyType)
+    @inbounds for i ∈ rand(eachindex(state(spinmodel)), n_steps)
+        # Select random new state
+        sᵢ′ = rand_new_spin(spinmodel[i])
+        # Get energy difference
+        ΔH = energy_diff(spinmodel, i, sᵢ′)
+        # Metropolis prescription
+        if ΔH < 0 || exp(-β * ΔH) > rand()
+            # Change spin
+            spinmodel[i] = sᵢ′
+            # Add energy difference
+            ΔH_total += ΔH
+        end
+    end
+    return ΔH_total
+end
+
+function metropolis_measure_energy!(spinmodel::T, β::Real, n_steps::Integer) where {T<:AbstractSpinModel}
+    # Energy vector
+    EnergyType = Base.return_types(energy, (T,))[1]
+    results = Vector{ResultType}(undef, n_steps + 1)
+    # Initial measurement
+    results[1] = measurement(spinmodel)
+    @inbounds for i ∈ rand(eachindex(state(spinmodel)), n_steps)
+        # Select random new state
+        sᵢ′ = rand_new_spin(spinmodel[i])
+        # Get energy difference
+        ΔH = energy_diff(spinmodel, i, sᵢ′)
+        # Metropolis prescription
+        if ΔH < 0 || exp(-β * ΔH) > rand()
+            # Change spin
+            spinmodel[i] = sᵢ′
+            # Add energy difference
+            ΔH_total += ΔH
+        end
+    end
+    return ΔH_total
+end
+
 """
     metropolis_measure!(measurement::Function, spinmodel::AbstractSpinModel, β::Real, n_steps::Integer)
 

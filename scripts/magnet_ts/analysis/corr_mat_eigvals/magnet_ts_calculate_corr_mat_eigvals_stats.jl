@@ -20,10 +20,11 @@ prefix = "IsingMagnetTSMatrix"
 const params_req = Dict(
     "prefix" => prefix,
     "dim" => 2,
+    # "D" => 0,
     "L" => 100,
-    "n_runs" => 1000,
     "n_samples" => 100,
-    "n_steps" => 300
+    "n_steps" => 300,
+    "n_runs" => 1000
 )
 
 # Resulting dataframe
@@ -78,10 +79,14 @@ for data_filename in readdir(data_dirpath)
     # Histogram analysis
     n_bins = 100
     hist = fit(Histogram, vec(λs), range(extrema(λs)..., length=n_bins))
-    hist_bins = (x -> x[1:end-1] - (diff(x) ./ 2))(collect(hist.edges[1]))
-    hist_weights = (x -> (x ./ sum(x)))(hist.weights)
-    λ_hist_mean = hist_bins'hist_weights
-    λ_hist_var = ((hist_bins .^ 2)'hist_weights) - λ_hist_mean^2
+    # hist_bins = (x -> x[1:end-1] - (diff(x) ./ 2))(collect(hist.edges[1]))
+    # hist_weights = (x -> (x ./ sum(x)))(hist.weights)
+    # λ_hist_mean = hist_bins'hist_weights
+    # λ_hist_var = ((hist_bins .^ 2)'hist_weights) - λ_hist_mean^2
+    hist_bins = hist.edges[1][1:end-1]
+    hist_weights = hist.weights / sum(hist.weights)
+    λ_hist_mean = sum(hist_bins .* hist_weights)
+    λ_hist_var = sum((hist_bins .^ 2) .* hist_weights) - λ_hist_mean^2
 
     # Add data to dataframe
     push!(df, Dict(
@@ -98,6 +103,7 @@ end
 
 # Process data
 # blume_capel_D0_beta_crit = 0.590395
+# df[!, :tau] = blume_capel_D0_beta_crit ./ (df[!, :beta])
 ising_2d_temp_crit = 2 / log1p(sqrt(2))
 df[!, :tau] = 1.0 ./ (df[!, :beta] .* ising_2d_temp_crit)
 
