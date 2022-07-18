@@ -53,11 +53,12 @@ for data_filename in readdir(data_dirpath)
     params = data["Params"]
     print_dict(params)
     β = params["beta"]
+    dim = params["dim"]
+    L = params["L"]
 
     # Fetch magnet time series matrix samples
     M_ts_samples = data["M_ts_samples"]
-    L = data["Params"]["L"]
-    M_ts_samples = M_ts_samples ./ (L^2)
+    M_ts_samples = M_ts_samples ./ (L^dim)
     # display(heatmap(M_ts_samples[begin],
     #     title="Time series matrix (β = $β)",
     #     xlabel="i", ylabel="t", zlabel="mᵢ(t)",

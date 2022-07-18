@@ -23,7 +23,10 @@ using .Metaprogramming
 
 Print the entities `x...` to standard output while in a script in the same way it prints in a REPL session.
 """
-script_show(x...) = show(IOContext(stdout, :limit => true), "text/plain", x...)
+function script_show(x...)
+    show(IOContext(stdout, :limit => true), "text/plain", x...)
+    println()
+end
 
 # Filenames
 
