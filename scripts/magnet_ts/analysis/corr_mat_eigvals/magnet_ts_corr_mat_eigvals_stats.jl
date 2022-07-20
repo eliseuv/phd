@@ -13,14 +13,15 @@ include("../../../../src/DataIO.jl")
 using .DataIO
 
 # Path for datafiles
-data_dirpath = datadir("sims", "ising", "magnet_ts", "mult_mat", "rand_start")
+data_dirpath = datadir("sims", "blume_capel", "magnet_ts", "mult_mat", "rand_start")
 
 # Selected parameters
-prefix = "IsingMagnetTSMatrix"
+prefix = "BlumeCapel2DMagnetTSMatrix"
 const params_req = Dict(
     "prefix" => prefix,
-    "dim" => 2,
-    # "D" => 0,
+    # "dim" => 2,
+    "D" => 0,
+    # "p" => 0.3,
     "L" => 100,
     "n_samples" => 100,
     "n_steps" => 300,
@@ -62,6 +63,7 @@ for data_filename in readdir(data_dirpath)
     params = data["Params"]
     print_dict(params)
     β = params["beta"]
+    # r = params["r"]
 
     # Fetch eigenvalues matrix
     λs = hcat(data["eigvals"]...)
@@ -81,9 +83,9 @@ for data_filename in readdir(data_dirpath)
     hist = fit(Histogram, vec(λs), range(extrema(λs)..., length=n_bins))
 
     # Histogram analysis
-    # hist_bins = hist.edges[1][1:end-1]
+    hist_bins = hist.edges[1][1:end-1]
     # hist_bins = (x -> x[1:end-1] + (diff(x) ./ 2))(collect(hist.edges[1]))
-    hist_bins = hist.edges[1][2:end]
+    # hist_bins = hist.edges[1][2:end]
     hist_weights = (x -> (x ./ sum(x)))(hist.weights)
 
     # script_show(collect(hist.edges[1]))
@@ -108,10 +110,10 @@ for data_filename in readdir(data_dirpath)
 end
 
 # Process data
-# blume_capel_D0_beta_crit = 0.590395
-# df[!, :tau] = blume_capel_D0_beta_crit ./ (df[!, :beta])
-ising_2d_temp_crit = 2 / log1p(sqrt(2))
-df[!, :tau] = 1.0 ./ (df[!, :beta] .* ising_2d_temp_crit)
+blume_capel_D0_beta_crit = 0.590395
+df[!, :tau] = blume_capel_D0_beta_crit ./ (df[!, :beta])
+# ising_2d_temp_crit = 2 / log1p(sqrt(2))
+# df[!, :tau] = 1.0 ./ (df[!, :beta] .* ising_2d_temp_crit)
 
 # Display result
 display(df)
@@ -128,62 +130,64 @@ JLD2.save(results_filepath, Dict("eigvals_stats" => df))
 # Plot results
 @info "Plotting results..."
 L = params_req["L"]
-plot_title = "Ising (L = $L)"
+D = params_req["D"]
+# p = params_req["p"]
+plot_title = "Blume-Capel 2D (L = $L, D = $D)"
 xdata = :tau => "τ"
 xintercept = [1]
 
-# plot_prefix = prefix * "EigvalsMean"
-# plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
-# plt = plot(df, x=xdata.first, y=:lambda_mean,
-#     Geom.point, Geom.line,
-#     Guide.title(plot_title * " correlation matrix eigenvalues mean"),
-#     Guide.xlabel(xdata.second), Guide.ylabel("⟨λ⟩"),
-#     Coord.cartesian(ymin=0),
-#     xintercept=xintercept, Geom.vline)
-# draw(PNG(plot_filepath, 25cm, 15cm), plt)
+plot_prefix = prefix * "EigvalsMean"
+plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
+plt = plot(df, x=xdata.first, y=:lambda_mean,
+    Geom.point, Geom.line,
+    Guide.title(plot_title * " correlation matrix eigenvalues mean"),
+    Guide.xlabel(xdata.second), Guide.ylabel("⟨λ⟩"),
+    Coord.cartesian(ymin=0),
+    xintercept=xintercept, Geom.vline)
+draw(PNG(plot_filepath, 25cm, 15cm), plt)
 
-# plot_prefix = prefix * "EigvalsVar"
-# plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
-# plt = plot(df, x=xdata.first, y=:lambda_var,
-#     Geom.point, Geom.line,
-#     Guide.title(plot_title * " correlation matrix eigenvalues variance"),
-#     Guide.xlabel(xdata.second), Guide.ylabel("⟨λ²⟩ - ⟨λ⟩²"),
-#     xintercept=xintercept, Geom.vline)
-# draw(PNG(plot_filepath, 25cm, 15cm), plt)
+plot_prefix = prefix * "EigvalsVar"
+plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
+plt = plot(df, x=xdata.first, y=:lambda_var,
+    Geom.point, Geom.line,
+    Guide.title(plot_title * " correlation matrix eigenvalues variance"),
+    Guide.xlabel(xdata.second), Guide.ylabel("⟨λ²⟩ - ⟨λ⟩²"),
+    xintercept=xintercept, Geom.vline)
+draw(PNG(plot_filepath, 25cm, 15cm), plt)
 
-# plot_prefix = prefix * "EigvalsMaxMean"
-# plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
-# plt = plot(df, x=xdata.first, y=:lambda_max_mean,
-#     Geom.point, Geom.line,
-#     Guide.title(plot_title * " correlation matrix average maximum eigenvalue"),
-#     Guide.xlabel(xdata.second), Guide.ylabel("λ₀"),
-#     xintercept=xintercept, Geom.vline)
-# draw(PNG(plot_filepath, 25cm, 15cm), plt)
+plot_prefix = prefix * "EigvalsMaxMean"
+plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
+plt = plot(df, x=xdata.first, y=:lambda_max_mean,
+    Geom.point, Geom.line,
+    Guide.title(plot_title * " correlation matrix average maximum eigenvalue"),
+    Guide.xlabel(xdata.second), Guide.ylabel("λ₀"),
+    xintercept=xintercept, Geom.vline)
+draw(PNG(plot_filepath, 25cm, 15cm), plt)
 
-# plot_prefix = prefix * "EigvalsGapMean"
-# plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
-# plt = plot(df, x=xdata.first, y=:lambda_gap_mean,
-#     Geom.point, Geom.line,
-#     Guide.title(plot_title * " correlation matrix average eigenvalue gap"),
-#     Guide.xlabel(xdata.second), Guide.ylabel("⟨Δλ⟩"),
-#     xintercept=xintercept, Geom.vline)
-# draw(PNG(plot_filepath, 25cm, 15cm), plt)
+plot_prefix = prefix * "EigvalsGapMean"
+plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
+plt = plot(df, x=xdata.first, y=:lambda_gap_mean,
+    Geom.point, Geom.line,
+    Guide.title(plot_title * " correlation matrix average eigenvalue gap"),
+    Guide.xlabel(xdata.second), Guide.ylabel("⟨Δλ⟩"),
+    xintercept=xintercept, Geom.vline)
+draw(PNG(plot_filepath, 25cm, 15cm), plt)
 
-plot_prefix = prefix * "EigvalsHistMeanRight"
+plot_prefix = prefix * "EigvalsHistMeanLeft"
 plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
 plt = plot(df, x=xdata.first, y=:lambda_hist_mean,
     Geom.point, Geom.line,
-    Guide.title(plot_title * " correlation matrix eigenvalues mean (histogram right alignment)"),
+    Guide.title(plot_title * " correlation matrix eigenvalues mean (histogram left alignment)"),
     Guide.xlabel(xdata.second), Guide.ylabel("⟨λ⟩"),
     # Coord.cartesian(ymin=0),
     xintercept=xintercept, Geom.vline)
 draw(PNG(plot_filepath, 25cm, 15cm), plt)
 
-plot_prefix = prefix * "EigvalsHistVarRight"
+plot_prefix = prefix * "EigvalsHistVarLeft"
 plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
 plt = plot(df, x=xdata.first, y=:lambda_hist_var,
     Geom.point, Geom.line,
-    Guide.title(plot_title * " correlation matrix eigenvalues variance (histogram right alignment)"),
+    Guide.title(plot_title * " correlation matrix eigenvalues variance (histogram left alignment)"),
     Guide.xlabel(xdata.second), Guide.ylabel("⟨λ²⟩ - ⟨λ⟩²"),
     xintercept=xintercept, Geom.vline)
 draw(PNG(plot_filepath, 25cm, 15cm), plt)

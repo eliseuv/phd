@@ -3,21 +3,21 @@
 
 
 """
-# module FiniteStates
+module FiniteStates
 
-# export AbstractSiteState, instance_count,
-#     # Abstract finite state
-#     AbstractFiniteState,
-#     set_state!, randomize_state!,
-#     nearest_neighbors, nearest_neighbors_sum,
-#     # Mean field finite state
-#     MeanFieldFiniteState, clear, split_indices, site_counts_from_split_indices,
-#     # Concrete finite state
-#     ConcreteFiniteState, state,
-#     # Square lattice finite state
-#     SquareLatticeFiniteState,
-#     # Simple graph finite state
-#     SimpleGraphFiniteState
+export AbstractSiteState, instance_count,
+    # Abstract finite state
+    AbstractFiniteState,
+    set_state!, randomize_state!,
+    nearest_neighbors, nearest_neighbors_sum,
+    # Mean field finite state
+    MeanFieldFiniteState, clear, split_indices, site_counts_from_split_indices,
+    # Concrete finite state
+    ConcreteFiniteState, state,
+    # Square lattice finite state
+    SquareLatticeFiniteState,
+    # Simple graph finite state
+    SimpleGraphFiniteState
 
 using Random, Graphs
 
@@ -472,4 +472,4 @@ Get the indices of the nearest neighbors of `i`-th site in the simple graph fini
 """
 @inline nearest_neighbors(fs::SimpleGraphFiniteState, i::Integer) = neighbors(fs.graph, i)
 
-# end
+end
