@@ -9,7 +9,8 @@ export script_show,
     get_extension, keep_extension,
     filename, parse_filename,
     print_dict,
-    check_params
+    check_params,
+    find_datafile
 
 using Logging, JLD2
 
@@ -168,5 +169,61 @@ end
 Checks of the parameters dictionary `params` satisfies the values defined in the parameters dictionaries and pairs `reqs...`.
 """
 check_params(params::Dict{String}, reqs...) = all(x -> check_params(params, x), reqs)
+
+
+function find_datafile(data_dirpath, prefix, params_req, datakeys_req)
+
+    # Loop on datafiles
+    for data_filename in readdir(data_dirpath)
+
+        filename_params = parse_filename(data_filename)
+        @info data_filename filename_params
+
+        # Ignore unrelated data files
+        if !check_params(filename_params, "prefix" => prefix, params_req)
+            @info "Skipping unrelated file..."
+            continue
+        end
+
+        # Load data
+        data_filepath = joinpath(data_dirpath, data_filename)
+        @info "Loading data file..."
+        data = load(data_filepath)
+
+        # Skip files without required key
+        if !all(key -> haskey(data, key), datakeys_req)
+            @info "Skipping file without required data..." keys(data)
+            continue
+        end
+
+        return data_filepath
+
+    end
+
+    return nothing
+
+end
+function find_datafile(data_dirpath, prefix, params_req)
+
+    # Loop on datafiles
+    for data_filename in readdir(data_dirpath)
+
+        filename_params = parse_filename(data_filename)
+        @info data_filename filename_params
+
+        # Ignore unrelated data files
+        if !check_params(filename_params, "prefix" => prefix, params_req)
+            @info "Skipping unrelated file..."
+            continue
+        end
+
+        data_filepath = joinpath(data_dirpath, data_filename)
+        return data_filepath
+
+    end
+
+    return nothing
+
+end
 
 end

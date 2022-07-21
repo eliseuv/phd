@@ -5,9 +5,12 @@
 """
 module FiniteStates
 
-export AbstractSiteState, instance_count,
+export
+    # Abstract site state
+    AbstractSiteState, instance_count,
     # Abstract finite state
     AbstractFiniteState,
+    state_count, state_concentration,
     set_state!, randomize_state!,
     nearest_neighbors, nearest_neighbors_sum,
     # Mean field finite state
@@ -39,11 +42,35 @@ Total number of possible instances associated with a single site state.
 @inline instance_count(::Type{T}) where {T<:AbstractSiteState} = length(instances(T))
 
 """
+    convert(::Type{T}, σ::AbstractSiteState) where {T<:Number}
+
+Use the integer representation of `σ::AbstractSiteState` in order to convert it to a numerical type `T<:Number`.
+"""
+@inline Base.convert(::Type{T}, σ::AbstractSiteState) where {T<:Number} = T(Integer(σ))
+
+"""
+    promote_rule(T::Type, ::Type{SingleSpinState})
+
+"""
+@inline Base.promote_rule(T::Type, S::Type{<:AbstractSiteState}) = promote_rule(T, Base.Enums.basetype(S))
+
+"""
     AbstractFiniteState{T<:AbstractSiteState,N},N} <: AbstractArray{T,N}
 
 Supertype for all finite states.
 """
 abstract type AbstractFiniteState{T<:AbstractSiteState,N} <: AbstractArray{T,N} end
+
+@doc raw"""
+    state_concentration(fs::AbstractFiniteState)
+
+Concentration of each site state in given finite state `fs`.
+
+``cᵢ = Nᵢ/N``
+
+See also: [`state_count`](@ref).
+"""
+@inline state_concentration(fs::AbstractFiniteState) = state_count(fs) ./ length(fs)
 
 @doc raw"""
     MeanFieldFiniteState{T} <: AbstractFiniteState{T,1}
@@ -87,7 +114,7 @@ mutable struct MeanFieldFiniteState{T} <: AbstractFiniteState{T,1}
 
     Construct mean field finite state `N` sites, all in a given initial state `σ₀` for all of them.
     """
-    function MeanFieldFiniteState(N::U, σ₀::T) where {T<:AbstractSiteState,U<:Unsigned}
+    function MeanFieldFiniteState(N::U, σ₀::T) where {T,U<:Unsigned}
         state = Dict(instances(T) .=> zero(U))
         state[σ₀] = N
         return new{T}(state)
@@ -98,7 +125,7 @@ mutable struct MeanFieldFiniteState{T} <: AbstractFiniteState{T,1}
 
     Construct an spin state with mean field interaction with `N` spins in a random initial state.
     """
-    function MeanFieldFiniteState{T}(N::U, ::Val{:rand}) where {T<:AbstractSiteState,U<:Unsigned}
+    function MeanFieldFiniteState{T}(N::U, ::Val{:rand}) where {T,U<:Unsigned}
         split_indices = [sort(rand(0:N, instance_count(T) - 1))..., N]
         site_counts = site_counts_from_split_indices(split_indices)
         return new{T}(Dict(instances(T) .=> site_counts))
@@ -107,11 +134,11 @@ mutable struct MeanFieldFiniteState{T} <: AbstractFiniteState{T,1}
 end
 
 """
-    clear(fs::MeanFieldFiniteState{T,U}) where {T<:AbstractSiteState,U<:Unsigned}
+    clear(fs::MeanFieldFiniteState{T}) where {T}
 
 Clears the state of the mean field finites state `fs` by setting the site count to all states to zero.
 """
-@inline function clear(fs::MeanFieldFiniteState{T}) where {T<:AbstractSiteState}
+@inline function clear(fs::MeanFieldFiniteState{T}) where {T}
     fs.state = Dict(instances(T) .=> zero(UInt64))
 end
 
@@ -130,18 +157,18 @@ Get the number of spins in each state given the split indices `split_indices`.
 @inline site_counts_from_split_indices(split_indices::Vector{Unsigned}) = [split_indices[begin], diff(split_indices)]
 
 """
-    getindex(fs::MeanFieldFiniteState{T}, σ::T) where {T<:AbstractSiteState}
+    getindex(fs::MeanFieldFiniteState{T}, σ::T) where {T}
 
 Allow the site count for a given state `σ` to be accessed directly using the mean field finite state `fs`.
 """
-@inline Base.getindex(fs::MeanFieldFiniteState{T}, σ::T) where {T<:AbstractSiteState} = fs.state[σ]
+@inline Base.getindex(fs::MeanFieldFiniteState{T}, σ::T) where {T} = fs.state[σ]
 
 """
-    setindex!(fs::MeanFieldFiniteState{T}, Nᵢ::Unsigned, σᵢ::T) where {T<:AbstractSiteState}
+    setindex!(fs::MeanFieldFiniteState{T}, Nᵢ::Unsigned, σᵢ::T) where {T}
 
 Set the site count to `Nᵢ` for a given site `σᵢ` in the mean field finite state `fs`.
 """
-@inline function Base.setindex!(fs::MeanFieldFiniteState{T}, Nᵢ::Unsigned, σᵢ::T) where {T<:AbstractSiteState}
+@inline function Base.setindex!(fs::MeanFieldFiniteState{T}, Nᵢ::Unsigned, σᵢ::T) where {T}
     fs.state[σᵢ] = Nᵢ
 end
 
@@ -160,11 +187,11 @@ Use only linear indices for the `AbstractVector{AbstractSiteState}` interface fo
 @inline Base.IndexStyle(::Type{<:MeanFieldFiniteState}) = IndexLinear()
 
 @doc raw"""
-    getindex(fs::MeanFieldFiniteState{T}, i::Integer) where {T<:SingleSpinState}
+    getindex(fs::MeanFieldFiniteState{T}, i::Integer) where {T}
 
 Get the state of the `i`-th site in the mean field finite state `fs`.
 """
-@inline function Base.getindex(fs::MeanFieldFiniteState{T}, i::Integer) where {T<:AbstractSiteState}
+@inline function Base.getindex(fs::MeanFieldFiniteState{T}, i::Integer) where {T}
     # Iterate on the possible state indices and return if smaller than a given split index
     for (σᵢ, split_index) ∈ zip(instances(T)[1:end-1], split_indices(fs))
         if i < split_index
@@ -176,11 +203,11 @@ Get the state of the `i`-th site in the mean field finite state `fs`.
 end
 
 """
-    setindex!(fs::MeanFieldFiniteState{T}, σ_new::T, i::Integer) where {T<:AbstractSiteState}
+    setindex!(fs::MeanFieldFiniteState{T}, σ_new::T, i::Integer) where {T}
 
 Set the state of the `i`-th site to `σᵢ′` in the mean field finite state `fs`.
 """
-@inline function Base.setindex!(fs::MeanFieldFiniteState{T}, σᵢ′::T, i::Integer) where {T<:AbstractSiteState}
+@inline function Base.setindex!(fs::MeanFieldFiniteState{T}, σᵢ′::T, i::Integer) where {T}
     σᵢ = fs[i]
     fs[σᵢ] -= 1
     fs[σᵢ′] += 1
@@ -215,11 +242,18 @@ Get the sum of the states of all sites in the mean field finite state `fs` with 
     end
 
 """
-    set_state!(fs::MeanFieldFiniteState{T}, σ₀::T) where {T<:AbstractSiteState}
+    state_count(fs::MeanFieldFiniteState)
+
+Get the state count for the mean field finite state `fs`.
+"""
+@inline state_count(fs::MeanFieldFiniteState) = tuple(values(fs.state)...)
+
+"""
+    set_state!(fs::MeanFieldFiniteState{T}, σ₀::T) where {T}
 
 Set the state of all sites to `σ₀` in a mean field finite state `fs`.
 """
-function set_state!(fs::MeanFieldFiniteState{T}, σ₀::T) where {T<:AbstractSiteState}
+function set_state!(fs::MeanFieldFiniteState{T}, σ₀::T) where {T}
     N = length(fs)
     # Set all values in the state count to zero
     clear(fs)
@@ -228,11 +262,11 @@ function set_state!(fs::MeanFieldFiniteState{T}, σ₀::T) where {T<:AbstractSit
 end
 
 """
-    randomize_state!(fs::MeanFieldFiniteState{T}) where {T<:AbstractSiteState}
+    randomize_state!(fs::MeanFieldFiniteState{T}) where {T}
 
 Randomize the state of a mean field finite state `fs`.
 """
-function randomize_state!(fs::MeanFieldFiniteState{T}) where {T<:AbstractSiteState}
+function randomize_state!(fs::MeanFieldFiniteState{T}) where {T}
     N = length(fs)
     split_indices = [sort(rand(0:N, instance_count(T) - 1))..., N]
     site_counts = site_counts_from_split_indices(split_indices)
@@ -339,20 +373,27 @@ Get the sum of the states of all sites in the concrete finite state `fs` with th
 @inline Base.sum(fs::ConcreteFiniteState) = @inbounds sum(Integer, state(fs))
 
 """
-    set_state!(fs::ConcreteFiniteState{T}, σ₀::T) where {T<:AbstractSiteState}
+    state_count(fs::ConcreteFiniteState)
+
+Get the state count for the concrete finite state `fs`.
+"""
+@inline state_count(fs::ConcreteFiniteState{T}) where {T} = (count(==(σ), state(fs)) for σ in instances(T))
+
+"""
+    set_state!(fs::ConcreteFiniteState{T}, σ₀::T) where {T}
 
 Set the state of all sites of a concrete finite state `fs` to a given state `σ₀`.
 """
-@inline function set_state!(fs::ConcreteFiniteState{T}, σ₀::T) where {T<:AbstractSiteState}
+@inline function set_state!(fs::ConcreteFiniteState{T}, σ₀::T) where {T}
     fill!(state(fs), σ₀)
 end
 
 """
-    randomize_state!(spins::ConcreteFiniteState{T}) where {T<:AbstractSiteState}
+    randomize_state!(spins::ConcreteFiniteState{T}) where {T}
 
 Set the state of all sites of a concrete finite state `fs` to a random state `σ ∈ AbstractSiteState`.
 """
-@inline function randomize_state!(spins::ConcreteFiniteState{T}) where {T<:AbstractSiteState}
+@inline function randomize_state!(spins::ConcreteFiniteState{T}) where {T}
     rand!(state(spins), instances(T))
 end
 

@@ -5,13 +5,25 @@
 module SpinModels
 
 export
-    # Finite state constructors
-    MeanFieldFiniteState, SquareLatticeFiniteState, SimpleGraphFiniteState,
+    # Abstract site state
+    AbstractSiteState, instance_count,
+    # Abstract finite state
+    AbstractFiniteState,
+    state_count, state_concentration,
     set_state!, randomize_state!,
+    nearest_neighbors, nearest_neighbors_sum,
+    # Mean field finite state
+    MeanFieldFiniteState,
+    # Concrete finite state
+    ConcreteFiniteState, state,
+    # Square lattice finite state
+    SquareLatticeFiniteState,
+    # Simple graph finite state
+    SimpleGraphFiniteState,
     # Single spin states
     SingleSpinState, SpinHalfState, SpinOneState,
     # Properties of single spin states
-    state_count, rand_new_spin,
+    rand_new_spin,
     # Measurements in spin states
     magnet_total, magnet,
     # Measurements on spins states that depend on locality
@@ -70,13 +82,6 @@ They are usually enums, but even if they are not enums,
 all single spin states must provide a method `instances(<:SingleSpinState)` that returns a tuple with all possible single spin states.
 """
 SingleSpinState = Union{SpinOneState.T,SpinHalfState.T}
-
-"""
-    state_count(::T) where {T<:SingleSpinState}
-
-Get the total number of possible states for a single spin state.
-"""
-@inline state_count(::T) where {T<:SingleSpinState} = length(instances(T))
 
 """
     rand_new_spin(σ::T) where {T<:SingleSpinState}
@@ -521,7 +526,7 @@ function heatbath_measure!(measurement::Function, spinmodel::T, β::Real, n_step
 end
 
 @doc raw"""
-    IsingModel{T<:AbstractFiniteState} <: AbstractSpinModel{T}
+    IsingModel{T} <: AbstractSpinModel{T}
 
 The Ising model without external magnetic field.
 """
@@ -531,7 +536,7 @@ struct IsingModel{T} <: AbstractSpinModel{T}
     spins::T
 
     """
-        IsingModel(spins::AbstractFiniteState)
+        IsingModel(spins)
 
     Construct an Ising system without external magnetic field and with given initial spins state `spins`
     """
@@ -603,7 +608,7 @@ where the sum is over the nearest neighbors `j` of `i`.
 @inline energy_diff(ising::IsingModel{<:AbstractFiniteState{SpinHalfState.T}}, i) = 2 * Integer(ising[i]) * nearest_neighbors_sum(ising.spins, i)
 
 @doc raw"""
-    IsingModelExtField{T<:AbstractFiniteState} <: AbstractSpinModel{T}
+    IsingModelExtField{T} <: AbstractSpinModel{T}
 
 The Ising model with external magnetic field.
 """
@@ -616,7 +621,7 @@ struct IsingModelExtField{T} <: AbstractSpinModel{T}
     h::Real
 
     """
-        IsingModelExtField(spins::AbstractFiniteState, h::Real)
+        IsingModelExtField(spins::T, h::Real) where {T}
 
     Construct an Ising system with external magnetic field `h` and with given initial spins state `spins`
     """
@@ -688,7 +693,7 @@ where the sum is over the nearest neighbors `j` of `i`.
 @inline energy_diff(ising::IsingModelExtField{<:AbstractFiniteState{SpinHalfState.T}}, i) = 2 * Integer(ising[i]) * (nearest_neighbors_sum(ising, i) + ising.h)
 
 @doc raw"""
-    BlumeCapelModel{T<:AbstractFiniteState} <: AbstractSpinModel{T}
+    BlumeCapelModel{T} <: AbstractSpinModel{T}
 
 Blume-Capel model without external mangnetic field.
 
@@ -703,7 +708,7 @@ struct BlumeCapelModel{T} <: AbstractSpinModel{T}
     D::Real
 
     """
-        BlumeCapelModel(spins::AbstractFiniteState, D::Real)
+        BlumeCapelModel(spins::T, D::Real) where {T}
 
     Construct an Blume-Capel system without external magnetic field and with given initial spins state `spins` and parameter `D`.
     """
