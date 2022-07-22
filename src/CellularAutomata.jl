@@ -16,7 +16,8 @@ export
     # Mean field finite state
     MeanFieldFiniteState,
     # Concrete finite state
-    ConcreteFiniteState, state,
+    ConcreteFiniteState,
+    container, similar_container,
     # Square lattice finite state
     SquareLatticeFiniteState,
     # Simple graph finite state
@@ -105,70 +106,58 @@ Get the index of the last spin in the system.
 @inline Base.lastindex(ca::AbstractCellularAutomaton) = lastindex(state(ca))
 
 @doc raw"""
-    step!(ca::AbstractCellularAutomaton{T}, state::T, state′::T) where {T<:AbstractArray}
+    step!(ca::AbstractCellularAutomaton{<:ConcreteFiniteState{T,N}}, container′::Array{T,N}) where {T,N}
 
-Advances a single step the cellular automaton `ca` using `state` as current state and stores the new state in `state′`.
+Advances a single step the cellular automaton `ca` with concrete finite state and store the new state in `container′`.
 
 The sites are updated in parallel.
 """
-function step!(ca::AbstractCellularAutomaton{T}, state::T, state′::T) where {T<:AbstractArray}
-    @inbounds Threads.@threads for i in eachindex(state(ca))
-        state′[i] = new_site_state(ca, state, i)
+function step!(ca::AbstractCellularAutomaton{<:ConcreteFiniteState{T,N}}, container′::Array{T,N}) where {T,N}
+    @inbounds Threads.@threads for i in eachindex(ca.state)
+        container′[i] = new_site_state(ca, i)
     end
 end
-
-@doc raw"""
-    new_site_state(ca::AbstractCellularAutomaton, i)
-
-
-"""
-@inline new_site_state(ca::AbstractCellularAutomaton, i) = new_site_state(ca, state(ca), i)
 
 @doc raw"""
     advance!(ca::AbstractCellularAutomaton, n_steps::Integer=1)
 
 Advances the cellular automaton `ca` *synchronously* for `n_steps` steps.
 """
-function advance!(ca::AbstractCellularAutomaton, n_steps::T=1) where {T<:Integer}
+function advance!(ca::AbstractCellularAutomaton, n_steps::I=1) where {I<:Integer}
     @assert n_steps > 0 "Number of steps must be positive."
-    # Auxiliar state
-    state′ = similar(ca.state)
+    # Auxiliary container
+    container′ = similar_container(ca.state)
     # Time steps iteration
-    @inbounds for _ in 1:floor(T, n_steps / 2)
-        step!(ca, ca.state, state′)
-        step!(ca, state′, ca.state)
-    end
-    if isodd(n_steps)
-        step!(ca, ca.state, state′)
-        ca.state = state′
+    @inbounds for _ in 1:n_steps
+        # Calculate next CA state and store in aux container
+        step!(ca, container′)
+        # Swap states
+        ca.state.container, container′ = container′, ca.state.container
     end
 end
 
 @doc raw"""
-    advance_measure!(measurement::Function, ca::T, n_steps::I=1) where {T<:AbstractCellularAutomaton,I<:Integer}
+    advance_measure!(measurement::Function, ca::T, n_steps::Integer=1) where {T<:AbstractCellularAutomaton}
 
 Advances the cellular automaton `ca` *synchronously* for `n_steps` steps and performs the measurement `measurement` on the cellular automaton after each step.
 """
-function advance_measure!(measurement::Function, ca::T, n_steps::I=1) where {T<:AbstractCellularAutomaton,I<:Integer}
+function advance_measure!(measurement::Function, ca::T, n_steps::Integer=1) where {T<:AbstractCellularAutomaton}
     @assert n_steps > 0 "Number of steps must be positive."
     # Results vector
     ResultType = Base.return_types(measurement, (T,))[1]
     results = Vector{ResultType}(undef, n_steps + 1)
     # Initial measurement
     results[1] = measurement(ca)
-    # Auxiliar state
-    state′ = similar(ca.state)
+    # Auxiliary container
+    container′ = similar_container(ca.state)
     # Time steps iteration
-    @inbounds for t in 1:floor(T, n_steps / 2)
-        step!(ca, ca.state, state′)
-        results[2*t] = measurement(state′)
-        step!(ca, state′, ca.state)
-        results[2*t+1] = measurement(ca.state)
-    end
-    if isodd(n_steps)
-        step!(ca, ca.state, state′)
-        ca.state = state′
-        results[end] = measurement(ca.state)
+    @inbounds for t in 2:(n_steps+1)
+        # Calculate next CA state and store in aux container
+        step!(ca, container′)
+        # Swap states
+        ca.state.container, container′ = container′, ca.state.container
+        # Perform measurements
+        results[t] = measurement(ca)
     end
     # Return measurement results
     return results
@@ -227,9 +216,36 @@ See also: [`state_concentration`](@ref).
 end
 
 function Base.show(io::IO, ::MIME"text/plain", σ::BrassState.T)
-    brass_str = σ == TH0 ? "TH0" : σ == TH1 ? "TH1" : "TH2"
+    brass_str = σ == BrassState.TH0 ? "TH0" : σ == BrassState.TH1 ? "TH1" : "TH2"
     print(io, brass_str)
 end
+
+@doc raw"""
+    magnet_total(fs::ConcreteFiniteState{BrassState.T})
+
+Total magnetization of a concrete finite state `fs` of Brass site states.
+
+The total magnetization is defined as the sum of all site states:
+
+``M = ∑ᵢ σᵢ``
+"""
+@inline magnet_total(fs::AbstractFiniteState{BrassState.T}) = sum(fs)
+
+@doc raw"""
+    magnet_total(fs::MeanFieldFiniteState{BrassState.T})
+
+Total magnetization of a mean field finite state `fs` of Brass site states.
+"""
+@inline magnet_total(fs::MeanFieldFiniteState{BrassState.T}) = fs[BrassState.TH1] - fs[BrassState.TH2]
+
+@doc raw"""
+    magnet(fs::AbstractFiniteState)
+
+Magnetization per site of a finite state `fs` of Brass site states.
+
+``m = M / N = ∑ᵢ σᵢ / N``
+"""
+@inline magnet(fs::AbstractFiniteState{BrassState.T}) = magnet_total(fs) / length(fs)
 
 @doc raw"""
     BrassCellularAutomaton{T<:AbstractFiniteState{BrassState.T}} <: AbstractCellularAutomaton{T}
@@ -313,20 +329,20 @@ The probabilities `p` and `r` are parameters of the model.
 See also [`new_site_state`](@ref).
 """
 @inline function cumulative_transition_probabilities(σᵢ::BrassState.T, sᵢ::T, p::Real, r::Real) where {T<:Integer}
-    if σᵢ == TH0
+    if σᵢ == BrassState.TH0
         W₀ = 1.0 - p
         W₁ = W₀ + (sᵢ == zero(T) ? (0.5 * p) : sᵢ == one(T) ? p : 0.0)
     else
         W₀ = r
-        W₁ = W₀ + (σᵢ == TH1 ? (1.0 - r) : 0.0)
+        W₁ = W₀ + (σᵢ == BrassState.TH1 ? (1.0 - r) : 0.0)
     end
     return (W₀, W₁)
 end
 
 @doc raw"""
-    new_site_state(ca::BrassCellularAutomaton{T}, state::T, i) where {T}
+    new_site_state(ca::BrassCellularAutomaton{<:ConcreteFiniteState{T,N}}, i) where {T,N}
 
-Determines new state of the `i`-th site for the Brass cellular automaton `ca` assuming its current state is `state`.
+Determines new state of the `i`-th site for the Brass cellular automaton `ca`.
 
 This function uses the cumulative transition weights `(W₀,W₁)` calculated by [`cumulative_transition_probabilities`](@ref).
 
@@ -341,13 +357,13 @@ A random number `tirage` from an uniform distribution over `[0,1]` is generated 
 
 See also [`cumulative_transition_probabilities`](@ref).
 """
-@inline function new_site_state(ca::BrassCellularAutomaton{T}, state::T, i) where {T}
+@inline function new_site_state(ca::BrassCellularAutomaton{<:ConcreteFiniteState{T,N}}, i) where {T,N}
     # Get cumulative transition weights
-    W₀, W₁ = let σᵢ = state[i], sᵢ = sign(nearest_neighbors_sum(state, i))
+    W₀, W₁ = let σᵢ = ca[i], sᵢ = sign(nearest_neighbors_sum(ca.state, i))
         cumulative_transition_probabilities(σᵢ, sᵢ, ca.p, ca.r)
     end
     tirage = rand()
-    σᵢ′ = tirage < W₀ ? TH0 : tirage < W₁ ? TH1 : TH2
+    σᵢ′ = tirage < W₀ ? BrassState.TH0 : tirage < W₁ ? BrassState.TH1 : BrassState.TH2
     return σᵢ′
 end
 
@@ -355,19 +371,8 @@ end
     magnet_total(ca::BrassCellularAutomaton)
 
 Total magnetization of a Brass cellular automaton `ca`.
-
-The total magnetization is defined as the sum of all site states:
-
-``M = ∑ᵢ σᵢ``
 """
-@inline magnet_total(ca::BrassCellularAutomaton) = sum(state(ca))
-
-@doc raw"""
-    magnet_total(ca::BrassCellularAutomaton{MeanFieldFiniteState{BrassState.T}})
-
-Total magnetization of a mean field Brass cellular automaton `ca`.
-"""
-@inline magnet_total(ca::BrassCellularAutomaton{MeanFieldFiniteState{BrassState.T}}) = ca.state[BrassState.TH1] - ca.state[BrassState.TH2]
+@inline magnet_total(ca::BrassCellularAutomaton) = magnet_total(state(ca))
 
 @doc raw"""
     magnet(ca::BrassCellularAutomaton)
@@ -376,6 +381,6 @@ Magnetization per site of a Brass cellular automaton `ca`.
 
 ``m = M / N = ∑ᵢ σᵢ / N``
 """
-@inline magnet(ca::BrassCellularAutomaton) = magnet_total(ca) / length(ca)
+@inline magnet(ca::BrassCellularAutomaton) = magnet(state(ca))
 
 end

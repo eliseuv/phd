@@ -1,7 +1,7 @@
 @doc raw"""
     Finite States
 
-
+Finite states for systems.
 """
 module FiniteStates
 
@@ -16,7 +16,8 @@ export
     # Mean field finite state
     MeanFieldFiniteState, clear, split_indices, site_counts_from_split_indices,
     # Concrete finite state
-    ConcreteFiniteState, state,
+    ConcreteFiniteState,
+    container, similar_container,
     # Square lattice finite state
     SquareLatticeFiniteState,
     # Simple graph finite state
@@ -300,35 +301,35 @@ Get sum of the nearest neighbors of site `i` in the mean field finite state `fs`
     ConcreteFiniteState <: AbstractSpinState
 
 Supertype for all finite state that have a concrete representation of its state in memory
-in the form of a concrete array member `state::Array{AbstractSiteState}`.
+in the form of a concrete array member `container::Array{AbstractSiteState}`.
 
-The whole indexing interface of the `state` can be passed to the `ConcreteFiniteState` object itself.
+The whole indexing interface of the `container` can be passed to the `ConcreteFiniteState` object itself.
 """
 abstract type ConcreteFiniteState{T,N} <: AbstractFiniteState{T,N} end
 
 """
-    state(fs::ConcreteFiniteState)
+    container(fs::ConcreteFiniteState)
 
-Returns the state representation stored in memory
+Returns container with state representation stored in memory.
 """
-@inline state(fs::ConcreteFiniteState) = fs.state
+@inline container(fs::ConcreteFiniteState) = fs.container
 
 """
     length(fs::ConcreteFiniteState)
 
 Total number of sites of a concrete finite state `fs`.
 """
-@inline Base.length(fs::ConcreteFiniteState) = length(state(fs))
+@inline Base.length(fs::ConcreteFiniteState) = length(container(fs))
 
 """
     size(fs::ConcreteFiniteState)
 
 Size of the concrete finite state `fs`.
 """
-@inline Base.size(fs::ConcreteFiniteState) = size(state(fs))
+@inline Base.size(fs::ConcreteFiniteState) = size(container(fs))
 
 """
-    IndexStyle(::Type{<:ConcreteFiniteState{T,N}}) where {T<:AbstractSiteState,N}
+    IndexStyle(::Type{<:ConcreteFiniteState})
 
 Use same indexing style used to index the state array.
 """
@@ -339,45 +340,44 @@ Use same indexing style used to index the state array.
 """
     getindex(fs::ConcreteFiniteState, inds...)
 
-Index the concrete finite state itself to access its state.
+Index the concrete finite state itself to access its container.
 """
-@inline Base.getindex(fs::ConcreteFiniteState, inds...) = getindex(state(fs), inds...)
+@inline Base.getindex(fs::ConcreteFiniteState, inds...) = getindex(container(fs), inds...)
 
 """
     setindex!(fs::ConcreteFiniteState, σ, inds...)
 
-Index the concrete finite state itself to access its state.
+Index the concrete finite state itself to access its container.
 """
-@inline Base.setindex!(fs::ConcreteFiniteState, σ, inds...) = setindex!(state(fs), σ, inds...)
+@inline Base.setindex!(fs::ConcreteFiniteState, σ, inds...) = setindex!(container(fs), σ, inds...)
 
 """
     firstindex(fs::ConcreteFiniteState)
 
 Get the index of the first site in the concrete finite state `fs`.
 """
-@inline Base.firstindex(fs::ConcreteFiniteState) = firstindex(state(fs))
+@inline Base.firstindex(fs::ConcreteFiniteState) = firstindex(container(fs))
 
 """
     lastindex(spins::ConcreteFiniteState)
 
 Get the index of the last site in the concrete finite state `fs`.
 """
-@inline Base.lastindex(fs::ConcreteFiniteState) = lastindex(state(fs))
+@inline Base.lastindex(fs::ConcreteFiniteState) = lastindex(container(fs))
 
 """
-    sum(f::Function=identity, fs::ConcreteFiniteState)
+    similar_container(fs::ConcreteFiniteState)
 
-Get the sum of the states of all sites in the concrete finite state `fs` with the function `f` applied to each.
+Return a new uninitialized instance of the the container used by the concrete finite state `fs`.
 """
-@inline Base.sum(f::Function, fs::ConcreteFiniteState) = @inbounds sum(sᵢ -> f(Integer(sᵢ)), state(fs))
-@inline Base.sum(fs::ConcreteFiniteState) = @inbounds sum(Integer, state(fs))
+@inline similar_container(fs::ConcreteFiniteState{T,N}) where {T,N} = similar(Array{T,N}, axes(fs.container))
 
 """
     state_count(fs::ConcreteFiniteState)
 
 Get the state count for the concrete finite state `fs`.
 """
-@inline state_count(fs::ConcreteFiniteState{T}) where {T} = (count(==(σ), state(fs)) for σ in instances(T))
+@inline state_count(fs::ConcreteFiniteState{T}) where {T} = (count(==(σ), container(fs)) for σ in instances(T))
 
 """
     set_state!(fs::ConcreteFiniteState{T}, σ₀::T) where {T}
@@ -385,7 +385,12 @@ Get the state count for the concrete finite state `fs`.
 Set the state of all sites of a concrete finite state `fs` to a given state `σ₀`.
 """
 @inline function set_state!(fs::ConcreteFiniteState{T}, σ₀::T) where {T}
-    fill!(state(fs), σ₀)
+    fill!(container(fs), σ₀)
+end
+
+@inline function set_state!(fs::ConcreteFiniteState{T,N}, container::Array{T,N}) where {T,N}
+    @assert size(container) == size(fs) "Container size mismatch."
+    fs.container = container
 end
 
 """
@@ -394,8 +399,16 @@ end
 Set the state of all sites of a concrete finite state `fs` to a random state `σ ∈ AbstractSiteState`.
 """
 @inline function randomize_state!(spins::ConcreteFiniteState{T}) where {T}
-    rand!(state(spins), instances(T))
+    rand!(container(spins), instances(T))
 end
+
+"""
+    sum(f::Function=identity, fs::ConcreteFiniteState)
+
+Get the sum of the states of all sites in the concrete finite state `fs` with the function `f` applied to each.
+"""
+@inline Base.sum(f::Function, fs::ConcreteFiniteState) = @inbounds sum(sᵢ -> f(Integer(sᵢ)), container(fs))
+@inline Base.sum(fs::ConcreteFiniteState) = @inbounds sum(Integer, container(fs))
 
 """
     nearest_neighbors_sum(fs::ConcreteFiniteState{T,N}, i::Union{Integer,CartesianIndex{N}}) where {T,N}
@@ -414,7 +427,14 @@ Finite state on a `N`-dimensional square lattice.
 mutable struct SquareLatticeFiniteState{T,N} <: ConcreteFiniteState{T,N}
 
     "Multidimensional array with system state"
-    state::Array{T,N}
+    container::Array{T,N}
+
+    """
+        SquareLatticeFiniteState(state::Array{T,N}) where {T,N}
+
+    Construct a new finite state in a `N`-dimensional square lattice using the the array `container`.
+    """
+    SquareLatticeFiniteState(container::Array{T,N}) where {T,N} = new{T,N}(container)
 
     """
         SquareLatticeFiniteState(size::NTuple{N,Integer}, σ₀::T) where {T,N}
@@ -460,14 +480,14 @@ Prefer cartesian indices for multidimensional square lattice finite states.
 
 Gets a vector containing the indices of the nearest neighbors to the `i`-site in the square lattice finite state `fs`.
 """
-@inline nearest_neighbors(fs::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Lattices.square_lattice_nearest_neighbors_flat(fs.state, i)
+@inline nearest_neighbors(fs::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Lattices.square_lattice_nearest_neighbors_flat(fs.container, i)
 
 """
     nearest_neighbors_sum(fs::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N}
 
 Sum of the nearest neighbors of the `i`-th site for a multidimensional square lattice finites state `fs`.
 """
-@inline nearest_neighbors_sum(spins::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Lattices.square_lattice_nearest_neighbors_sum(spins.state, i)
+@inline nearest_neighbors_sum(fs::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Lattices.square_lattice_nearest_neighbors_sum(fs.container, i)
 # @inline nearest_neighbors_sum(spins::SquareLatticeFiniteState{T,N}, i::Integer) where {T,N} = nearest_neighbors_sum(spins, CartesianIndices(spins)[i])
 
 """
@@ -481,7 +501,7 @@ mutable struct SimpleGraphFiniteState{T} <: ConcreteFiniteState{T,1}
     graph::SimpleGraph
 
     "State at each node"
-    state::Vector{T}
+    container::Vector{T}
 
     """
         SimpleGraphFiniteState(graph::Graph, σ₀::T) where {T}
