@@ -105,6 +105,14 @@ Get the index of the last spin in the system.
 """
 @inline Base.lastindex(ca::AbstractCellularAutomaton) = lastindex(state(ca))
 
+@inline function set_state!(ca::AbstractCellularAutomaton, σ)
+    FiniteStates.set_state!(state(ca), σ)
+end
+
+@inline function randomize_state!(ca::AbstractCellularAutomaton)
+    FiniteStates.randomize_state!(state(ca))
+end
+
 @doc raw"""
     step!(ca::AbstractCellularAutomaton{<:ConcreteFiniteState{T,N}}, container′::Array{T,N}) where {T,N}
 
@@ -123,7 +131,7 @@ end
 
 Advances the cellular automaton `ca` *synchronously* for `n_steps` steps.
 """
-function advance!(ca::AbstractCellularAutomaton, n_steps::I=1) where {I<:Integer}
+function advance!(ca::AbstractCellularAutomaton, n_steps::Integer=1)
     @assert n_steps > 0 "Number of steps must be positive."
     # Auxiliary container
     container′ = similar_container(ca.state)
@@ -221,7 +229,7 @@ function Base.show(io::IO, ::MIME"text/plain", σ::BrassState.T)
 end
 
 @doc raw"""
-    magnet_total(fs::ConcreteFiniteState{BrassState.T})
+    magnet_total(fs::AbstractFiniteState{BrassState.T})
 
 Total magnetization of a concrete finite state `fs` of Brass site states.
 

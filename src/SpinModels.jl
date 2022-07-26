@@ -34,15 +34,25 @@ export
     AbstractSpinModel,
     # General properties of spin models
     state_type, spin_type, spin_instances, state,
+    # Metropolis sampling
+    metropolis!,
+    metropolis_measure!,
+    metropolis_measure_energy!,
+    # Heatbath sampling
     heatbath_weights,
-    # General dynamics on spin models
-    metropolis_measure!, heatbath_measure!,
-    # Families of spin models
-    # AbstractIsingModel,
-    # Implementations of spin models
-    IsingModel, BlumeCapelModel,
-    # Properties of spin models
-    energy, energy_local, minus_energy_local, energy_diff,
+    heatbath_measure!,
+    # Energy measurements
+    energy,
+    energy_local, minus_energy_local,
+    energy_diff,
+    # Ising models
+    AbstractIsingModel,
+    # Implementations of Ising models
+    IsingModel, IsingModelExtField,
+    # Blume-Capel models
+    AbstractBlumeCapelModel,
+    # Implementations of Blume-Capel models
+    BlumeCapelModel,
     # Critical temperatures
     CriticalTemperature, critical_temperature
 
@@ -286,7 +296,7 @@ Get the type of the spin state of a given spin model.
 
 Get the spins state associated with a given spin model.
 """
-@inline state(spinmodel::AbstractSpinModel) = spinmodel.spins
+@inline state(spinmodel::AbstractSpinModel) = spinmodel.state
 
 """
     length(spinmodel::AbstractSpinModel)
@@ -337,8 +347,18 @@ Get the index of the last spin in the system.
 """
 @inline Base.lastindex(spinmodel::AbstractSpinModel) = lastindex(state(spinmodel))
 
+@inline function set_state!(spinmodel::AbstractSpinModel, σ)
+    set_state!(state(spinmodel), σ)
+end
+
+@inline function randomize_state!(spinmodel::AbstractSpinModel)
+    randomize_state!(state(spinmodel))
+end
+
 @inline magnet_total(spinmodel::AbstractSpinModel) = magnet_total(state(spinmodel))
+
 @inline magnet(spinmodel::AbstractSpinModel) = magnet(state(spinmodel))
+
 @inline energy_interaction(spinmodel::AbstractSpinModel) = energy_interaction(state(spinmodel))
 
 # Allow spin state measurements to be done directly on the spin model
@@ -348,7 +368,17 @@ Get the index of the last spin in the system.
 #     end
 # end
 
+@inline function flip!(spinmodel::AbstractSpinModel, i)
+    flip!(state(spinmodel), i)
+end
+
+"""
+    metropolis!(spinmodel::AbstractSpinModel, β::Real, n_steps::Integer)
+
+Sample using the Metropolis algorithm the spin model `spinmodel` at temperature `β` for `n_steps` steps.
+"""
 function metropolis!(spinmodel::AbstractSpinModel, β::Real, n_steps::Integer)
+    # Loop on random sites
     @inbounds for i ∈ rand(eachindex(state(spinmodel)), n_steps)
         # Select random new state
         sᵢ′ = rand_new_spin(spinmodel[i])
@@ -362,52 +392,22 @@ function metropolis!(spinmodel::AbstractSpinModel, β::Real, n_steps::Integer)
     end
 end
 
-function metropolis_energy!(spinmodel::T, β::Real, n_steps::Integer) where {T<:AbstractSpinModel}
-    EnergyType = Base.return_types(energy, (T,))[1]
-    ΔH_total = zero(EnergyType)
+"""
+    metropolis!(spinmodel::AbstractSpinModel{<:AbstractFiniteState{SpinHalfState.T}}, β::Real, n_steps::Integer)
+
+Sample using the Metropolis algorithm the spin-`1/2` model `spinmodel` at temperature `β` for `n_steps` steps.
+"""
+function metropolis!(spinmodel::AbstractSpinModel{<:AbstractFiniteState{SpinHalfState.T}}, β::Real, n_steps::Integer)
+    # Loop on random sites
     @inbounds for i ∈ rand(eachindex(state(spinmodel)), n_steps)
-        # Select random new state
-        sᵢ′ = rand_new_spin(spinmodel[i])
         # Get energy difference
-        ΔH = energy_diff(spinmodel, i, sᵢ′)
+        ΔH = energy_diff(spinmodel, i)
         # Metropolis prescription
         if ΔH < 0 || exp(-β * ΔH) > rand()
-            # Change spin
-            spinmodel[i] = sᵢ′
-            # Add energy difference
-            ΔH_total += ΔH
+            # Flip spin
+            flip!(spinmodel, i)
         end
     end
-    return ΔH_total
-end
-
-function metropolis_measure_energy!(spinmodel::T, β::Real, n_steps::Integer) where {T<:AbstractSpinModel}
-    # Energy vector
-    EnergyType = Base.return_types(energy, (T,))[1]
-    results = Vector{EnergyType}(undef, n_steps + 1)
-    # Initial measurement
-    results[1] = energy(spinmodel)
-    # Sampling loop
-    @inbounds for t ∈ 1:n_steps
-        ΔH_total = zero(EnergyType)
-        # Site loop
-        @inbounds for i ∈ rand(eachindex(state(spinmodel)), n_steps)
-            # Select random new state
-            sᵢ′ = rand_new_spin(spinmodel[i])
-            # Get energy difference
-            ΔH = energy_diff(spinmodel, i, sᵢ′)
-            # Metropolis prescription
-            if ΔH < 0 || exp(-β * ΔH) > rand()
-                # Change spin
-                spinmodel[i] = sᵢ′
-                # Add energy difference
-                ΔH_total += ΔH
-            end
-        end
-        # Update results vector
-        results[t+1] = results[t] + ΔH_total
-    end
-    return results
 end
 
 """
@@ -427,6 +427,33 @@ function metropolis_measure!(measurement::Function, spinmodel::T, β::Real, n_st
     results[1] = measurement(spinmodel)
     # Sampling loop
     @inbounds for t ∈ 1:n_steps
+        # Metropolis sampling
+        metropolis!(spinmodel, β, length(spinmodel))
+        # Update results vector
+        results[t+1] = measurement(spinmodel)
+    end
+    # Return measurement results
+    return results
+end
+
+"""
+    metropolis_measure_energy!(spinmodel::AbstractSpinModel, β::Real, n_steps::Integer)
+
+Sample the spin model `spinmodel` using the Metropolis algorithm at temperature `β` for `n_steps` steps
+returning a vector containing the value of the system energy at the end of each step.
+
+Note that a single sampling step is equivalent to `N` metropolis prescription steps,
+where `N` is the total number of sites in the system.
+"""
+function metropolis_measure_energy!(spinmodel::T, β::Real, n_steps::Integer) where {T<:AbstractSpinModel}
+    # Energy measurements vector
+    EnergyType = Base.return_types(energy, (T,))[1]
+    results = Vector{EnergyType}(undef, n_steps + 1)
+    # Initial energy measurement
+    results[1] = energy(spinmodel)
+    # Sampling loop
+    @inbounds for t ∈ 1:n_steps
+        ΔH_total = zero(EnergyType)
         # Site loop
         @inbounds for i ∈ rand(eachindex(state(spinmodel)), length(spinmodel))
             # Select random new state
@@ -437,48 +464,51 @@ function metropolis_measure!(measurement::Function, spinmodel::T, β::Real, n_st
             if ΔH < 0 || exp(-β * ΔH) > rand()
                 # Change spin
                 spinmodel[i] = sᵢ′
+                # Add energy difference
+                ΔH_total += ΔH
             end
         end
-        # Update results vector
-        results[t+1] = measurement(spinmodel)
+        # Update energy measurements vector
+        results[t+1] = results[t] + ΔH_total
     end
-    # Return measurement results
     return results
 end
 
 """
-    metropolis_measure!(measurement::Function, spinmodel::AbstractSpinModel{<:AbstractFiniteState{SpinHalfState.T}}, β::Real, n_steps::Integer)
+    metropolis_measure_energy!(spinmodel::AbstractSpinModel{<:AbstractFiniteState{SpinHalfState.T}}, β::Real, n_steps::Integer)
 
-Metropolis sample the spin-`1/2` model `spinmodel` at temperature `β` for `n_steps`
-and perform the measurement `measurement` on the spin model at the end of each step.
+Sample the spin-`1/2` model `spinmodel` using the Metropolis algorithm at temperature `β` for `n_steps` steps
+returning a vector containing the value of the system energy at the end of each step.
 
 Note that a single sampling step is equivalent to `N` metropolis prescription steps,
 where `N` is the total number of sites in the system.
 
 This implementation takes advantage of symmetries in spin-`1/2` systems to simplify the algorithm.
 """
-function metropolis_measure!(measurement::Function, spinmodel::T, β::Real, n_steps::Integer) where {T<:AbstractSpinModel{<:AbstractFiniteState{SpinHalfState.T}}}
-    # Results vector
-    ResultType = Base.return_types(measurement, (T,))[1]
-    results = Vector{ResultType}(undef, n_steps + 1)
-    # Initial measurement
-    results[1] = measurement(spinmodel)
+function metropolis_measure_energy!(spinmodel::T, β::Real, n_steps::Integer) where {T<:AbstractSpinModel{<:AbstractFiniteState{SpinHalfState.T}}}
+    # Energy measurements vector
+    EnergyType = Base.return_types(energy, (T,))[1]
+    results = Vector{EnergyType}(undef, n_steps + 1)
+    # Initial energy measurement
+    results[1] = energy(spinmodel)
     # Sampling loop
     @inbounds for t ∈ 1:n_steps
+        ΔH_total = zero(EnergyType)
         # Site loop
-        @inbounds for i ∈ rand(eachindex(state(spinmodel)), length(spinmodel))
+        @inbounds for i ∈ rand(eachindex(state(spinmodel)), n_steps)
             # Get energy difference
             ΔH = energy_diff(spinmodel, i)
             # Metropolis prescription
             if ΔH < 0 || exp(-β * ΔH) > rand()
-                # Flip spin
-                flip!(spinmodel.spins, i)
+                # Change spin
+                flip!(spinmodel, i)
+                # Add energy difference
+                ΔH_total += ΔH
             end
         end
-        # Update results vector
-        results[t+1] = measurement(spinmodel)
+        # Update energy measurements vector
+        results[t+1] = results[t] + ΔH_total
     end
-    # Return measurement results
     return results
 end
 
@@ -497,6 +527,19 @@ where `hᵢ(σ)` is the local energy associated with `i`-th site assuming that i
     map(σ -> exp(β * minus_energy_local(spinmodel, i, σ)), [instances(T)...]) |> ProbabilityWeights
 
 """
+    heatbath!(spinmodel::AbstractSpinModel, β::Real, n_steps::Integer)
+
+Sample the spin model `spinmodel` using the heatbath algorithm at temperature `β` for `n_steps` steps.
+"""
+function heatbath!(spinmodel::AbstractSpinModel{AbstractFiniteState{T}}, β::Real, n_steps::Integer) where {T}
+    # Site loop
+    @inbounds for i ∈ rand(eachindex(state(spinmodel)), n_steps)
+        weights = heatbath_weights(spinmodel, i, β)
+        spinmodel[i] = sample([instances(T)...], weights)
+    end
+end
+
+"""
     heatbath_measure!(measurement::Function, spinmodel::AbstractSpinModel, β::Real, n_steps::Integer)
 
 Heatbath sample the spin model `spinmodel` at temperature `β` for `n_steps`
@@ -513,11 +556,8 @@ function heatbath_measure!(measurement::Function, spinmodel::T, β::Real, n_step
     results[1] = measurement(spinmodel)
     # Sampling loop
     @inbounds for t ∈ 1:n_steps
-        # Site loop
-        @inbounds for i ∈ rand(eachindex(state(spinmodel)), length(spinmodel))
-            weights = heatbath_weights(spinmodel, i, β)
-            spinmodel[i] = sample([instances(S)...], weights)
-        end
+        # Heatbath sampling
+        heatbath!(spinmodel, β, length(spinmodel))
         # Update measurement vector
         results[t+1] = measurement(spinmodel)
     end
@@ -525,22 +565,70 @@ function heatbath_measure!(measurement::Function, spinmodel::T, β::Real, n_step
     return results
 end
 
+"""
+    heatbath_measure_energy!(spinmodel::AbstractSpinModel, β::Real, n_steps::Integer)
+
+Sample the spin model `spinmodel` using the heatbath algorithm at temperature `β` for `n_steps` steps
+returning a vector containing the value of the system energy at the end of each step.
+
+Note that a single sampling step is equivalent to `N` heatbath steps,
+where `N` is the total number of sites in the system.
+"""
+function heatbath_measure_energy!(spinmodel::T, β::Real, n_steps::Integer) where {S,T<:AbstractSpinModel{<:AbstractFiniteState{S}}}
+    # Energy measurements vector
+    EnergyType = Base.return_types(energy, (T,))[1]
+    results = Vector{EnergyType}(undef, n_steps + 1)
+    # Initial energy measurement
+    results[1] = energy(spinmodel)
+    # Heatbath weights dictionary
+    minus_H_local = Dict{S,Float64}()
+    # Sampling loop
+    @inbounds for t ∈ 1:n_steps
+        ΔH_total = zero(EnergyType)
+        # Site loop
+        @inbounds for i ∈ rand(eachindex(state(spinmodel)), length(spinmodel))
+            # Store current state
+            σᵢ = spinmodel[i]
+            # Calcualte minus energy local
+            minus_H_local = Dict(σ => minus_energy_local(spinmodel, i, σ) for σ ∈ instances(S))
+            # Calculate weights
+            weights = ProbabilityWeights([exp(β * minus_h) for minus_h ∈ values(minus_H_local)])
+            # Get new state
+            σᵢ′ = sample([instances(T)...], weights)
+            spinmodel[i] = σᵢ′
+            # Add energy difference
+            ΔH_total += minus_H_local[σᵢ] - minus_H_local[σᵢ′]
+        end
+        # Update measurement vector
+        results[t+1] = results[t] + ΔH_total
+    end
+    # Return measurement results
+    return results
+end
+
+"""
+    AbstractIsingModel{T} <: AbstractSpinModel{T}
+
+Super type for all Ising models.
+"""
+abstract type AbstractIsingModel{T} <: AbstractSpinModel{T} end
+
 @doc raw"""
-    IsingModel{T} <: AbstractSpinModel{T}
+    IsingModel{T} <: AbstractIsingModel{T}
 
 The Ising model without external magnetic field.
 """
-struct IsingModel{T} <: AbstractSpinModel{T}
+struct IsingModel{T} <: AbstractIsingModel{T}
 
     "State of the spins"
-    spins::T
+    state::T
 
     """
-        IsingModel(spins)
+        IsingModel(state)
 
     Construct an Ising system without external magnetic field and with given initial spins state `spins`
     """
-    IsingModel(spins::T) where {T} = new{T}(spins)
+    IsingModel(state::T) where {T} = new{T}(state)
 end
 
 @doc raw"""
@@ -565,7 +653,7 @@ Local energy of the `i`-th site in the Ising system `ising`.
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline energy_local(ising::IsingModel, i) = -Integer(ising[i]) * nearest_neighbors_sum(ising.spins, i)
+@inline energy_local(ising::IsingModel, i) = -Integer(ising[i]) * nearest_neighbors_sum(ising.state, i)
 
 @doc raw"""
     energy_local(ising::IsingModel, i, sᵢ)
@@ -576,7 +664,7 @@ Local energy of the `i`-th site assuming its state is `sᵢ` in the Ising system
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline energy_local(ising::IsingModel, i, sᵢ) = -Integer(sᵢ) * nearest_neighbors_sum(ising.spins, i)
+@inline energy_local(ising::IsingModel, i, sᵢ) = -Integer(sᵢ) * nearest_neighbors_sum(ising.state, i)
 
 @doc raw"""
     energy_diff(ising::IsingModel, i, sᵢ′)
@@ -592,7 +680,7 @@ where the sum is over the nearest neighbors `j` of `i`.
     if sᵢ′ == sᵢ
         return 0
     else
-        return (Integer(sᵢ) - Integer(sᵢ′)) * nearest_neighbors_sum(ising.spins, i)
+        return (Integer(sᵢ) - Integer(sᵢ′)) * nearest_neighbors_sum(ising.state, i)
     end
 end
 
@@ -605,27 +693,27 @@ Calculate the energy difference for a spin-`1/2` Ising system `ising` if the `i`
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline energy_diff(ising::IsingModel{<:AbstractFiniteState{SpinHalfState.T}}, i) = 2 * Integer(ising[i]) * nearest_neighbors_sum(ising.spins, i)
+@inline energy_diff(ising::IsingModel{<:AbstractFiniteState{SpinHalfState.T}}, i) = 2 * Integer(ising[i]) * nearest_neighbors_sum(ising.state, i)
 
 @doc raw"""
-    IsingModelExtField{T} <: AbstractSpinModel{T}
+    IsingModelExtField{T} <: AbstractIsingModel{T}
 
 The Ising model with external magnetic field.
 """
-struct IsingModelExtField{T} <: AbstractSpinModel{T}
+struct IsingModelExtField{T} <: AbstractIsingModel{T}
 
     "State of the spins"
-    spins::T
+    state::T
 
     "External magnetic field"
     h::Real
 
     """
-        IsingModelExtField(spins::T, h::Real) where {T}
+        IsingModelExtField(state::T, h::Real) where {T}
 
     Construct an Ising system with external magnetic field `h` and with given initial spins state `spins`
     """
-    IsingModelExtField(spins::T, h::Real) where {T} = new{T}(spins, h)
+    IsingModelExtField(state::T, h::Real) where {T} = new{T}(state, h)
 end
 
 @doc raw"""
@@ -650,7 +738,7 @@ Local energy of the `i`-th site in the Ising system `ising`.
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline energy_local(ising::IsingModelExtField, i) = -Integer(ising[i]) * (nearest_neighbors_sum(ising.spins, i) + ising.h)
+@inline energy_local(ising::IsingModelExtField, i) = -Integer(ising[i]) * (nearest_neighbors_sum(ising.state, i) + ising.h)
 
 @doc raw"""
     energy_local(ising::IsingModelExtField, i, sᵢ)
@@ -661,7 +749,7 @@ Local energy of the `i`-th site assuming its state is `sᵢ` in the Ising system
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline energy_local(ising::IsingModelExtField, i, sᵢ) = -Integer(sᵢ) * (nearest_neighbors_sum(ising.spins, i) + ising.h)
+@inline energy_local(ising::IsingModelExtField, i, sᵢ) = -Integer(sᵢ) * (nearest_neighbors_sum(ising.state, i) + ising.h)
 
 @doc raw"""
     energy_diff(ising::IsingModelExtField, i, sᵢ′)
@@ -692,6 +780,13 @@ where the sum is over the nearest neighbors `j` of `i`.
 """
 @inline energy_diff(ising::IsingModelExtField{<:AbstractFiniteState{SpinHalfState.T}}, i) = 2 * Integer(ising[i]) * (nearest_neighbors_sum(ising, i) + ising.h)
 
+"""
+    AbstractBlumeCapelModel{T} <: AbstractSpinModel{T}
+
+Super type for all Blume-Capel models.
+"""
+abstract type AbstractBlumeCapelModel{T} <: AbstractSpinModel{T} end
+
 @doc raw"""
     BlumeCapelModel{T} <: AbstractSpinModel{T}
 
@@ -699,20 +794,20 @@ Blume-Capel model without external mangnetic field.
 
 ``H = - ∑_⟨i,j⟩ sᵢsⱼ + D ∑ᵢ sᵢ²``
 """
-struct BlumeCapelModel{T} <: AbstractSpinModel{T}
+struct BlumeCapelModel{T} <: AbstractBlumeCapelModel{T}
 
     "State of the spins"
-    spins::T
+    state::T
 
     "Parameter"
     D::Real
 
     """
-        BlumeCapelModel(spins::T, D::Real) where {T}
+        BlumeCapelModel(state::T, D::Real) where {T}
 
     Construct an Blume-Capel system without external magnetic field and with given initial spins state `spins` and parameter `D`.
     """
-    BlumeCapelModel(spins::T, D::Real) where {T} = new{T}(spins, D)
+    BlumeCapelModel(state::T, D::Real) where {T} = new{T}(state, D)
 
 end
 
@@ -727,7 +822,7 @@ Given by the Hamiltonian:
 
 where `⟨i,j⟩` means that `i` and `j` are nearest neighbors.
 """
-@inline energy(blumecapel::BlumeCapelModel) = energy_interaction(blumecapel) + blumecapel.D * sum(sᵢ -> sᵢ^2, blumecapel.spins)
+@inline energy(blumecapel::BlumeCapelModel) = energy_interaction(blumecapel) + blumecapel.D * sum(sᵢ -> sᵢ^2, blumecapel.state)
 
 @doc raw"""
     energy_local(blumecapel::BlumeCapelModel, i)
@@ -740,7 +835,7 @@ where the sum is over the nearest neighbors `j` of `i`.
 """
 @inline energy_local(blumecapel::BlumeCapelModel, i) =
     let sᵢ = Integer(blumecapel[i])
-        blumecapel.D * sᵢ^2 - sᵢ * nearest_neighbors_sum(blumecapel.spins, i)
+        blumecapel.D * sᵢ^2 - sᵢ * nearest_neighbors_sum(blumecapel.state, i)
     end
 
 @doc raw"""
@@ -754,7 +849,7 @@ where the sum is over the nearest neighbors `j` of `i`.
 """
 @inline energy_local(blumecapel::BlumeCapelModel, i, sᵢ) =
     let sᵢ = Integer(sᵢ)
-        blumecapel.D * sᵢ^2 - sᵢ * nearest_neighbors_sum(blumecapel.spins, i)
+        blumecapel.D * sᵢ^2 - sᵢ * nearest_neighbors_sum(blumecapel.state, i)
     end
 
 @doc raw"""
@@ -768,7 +863,7 @@ where the sum is over the nearest neighbors `j` of `i`.
 """
 @inline minus_energy_local(blumecapel::BlumeCapelModel, i, sᵢ) =
     let sᵢ = Integer(sᵢ)
-        sᵢ * nearest_neighbors_sum(blumecapel.spins, i) - blumecapel.D * sᵢ^2
+        sᵢ * nearest_neighbors_sum(blumecapel.state, i) - blumecapel.D * sᵢ^2
     end
 
 @doc raw"""

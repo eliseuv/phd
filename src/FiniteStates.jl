@@ -380,12 +380,12 @@ Get the state count for the concrete finite state `fs`.
 @inline state_count(fs::ConcreteFiniteState{T}) where {T} = (count(==(σ), container(fs)) for σ in instances(T))
 
 """
-    set_state!(fs::ConcreteFiniteState{T}, σ₀::T) where {T}
+    set_state!(fs::ConcreteFiniteState{T}, σ::T) where {T}
 
-Set the state of all sites of a concrete finite state `fs` to a given state `σ₀`.
+Set the state of all sites of a concrete finite state `fs` to a given state `σ`.
 """
-@inline function set_state!(fs::ConcreteFiniteState{T}, σ₀::T) where {T}
-    fill!(container(fs), σ₀)
+@inline function set_state!(fs::ConcreteFiniteState{T}, σ::T) where {T}
+    fill!(container(fs), σ)
 end
 
 @inline function set_state!(fs::ConcreteFiniteState{T,N}, container::Array{T,N}) where {T,N}
@@ -394,12 +394,12 @@ end
 end
 
 """
-    randomize_state!(spins::ConcreteFiniteState{T}) where {T}
+    randomize_state!(fs::ConcreteFiniteState{T}) where {T}
 
 Set the state of all sites of a concrete finite state `fs` to a random state `σ ∈ AbstractSiteState`.
 """
-@inline function randomize_state!(spins::ConcreteFiniteState{T}) where {T}
-    rand!(container(spins), instances(T))
+@inline function randomize_state!(fs::ConcreteFiniteState{T}) where {T}
+    rand!(container(fs), instances(T))
 end
 
 """
