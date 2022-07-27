@@ -33,7 +33,7 @@ end...)
 # Parameters to be run
 const parameters_combi = Dict(
     "dim" => 2,
-    "L" => parse(Float64, ARGS[1]),
+    "L" => parse(Int64, ARGS[1]),
     "p" => parse(Float64, ARGS[2]),
     "r" => parse(Float64, ARGS[3]),
     "n_steps" => 300,
