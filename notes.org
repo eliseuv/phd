@@ -8,6 +8,24 @@
 \[H = - J \sum_{\langle i, j \rangle} s_i s_j\]
 
 
+* Determination Coefficient
+Given samples time series of the magnetization $m_i(t)$:
+
+\[F_2 = \frac{\langle m^2 \rangle}{\langle m \rangle^2}\]
+
+\[F_2(t) \sim t^{d/z}\]
+
+#+caption: Map of determination coefficient for different values of $p$ and $r$ for the Brass cellular automaton.
+#+name: fig:brass_ca_magnet_ts_det_coeff_map
+[[file:plots/BrassCA2DMagnetTSDetCoeff_L=100_n_samples=1024_n_steps=300.png]]
+
+
+#+caption: Dependence of the goodness of fit curve on the system size
+[[file:plots/BrassCA2DMagnetTSSystemSizeDetCoeff_p=0.3.png]]
+
+
+
+
 * Blume-Capel model
 
 \[ H = - J \sum_{\langle i, j \rangle} s_i s_j + D \sum_i s_i^2 \]

@@ -33,11 +33,11 @@ end...)
 # Parameters to be run
 const parameters_combi = Dict(
     "dim" => 2,
-    "L" => 100,
+    "L" => [16, 32, 64, 128, 256],
     "p" => parse(Float64, ARGS[1]),
     "r" => parse(Float64, ARGS[2]),
     "n_steps" => 300,
-    "n_samples" => 100,
+    "n_samples" => 1024
 )
 
 # Output data path
@@ -64,42 +64,42 @@ for params in parameters_list
     n_samples = params["n_samples"]
 
     # Construct system
-    ca = BrassCellularAutomaton(CellularAutomata.SquareLatticeFiniteState(Val(dim), L, BrassState.TH0), p, r)
+    system = BrassCellularAutomaton(CellularAutomata.SquareLatticeFiniteState(Val(dim), L, BrassState.TH0), p, r)
 
     # Generate magnetization time series matrices
     @info "Generating magnetization time series matrix..."
-    M_ts = magnet_ts_matrix!(ca, n_steps, n_samples)
+    M_ts = magnet_ts_matrix!(system, n_steps, n_samples)
 
-    # # Data to be saved
-    # data = Dict{String,Any}()
-    # data["Params"] = params
-    # data["M_ts_samples"] = M_ts_samples
+    # Data to be saved
+    data = Dict{String,Any}()
+    data["Params"] = params
+    data["M_ts"] = M_ts
 
-    # # Output data file
-    # output_data_filename = savename(system_prefix * "TSMatrix", params, "jld2")
-    # output_data_filepath = joinpath(output_data_path, output_data_filename)
-    # @info "Saving data:" output_data_filepath
-    # save(output_data_filepath, data)
+    # Output data file
+    output_data_filename = savename(system_prefix * "TSMatrix", params, "jld2")
+    output_data_filepath = joinpath(output_data_path, output_data_filename)
+    @info "Saving data:" output_data_filepath
+    save(output_data_filepath, data)
 
-    # Plot demo matrix
-    display(heatmap(M_ts[end:-1:1, :],
-        title="Magnet time series matrix",
-        xlabel="i", ylabel="t", zlabel="mᵢ(t)",
-        width=110))
-    println()
+    # # Plot demo matrix
+    # display(heatmap(M_ts[end:-1:1, :],
+    #     title="Magnet time serie matrix",
+    #     xlabel="i", ylabel="t", zlabel="mᵢ(t)",
+    #     width=110))
+    # println()
 
-    # Plot demo series
-    M_plot = abs.(M_ts[:, 1:10])
-    x_max = params["n_steps"] + 1
-    plt = lineplot(1:x_max, M_plot[:, 1],
-        xlim=(0, x_max), ylim=extrema(M_plot),
-        xlabel="t", ylabel="m",
-        yscale=:log10,
-        width=110, height=25)
-    for k ∈ 2:size(M_plot, 2)
-        lineplot!(plt, 1:x_max, M_plot[:, k])
-    end
-    display(plt)
-    println()
+    # # Plot demo series
+    # M_plot = abs.(M_ts[:, 1:10])
+    # x_max = params["n_steps"] + 1
+    # plt = lineplot(1:x_max, M_plot[:, 1],
+    #     xlim=(0, x_max), ylim=extrema(M_plot),
+    #     xlabel="t", ylabel="m",
+    #     yscale=:log10,
+    #     width=110, height=25)
+    # for k ∈ 2:size(M_plot, 2)
+    #     lineplot!(plt, 1:x_max, M_plot[:, k])
+    # end
+    # display(plt)
+    # println()
 
 end
