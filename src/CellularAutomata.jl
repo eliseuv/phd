@@ -196,6 +196,8 @@ States of the Brass cellular automaton.
     TH2 = -1
 end
 
+@inline name(::Type{BrassState}) = "BrassState"
+
 """
     state_count(fs::ConcreteFiniteState{BrassState.T})
 
@@ -390,5 +392,7 @@ Magnetization per site of a Brass cellular automaton `ca`.
 ``m = M / N = ∑ᵢ σᵢ / N``
 """
 @inline magnet(ca::BrassCellularAutomaton) = magnet(state(ca))
+
+@inline name(::Type{BrassCellularAutomaton{T}}) where {T} = "BrassCA" * name(T)
 
 end

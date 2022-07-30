@@ -12,16 +12,16 @@ include("../../../../src/DataIO.jl")
 using .DataIO
 
 # Path for datafiles
-data_dirpath = datadir("sims", "brass_ca", "magnet_ts", "single_mat", "up_start", "old_data")
+data_dirpath = datadir("sims", "brass_ca", "magnet_ts", "single_mat", "up_start")
 
 # Desired parameters
-prefix = "BrassCA2DMagnetTS"
+prefix = "BrassCATSMatrix"
 const params_req = Dict(
-    "L" => 100,
+    "dim" => 2,
+    "L" => 128,
     "n_steps" => 300,
     "n_samples" => 1024
 )
-const dim = 2
 
 df = DataFrame(p=Float64[], r=Float64[],
     z=Float64[], r2=Float64[])
@@ -46,6 +46,7 @@ for data_filename in readdir(data_dirpath)
     # Fetch parameters
     params = data["Params"]
     print_dict(params)
+    dim = params["dim"]
     L = params["L"]
     p = params["p"]
     r = params["r"]

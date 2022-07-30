@@ -12,40 +12,35 @@ include("../../../../src/DataIO.jl")
 using .DataIO
 
 # Path for datafiles
-data_dirpath = datadir("sims", "brass_ca", "magnet_ts", "single_mat", "up_start", "old_data")
+datadir_path = datadir("sims", "brass_ca", "magnet_ts", "single_mat", "up_start")
 
 # Desired parameters
-prefix = "BrassCA2DMagnetTS"
+prefix = "BrassCATSMatrix"
 const params_req = Dict(
+    "dim" => 2,
     "p" => 0.3
 )
-const dim = 2
 const n_steps = 300
 
+# Filter datafiles
+datafile_paths = filter_datadir(datadir_path, "prefix" => prefix, params_req)
+
+# Dataframe to store results
 df = DataFrame(L=Int64[],
     r=Float64[],
     z=Float64[], r2=Float64[])
 
-for data_filename in readdir(data_dirpath)
-
-    @info data_filename
-    filename_params = parse_filename(data_filename)
-    # script_show(filename_params)
-
-    # Ignore unrelated data files
-    if !check_params(filename_params, "prefix" => prefix, params_req)
-        @info "Skipping unrelated file..."
-        continue
-    end
+# Loop on selected datafiles
+for datafile_path in datafile_paths
 
     # Load data
-    data_filepath = joinpath(data_dirpath, data_filename)
-    @info "Loading file..."
-    data = load(data_filepath)
+    @info "Loading file..." basename(datafile_path)
+    data = load(datafile_path)
+    @show keys(data) data["Params"]
 
     # Fetch parameters
     params = data["Params"]
-    print_dict(params)
+    dim = params["dim"]
     L = params["L"]
     r = params["r"]
 
