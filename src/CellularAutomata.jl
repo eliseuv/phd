@@ -24,6 +24,7 @@ export
     SimpleGraphFiniteState,
     # Abstract cellular automaton
     AbstractCellularAutomaton,
+    name,
     state,
     step!,
     advance!, advance_measure!,
@@ -323,6 +324,13 @@ struct BrassCellularAutomaton{T<:AbstractFiniteState{BrassState.T}} <: AbstractC
 
 end
 
+"""
+    name(ca::BrassCellularAutomaton)
+
+Name of the Brass CA `ca`.
+"""
+@inline name(ca::BrassCellularAutomaton) = "BrassCA" * name(ca.state)
+
 @doc raw"""
     cumulative_transition_probabilities(σᵢ::BrassState.T, sᵢ::T, p::Float64, r::Float64) where {T<:Integer}
 
@@ -392,7 +400,5 @@ Magnetization per site of a Brass cellular automaton `ca`.
 ``m = M / N = ∑ᵢ σᵢ / N``
 """
 @inline magnet(ca::BrassCellularAutomaton) = magnet(state(ca))
-
-@inline name(::Type{BrassCellularAutomaton{T}}) where {T} = "BrassCA" * name(T)
 
 end

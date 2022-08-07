@@ -10,10 +10,10 @@ export
     AbstractSiteState, instance_count,
     # Abstract finite state
     AbstractFiniteState,
+    name,
     state_count, state_concentration,
     set_state!, randomize_state!,
     nearest_neighbors, nearest_neighbors_sum,
-    name,
     # Mean field finite state
     MeanFieldFiniteState, clear, split_indices, site_counts_from_split_indices,
     # Concrete finite state
@@ -136,6 +136,13 @@ mutable struct MeanFieldFiniteState{T} <: AbstractFiniteState{T,1}
 end
 
 """
+    name(::Type{MeanFieldFiniteState})
+
+Name of the finite state.
+"""
+@inline name(MeanFieldFiniteState) = "MeanField"
+
+"""
     clear(fs::MeanFieldFiniteState{T}) where {T}
 
 Clears the state of the mean field finites state `fs` by setting the site count to all states to zero.
@@ -180,6 +187,13 @@ end
 Get the total number of sites `N` in an mean field finite state `fs`.
 """
 @inline Base.length(fs::MeanFieldFiniteState) = @inbounds sum(values(fs.counts))
+
+@doc raw"""
+    size(fs::MeanFieldFiniteState)
+
+Get the total number of sites `N` in an mean field finite state `fs`.
+"""
+@inline Base.size(fs::MeanFieldFiniteState) = (length(fs),)
 
 @doc raw"""
     IndexStyle(::Type{<:MeanFieldFiniteState})
@@ -298,7 +312,7 @@ Get sum of the nearest neighbors of site `i` in the mean field finite state `fs`
 """
 @inline nearest_neighbors_sum(fs::MeanFieldFiniteState, i::Integer) = sum(fs) - Integer(fs[i])
 
-@inline name(::Type{MeanFieldFiniteState}) = "MeanField"
+@inline nearest_neighbors_sum(fs::MeanFieldFiniteState{T}, σ::T) where {T} = sum(fs) - Integer(σ)
 
 @doc raw"""
     ConcreteFiniteState <: AbstractSpinState
@@ -472,6 +486,13 @@ mutable struct SquareLatticeFiniteState{T,N} <: ConcreteFiniteState{T,N}
 end
 
 """
+    name(::Type{SquareLatticeFiniteState})
+
+Name of the finite state.
+"""
+@inline name(::SquareLatticeFiniteState{T,N}) where {T,N} = "SquareLattice" * string(N) * "D"
+
+"""
     IndexStyle(::Type{<:SquareLatticeFiniteState})
 
 Prefer cartesian indices for multidimensional square lattice finite states.
@@ -492,8 +513,6 @@ Sum of the nearest neighbors of the `i`-th site for a multidimensional square la
 """
 @inline nearest_neighbors_sum(fs::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Lattices.square_lattice_nearest_neighbors_sum(fs.container, i)
 # @inline nearest_neighbors_sum(spins::SquareLatticeFiniteState{T,N}, i::Integer) where {T,N} = nearest_neighbors_sum(spins, CartesianIndices(spins)[i])
-
-@inline name(::Type{SquareLatticeFiniteState{T,N}}) where {T,N} = "SquareLattice" * string(N) * "D"
 
 """
     SimpleGraphFiniteState{T} <: ConcreteFiniteState{T,1}
@@ -525,6 +544,11 @@ mutable struct SimpleGraphFiniteState{T} <: ConcreteFiniteState{T,1}
 end
 
 """
+    name(::SimpleGraphFiniteState)
+"""
+@inline name(::SimpleGraphFiniteState) = "SimpleGraph"
+
+"""
     nearest_neighbors(fs::SimpleGraphFiniteState)
 
 Get list of all nearest neighbors pairs in the simple graph finite state `fs`.
@@ -537,7 +561,5 @@ Get list of all nearest neighbors pairs in the simple graph finite state `fs`.
 Get the indices of the nearest neighbors of `i`-th site in the simple graph finite state `fs`.
 """
 @inline nearest_neighbors(fs::SimpleGraphFiniteState, i::Integer) = neighbors(fs.graph, i)
-
-@inline name(::Type{SimpleGraphFiniteState}) = "SimpleGraph"
 
 end

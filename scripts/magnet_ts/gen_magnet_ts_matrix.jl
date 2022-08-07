@@ -16,15 +16,16 @@ using .DataIO
 using .SpinModels
 using .CellularAutomata
 
+# Magnetization time series
 @inline magnet_ts!(ising::AbstractIsingModel, β::Real, n_steps::Integer) = metropolis_measure!(SpinModels.magnet_total, ising, β, n_steps)
 @inline magnet_ts!(blumecapel::AbstractBlumeCapelModel, β::Real, n_steps::Integer) = heatbath_measure!(SpinModels.magnet_total, blumecapel, β, n_steps)
 @inline magnet_ts!(ca::AbstractCellularAutomaton, n_steps::Integer) = advance_measure!(CellularAutomata.magnet_total, ca, n_steps)
 
+# Magnetization time series matrix
 @inline magnet_ts_matrix!(ising::AbstractIsingModel, β::Real, n_steps::Integer, n_samples::Integer) = hcat(map(1:n_samples) do _
     SpinModels.set_state!(ising, SpinHalfState.up)
     return magnet_ts!(ising, β, n_steps)
 end...)
-
 @inline magnet_ts_matrix!(ca::BrassCellularAutomaton, n_steps::Integer, n_samples::Integer) = hcat(map(1:n_samples) do _
     CellularAutomata.set_state!(ca, BrassState.TH1)
     return magnet_ts!(ca, n_steps)
@@ -32,19 +33,18 @@ end...)
 
 # Parameters to be run
 const parameters_combi = Dict(
-    "dim" => 2,
-    "L" => parse(Int64, ARGS[1]),
-    "p" => parse(Float64, ARGS[2]),
-    "r" => parse(Float64, ARGS[3]),
+    # "dim" => 2,
+    "N" => parse(Int64, ARGS[1]),
+    # "L" => parse(Int64, ARGS[1]),
+    # "p" => parse(Float64, ARGS[2]),
+    # "r" => parse(Float64, ARGS[3]),
     "n_steps" => 300,
     "n_samples" => 1024
 )
 
 # Output data path
-output_data_path = datadir("sims", "brass_ca", "magnet_ts", "single_mat", "up_start")
+output_data_path = datadir("sims", "ising", "magnet_ts", "single_mat", "up_start")
 mkpath(output_data_path)
-
-system_prefix = "BrassCA"
 
 # Serialize parameters
 const parameters_list = dict_list(parameters_combi)
@@ -56,15 +56,16 @@ for params in parameters_list
     @info "Parameters:" params
 
     # Parameters
-    dim = params["dim"]
-    L = params["L"]
-    p = params["p"]
-    r = params["r"]
+    # dim = params["dim"]
+    N = params["N"]
+    # L = params["L"]
+    # p = params["p"]
+    # r = params["r"]
     n_steps = params["n_steps"]
     n_samples = params["n_samples"]
 
     # Construct system
-    system = BrassCellularAutomaton(CellularAutomata.SquareLatticeFiniteState(Val(dim), L, BrassState.TH0), p, r)
+    system = IsingModel(SpinModels.MeanFieldFiniteState(N, )
 
     # Generate magnetization time series matrices
     @info "Generating magnetization time series matrix..."

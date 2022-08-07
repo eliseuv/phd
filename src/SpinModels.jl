@@ -73,6 +73,15 @@ Enumeration of possible spin `1/2` values.
 end
 
 """
+    other_spin(σ::SpinHalfState.T)
+
+Returns the complementary of the spin-`1/2` state `σ`:
+    - up    => down
+    - down  => up
+"""
+@inline other_spin(σ::SpinHalfState.T) = SpinHalfState.T(-Integer(σ))
+
+"""
     SpinOneState::Int8 <: SingleSpinState
 
 Enumeration of possible spin `1` values.
@@ -105,7 +114,7 @@ Select a new random single spin state `σ′ ∈ SingleSpinState` different from
 
 Returns the complementary of the single spin state `σ`.
 """
-@inline rand_new_spin(σ::SpinHalfState.T) = SpinHalfState.T(-Integer(σ))
+@inline rand_new_spin(σ::SpinHalfState.T) = other_spin(σ)
 
 """
     convert(::Type{T}, σ::SingleSpinState) where {T<:Number}
@@ -157,110 +166,120 @@ function Base.show(io::IO, ::MIME"text/plain", σ::SpinOneState.T)
 end
 
 """
-    magnet_total(spins::AbstractFiniteState)
+    magnet_total(fs::AbstractFiniteState)
 
-Total magnetization of a spin state `spins`.
+Total magnetization of a spin state `fs`.
 """
-@inline magnet_total(spins::AbstractFiniteState) = sum(spins)
+@inline magnet_total(fs::AbstractFiniteState) = sum(fs)
 
 @doc raw"""
-    magnet(spins::AbstractFiniteState)
+    magnet(fs::AbstractFiniteState)
 
-Magnetization of the spin state `spins`.
+Magnetization of the spin state `fs`.
 
 ``m = M / N = (1/N) ∑ᵢ sᵢ``
 """
-@inline magnet(spins::AbstractFiniteState) = magnet_total(spins) / length(spins)
+@inline magnet(fs::AbstractFiniteState) = magnet_total(fs) / length(fs)
 
 @doc raw"""
-    energy_interaction(spins::AbstractFiniteState)
+    energy_interaction(fs::AbstractFiniteState)
 
-Interaction energy for a spin state `spins`.
+Interaction energy for a spin state `fs`.
 
 ``H_{int} = - ∑_⟨i,j⟩ sᵢ sⱼ``
 
 where `⟨i,j⟩` represents a pair of nearest neighbors sites.
 """
-@inline energy_interaction(spins::AbstractFiniteState) = @inbounds -sum(Integer(spins[i]) * Integer(spins[j]) for (i, j) ∈ nearest_neighbors(spins))
+@inline energy_interaction(fs::AbstractFiniteState) = @inbounds -sum(Integer(fs[i]) * Integer(fs[j]) for (i, j) ∈ nearest_neighbors(fs))
 
 """
-    energy_interaction(spins::MeanFieldFiniteState{T}) where {T<:SingleSpinState}
+    energy_interaction(fs::MeanFieldFiniteState{T}) where {T<:SingleSpinState}
 
-Get the interaction energy of the mean field spin state `spins`.
+Get the interaction energy of the mean field spin state `fs`.
 """
-function energy_interaction(spins::MeanFieldFiniteState{T}) where {T<:SingleSpinState}
+function energy_interaction(fs::MeanFieldFiniteState{T}) where {T<:SingleSpinState}
     S_equal = sum(instances(T)) do σₖ
-        Nₖ = spins.state[σₖ]
+        Nₖ = fs.counts[σₖ]
         return ((Nₖ * (Nₖ - 1)) ÷ 2) * Integer(σₖ)^2
     end
     S_diff = sum(combinations(instances(T), 2)) do (σₖ, σₗ)
-        Nₖ = spins.state[σₖ]
-        Nₗ = spins.state[σₗ]
+        Nₖ = fs.counts[σₖ]
+        Nₗ = fs.counts[σₗ]
         return Nₖ * Nₗ * Integer(σₖ) * Integer(σₗ)
     end
     return S_equal + S_diff
 end
 
 @doc raw"""
-    energy_interaction(spins::MeanFieldFiniteState{SpinHalfState.T})
+    energy_interaction(fs::MeanFieldFiniteState{SpinHalfState.T})
 
-Interaction energy of the spin-`1/2` spin state with mean field interaction `spins`.
+Interaction energy of the spin-`1/2` spin state with mean field interaction `fs`.
 
 ``H_{int} = - ∑_⟨i,j⟩ sᵢsⱼ = (N - M^2) / 2``
 """
-@inline energy_interaction(spins::MeanFieldFiniteState{SpinHalfState.T}) = (length(spins) - magnet_total(spins)^2) ÷ 2
+@inline energy_interaction(fs::MeanFieldFiniteState{SpinHalfState.T}) = (length(fs) - magnet_total(fs)^2) ÷ 2
 
 @doc raw"""
-    energy_interaction(spins::SquareLatticeFiniteState)
+    energy_interaction(fs::SquareLatticeFiniteState)
 
-Interaction energy for a `N`-dimensional square lattice spin model `spins`.
+Interaction energy for a `N`-dimensional square lattice spin model `fs`.
 
 ``H_{int} = - \sum_⟨i,j⟩ σᵢ σⱼ``
 """
-function energy_interaction(spins::SquareLatticeFiniteState{T,N}) where {T<:SingleSpinState,N}
+function energy_interaction(fs::SquareLatticeFiniteState{T,N}) where {T<:SingleSpinState,N}
     # Varaible to accumulate
     H = zero(Int64)
     # Loop on dimensions
     @inbounds for d ∈ 1:N
         # Bulk
-        front_bulk = selectdim(state(spins), d, 1:(size(spins, d)-1))
-        back_bulk = selectdim(state(spins), d, 2:size(spins, d))
+        front_bulk = selectdim(state(fs), d, 1:(size(fs, d)-1))
+        back_bulk = selectdim(state(fs), d, 2:size(fs, d))
         H -= sum(Integer, front_bulk .* back_bulk)
         # Periodic boundaries
-        last_slice = selectdim(state(spins), d, size(spins, d))
-        first_slice = selectdim(state(spins), d, 1)
+        last_slice = selectdim(state(fs), d, size(fs, d))
+        first_slice = selectdim(state(fs), d, 1)
         H -= sum(Integer, last_slice .* first_slice)
     end
     return H
 end
 
 """
-    energy_interaction(spins::SimpleGraphFiniteState)
+    energy_interaction(fs::SimpleGraphFiniteState)
 
-Get the interaction energy for a spin state on a simple graph `spins`.
+Get the interaction energy for a spin state on a simple graph `fs`.
 """
-@inline energy_interaction(spins::SimpleGraphFiniteState) = @inbounds -sum(edges(spins.graph)) do edge
-    spins[src(edge)] * spins[dst(edge)]
+@inline energy_interaction(fs::SimpleGraphFiniteState) = @inbounds -sum(edges(fs.graph)) do edge
+    fs[src(edge)] * fs[dst(edge)]
 end
 
 """
-    flip!(spins::AbstractFiniteState{SpinHalfState.T}, i)
+    flip!(fs::AbstractFiniteState{SpinHalfState.T}, i)
 
-Flips the `i`-th spin in the spin-`1/2` state `spins`.
+Flips the `i`-th spin in the spin-`1/2` state `fs`.
 """
-@inline function flip!(spins::AbstractFiniteState{SpinHalfState.T}, i)
-    @inbounds spins[i] = SpinHalfState.T(-Integer(spins[i]))
+@inline function flip!(fs::AbstractFiniteState{SpinHalfState.T}, i)
+    @inbounds fs[i] = SpinHalfState.T(-Integer(fs[i]))
 end
 
 @doc raw"""
-    flip!(spins::MeanFieldSpinState{SpinHalfState.T}, i::Integer)
+    flip!(fs::MeanFieldSpinState{SpinHalfState.T}, i::Integer)
 
-Flip the state of the `i`-th spin in the spin-`1/2` state with mean field interaction `spins`.
+Flip the state of the `i`-th spin in the spin-`1/2` state with mean field interaction `fs`.
 """
-@inline function flip!(spins::MeanFieldFiniteState{SpinHalfState.T}, i::Integer)
-    sᵢ = Integer(spins[i])
-    spins.state[SpinHalfState.up] -= sᵢ
-    spins.state[SpinHalfState.down] += sᵢ
+@inline function flip!(fs::MeanFieldFiniteState{SpinHalfState.T}, i::Integer)
+    sᵢ = Integer(fs[i])
+    fs[SpinHalfState.up] -= sᵢ
+    fs[SpinHalfState.down] += sᵢ
+end
+
+"""
+    flip!(fs::MeanFieldFiniteState{SpinHalfState.T}, σ::SpinHalfState.T)
+
+Flips one spin with state `σ` in the spin-`1/2` mean field state `fs`.
+"""
+@inline function flip!(fs::MeanFieldFiniteState{SpinHalfState.T}, σ::SpinHalfState.T)
+    fs[σ] -= 1
+    fs[other_spin(σ)] += 1
 end
 
 """
@@ -406,6 +425,29 @@ function metropolis!(spinmodel::AbstractSpinModel{<:AbstractFiniteState{SpinHalf
         if ΔH < 0 || exp(-β * ΔH) > rand()
             # Flip spin
             flip!(spinmodel, i)
+        end
+    end
+end
+
+"""
+    metropolis!(spinmodel::AbstractSpinModel{MeanFieldFiniteState{SpinHalfState.T}}, β::Real, n_steps::Integer)
+
+Sample using the Metropolis algorithm the spin-`1/2` mean field model `spinmodel` at temperature `β` for `n_steps` steps.
+"""
+function metropolis!(spinmodel::AbstractSpinModel{MeanFieldFiniteState{SpinHalfState.T}}, β::Real, n_steps::Integer)
+    # Loop on random sites
+    @inbounds for _ ∈ 1:n_steps
+        σ = if rand() < (spinmodel.state.counts[SpinHalfState.up] / length(spinmodel))
+            SpinHalfState.up
+        else
+            SpinHalfState.down
+        end
+        # Get energy difference
+        ΔH = energy_diff(spinmodel, σ)
+        # Metropolis prescription
+        if ΔH < 0 || exp(-β * ΔH) > rand()
+            # Flip spin
+            flip!(spinmodel, σ)
         end
     end
 end
@@ -631,6 +673,13 @@ struct IsingModel{T} <: AbstractIsingModel{T}
     IsingModel(state::T) where {T} = new{T}(state)
 end
 
+"""
+    name(ising::IsingModel)
+
+Name of the Ising model
+"""
+@inline name(ising::IsingModel) = "Ising" * name(ising.state)
+
 @doc raw"""
     energy(ising::IsingModel)
 
@@ -694,6 +743,18 @@ Calculate the energy difference for a spin-`1/2` Ising system `ising` if the `i`
 where the sum is over the nearest neighbors `j` of `i`.
 """
 @inline energy_diff(ising::IsingModel{<:AbstractFiniteState{SpinHalfState.T}}, i) = 2 * Integer(ising[i]) * nearest_neighbors_sum(ising.state, i)
+
+
+@doc raw"""
+    energy_diff(ising::IsingModel{MeanFieldFiniteState{SpinHalfState.T}}, σ::SpinHalfState.T)
+
+Calculate the energy difference for a spin-`1/2` mean field Ising system `ising` if a spin with current state `σ` were to be flipped.
+
+``ΔH(sᵢ) = 2 sᵢ ∑ⱼ sⱼ = 2 sᵢ (M - sᵢ)``
+
+where the sum is over the nearest neighbors `j` of `i`.
+"""
+@inline energy_diff(ising::IsingModel{MeanFieldFiniteState{SpinHalfState.T}}, σ::SpinHalfState.T) = 2 * Integer(σ) * nearest_neighbors_sum(ising.state, σ)
 
 @doc raw"""
     IsingModelExtField{T} <: AbstractIsingModel{T}
