@@ -14,8 +14,7 @@ export script_show,
 
 using Logging, JLD2
 
-include("Metaprogramming.jl")
-using .Metaprogramming
+using ..Metaprogramming
 
 # Script preview
 

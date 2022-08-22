@@ -5,21 +5,6 @@
 module SpinModels
 
 export
-    # Abstract site state
-    AbstractSiteState, instance_count,
-    # Abstract finite state
-    AbstractFiniteState,
-    state_count, state_concentration,
-    set_state!, randomize_state!,
-    nearest_neighbors, nearest_neighbors_sum,
-    # Mean field finite state
-    MeanFieldFiniteState,
-    # Concrete finite state
-    ConcreteFiniteState, state,
-    # Square lattice finite state
-    SquareLatticeFiniteState,
-    # Simple graph finite state
-    SimpleGraphFiniteState,
     # Single spin states
     SingleSpinState, SpinHalfState, SpinOneState,
     # Properties of single spin states
@@ -33,7 +18,7 @@ export
     # Spin models
     AbstractSpinModel,
     # General properties of spin models
-    state_type, spin_type, spin_instances, state,
+    state, state_type, spin_type, spin_instances, state,
     # Metropolis sampling
     metropolis!,
     metropolis_measure!,
@@ -52,15 +37,11 @@ export
     # Blume-Capel models
     AbstractBlumeCapelModel,
     # Implementations of Blume-Capel models
-    BlumeCapelModel,
-    # Critical temperatures
-    CriticalTemperature, critical_temperature
+    BlumeCapelModel
 
 using Random, EnumX, Combinatorics, StatsBase, Distributions, Graphs
 
-include("FiniteStates.jl")
-
-using .FiniteStates
+using ..FiniteStates
 
 """
     SpinHalfState::Int8 <: SingleSpinState
@@ -366,14 +347,6 @@ Get the index of the last spin in the system.
 """
 @inline Base.lastindex(spinmodel::AbstractSpinModel) = lastindex(state(spinmodel))
 
-@inline function set_state!(spinmodel::AbstractSpinModel, σ)
-    set_state!(state(spinmodel), σ)
-end
-
-@inline function randomize_state!(spinmodel::AbstractSpinModel)
-    randomize_state!(state(spinmodel))
-end
-
 @inline magnet_total(spinmodel::AbstractSpinModel) = magnet_total(state(spinmodel))
 
 @inline magnet(spinmodel::AbstractSpinModel) = magnet(state(spinmodel))
@@ -672,13 +645,6 @@ struct IsingModel{T} <: AbstractIsingModel{T}
     """
     IsingModel(state::T) where {T} = new{T}(state)
 end
-
-"""
-    name(ising::IsingModel)
-
-Name of the Ising model
-"""
-@inline name(ising::IsingModel) = "Ising" * name(ising.state)
 
 @doc raw"""
     energy(ising::IsingModel)

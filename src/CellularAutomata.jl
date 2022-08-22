@@ -6,25 +6,8 @@
 module CellularAutomata
 
 export
-    # Abstract site state
-    AbstractSiteState, instance_count,
-    # Abstract finite state
-    AbstractFiniteState,
-    state_count, state_concentration,
-    set_state!, randomize_state!,
-    nearest_neighbors, nearest_neighbors_sum,
-    # Mean field finite state
-    MeanFieldFiniteState,
-    # Concrete finite state
-    ConcreteFiniteState,
-    container, similar_container,
-    # Square lattice finite state
-    SquareLatticeFiniteState,
-    # Simple graph finite state
-    SimpleGraphFiniteState,
     # Abstract cellular automaton
     AbstractCellularAutomaton,
-    name,
     state,
     step!,
     advance!, advance_measure!,
@@ -39,9 +22,7 @@ export
 
 using EnumX, Random
 
-include("FiniteStates.jl")
-
-using .FiniteStates
+using ..FiniteStates
 
 """
     AbstractCellularAutomaton{T<:AbstractFiniteState}
@@ -197,8 +178,6 @@ States of the Brass cellular automaton.
     TH2 = -1
 end
 
-@inline name(::Type{BrassState}) = "BrassState"
-
 """
     state_count(fs::ConcreteFiniteState{BrassState.T})
 
@@ -323,13 +302,6 @@ struct BrassCellularAutomaton{T<:AbstractFiniteState{BrassState.T}} <: AbstractC
     BrassCellularAutomaton(state::T, p::Real, r::Real) where {T} = new{T}(state, p, r)
 
 end
-
-"""
-    name(ca::BrassCellularAutomaton)
-
-Name of the Brass CA `ca`.
-"""
-@inline name(ca::BrassCellularAutomaton) = "BrassCA" * name(ca.state)
 
 @doc raw"""
     cumulative_transition_probabilities(σᵢ::BrassState.T, sᵢ::T, p::Float64, r::Float64) where {T<:Integer}

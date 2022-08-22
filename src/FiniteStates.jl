@@ -10,7 +10,6 @@ export
     AbstractSiteState, instance_count,
     # Abstract finite state
     AbstractFiniteState,
-    name,
     state_count, state_concentration,
     set_state!, randomize_state!,
     nearest_neighbors, nearest_neighbors_sum,
@@ -26,14 +25,14 @@ export
 
 using Random, Graphs
 
-include("Lattices.jl")
+using ..Lattices
 
 """
-    AbstractSiteState
+                  AbstractSiteState
 
-Supertype for single site state.
-For now it is assumed to be an `Enum`.
-"""
+              Supertype for single site state.
+              For now it is assumed to be an `Enum`.
+              """
 AbstractSiteState = Enum
 
 """
@@ -136,13 +135,6 @@ mutable struct MeanFieldFiniteState{T} <: AbstractFiniteState{T,1}
 end
 
 """
-    name(::Type{MeanFieldFiniteState})
-
-Name of the finite state.
-"""
-@inline name(MeanFieldFiniteState) = "MeanField"
-
-"""
     clear(fs::MeanFieldFiniteState{T}) where {T}
 
 Clears the state of the mean field finites state `fs` by setting the site count to all states to zero.
@@ -163,7 +155,7 @@ Get a tuple with the values of the split indices `kⱼ` for the mean field finit
 
 Get the number of spins in each state given the split indices `split_indices`.
 """
-@inline site_counts_from_split_indices(split_indices::Vector{Unsigned}) = [split_indices[begin], diff(split_indices)]
+@inline site_counts_from_split_indices(split_indices::Vector{<:Unsigned}) = [split_indices[begin], diff(split_indices)...]
 
 """
     getindex(fs::MeanFieldFiniteState{T}, σ::T) where {T}
@@ -486,13 +478,6 @@ mutable struct SquareLatticeFiniteState{T,N} <: ConcreteFiniteState{T,N}
 end
 
 """
-    name(::Type{SquareLatticeFiniteState})
-
-Name of the finite state.
-"""
-@inline name(::SquareLatticeFiniteState{T,N}) where {T,N} = "SquareLattice" * string(N) * "D"
-
-"""
     IndexStyle(::Type{<:SquareLatticeFiniteState})
 
 Prefer cartesian indices for multidimensional square lattice finite states.
@@ -504,14 +489,14 @@ Prefer cartesian indices for multidimensional square lattice finite states.
 
 Gets a vector containing the indices of the nearest neighbors to the `i`-site in the square lattice finite state `fs`.
 """
-@inline nearest_neighbors(fs::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Lattices.square_lattice_nearest_neighbors_flat(fs.container, i)
+@inline nearest_neighbors(fs::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds square_lattice_nearest_neighbors_flat(fs.container, i)
 
 """
     nearest_neighbors_sum(fs::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N}
 
 Sum of the nearest neighbors of the `i`-th site for a multidimensional square lattice finites state `fs`.
 """
-@inline nearest_neighbors_sum(fs::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds Lattices.square_lattice_nearest_neighbors_sum(fs.container, i)
+@inline nearest_neighbors_sum(fs::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds square_lattice_nearest_neighbors_sum(fs.container, i)
 # @inline nearest_neighbors_sum(spins::SquareLatticeFiniteState{T,N}, i::Integer) where {T,N} = nearest_neighbors_sum(spins, CartesianIndices(spins)[i])
 
 """
@@ -542,11 +527,6 @@ mutable struct SimpleGraphFiniteState{T} <: ConcreteFiniteState{T,1}
     SimpleGraphFiniteState(graph::SimpleGraph, ::Val{:rand}) where {T} = new{T}(graph, rand(instances(T), nv(graph)))
 
 end
-
-"""
-    name(::SimpleGraphFiniteState)
-"""
-@inline name(::SimpleGraphFiniteState) = "SimpleGraph"
 
 """
     nearest_neighbors(fs::SimpleGraphFiniteState)
