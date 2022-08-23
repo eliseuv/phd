@@ -39,11 +39,11 @@ mkpath(output_data_path)
 # Parameters to be run
 const parameters_combi::Dict{String} = Dict(
     # "dim" => 2,
-    "N" => parse(Int64, ARGS[1]),
+    "N" => parse(UInt64, ARGS[1]),
     # "L" => parse(Int64, ARGS[1]),
     # "p" => parse(Float64, ARGS[2]),
     # "r" => parse(Float64, ARGS[3]),
-    "beta" => 0.1,
+    "beta" => parse(Float64, ARGS[2]),
     "n_steps" => 300,
     "n_samples" => 128
 )
@@ -58,7 +58,7 @@ for params in parameters_list
     @info "Parameters:" params
 
     # Construct system
-    system = IsingModel(MeanFieldFiniteState(convert(UInt, params["N"]), SpinHalfState.up))
+    system = IsingModel(MeanFieldFiniteState(params["N"], SpinHalfState.up))
 
     # Generate magnetization time series matrices
     @info "Generating magnetization time series matrix..."
@@ -95,6 +95,5 @@ for params in parameters_list
     end
     display(plt)
     println()
-
 
 end
