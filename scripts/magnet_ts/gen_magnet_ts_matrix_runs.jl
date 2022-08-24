@@ -24,11 +24,11 @@ using .Thesis.Names
 
 # Magnetization time series matrix
 @inline magnet_ts_matrix!(ising::AbstractIsingModel, β::Real, n_steps::Integer, n_samples::Integer) = hcat(map(1:n_samples) do _
-    set_state!(ising.state, SpinHalfState.up)
+    randomize_state!(ising.state)
     return magnet_ts!(ising, β, n_steps)
 end...)
 @inline magnet_ts_matrix!(ca::BrassCellularAutomaton, n_steps::Integer, n_samples::Integer) = hcat(map(1:n_samples) do _
-    set_state!(ca, BrassState.TH1)
+    randomize_state!(ca.state)
     return magnet_ts!(ca, n_steps)
 end...)
 
@@ -39,11 +39,12 @@ mkpath(output_data_path)
 # Parameters to be run
 const parameters_combi::Dict{String} = Dict(
     # "dim" => 2,
-    "N" => parse(UInt64, ARGS[1]),
+    "N" => parse(Int64, ARGS[1]),
+    "z" => parse(Int64, ARGS[2]),
     # "L" => parse(Int64, ARGS[1]),
     # "p" => parse(Float64, ARGS[2]),
     # "r" => parse(Float64, ARGS[3]),
-    "beta" => parse(Float64, ARGS[2]),
+    "beta" => parse(Float64, ARGS[3]),
     "n_steps" => 300,
     "n_samples" => 100,
     "n_runs" => 1000
@@ -59,7 +60,7 @@ for params in parameters_list
     @info "Parameters:" params
 
     # Construct system
-    system = IsingModel(MeanFieldFiniteState{SpinOneState.T}(params["N"], Val(:rand)))
+    system = IsingModel(MeanFieldFiniteState{SpinHalfState.T}(params["N"], params["z"], Val(:rand)))
 
     # Generate magnetization time series matrices
     @info "Generating magnetization time series matrices..."
@@ -76,26 +77,26 @@ for params in parameters_list
     output_data_filename = savename(name(system) * "TSMatrix", params, "jld2")
     output_data_filepath = joinpath(output_data_path, output_data_filename)
     @info "Saving data:" output_data_filepath
-    # save(output_data_filepath, data)
+    save(output_data_filepath, data)
 
-    # Plot demo matrix
-    display(heatmap(hcat(M_ts_samples[1:3]...),
-        title="Magnet time series matrix (p = $p, r = $r)",
-        xlabel="i", ylabel="t", zlabel="mᵢ(t)",
-        width=120))
-    println()
+    # # Plot demo matrix
+    # display(heatmap(hcat(M_ts_samples[1:3]...),
+    #     title="Magnet time series matrix (p = $p, r = $r)",
+    #     xlabel="i", ylabel="t", zlabel="mᵢ(t)",
+    #     width=120))
+    # println()
 
-    # Plot demo series
-    M_plot = M_ts_samples[begin][:, 1:10]
-    x_max = params["n_steps"] + 1
-    plt = lineplot(1:x_max, M_plot[:, 1],
-        xlim=(0, x_max), ylim=extrema(M_plot),
-        xlabel="t", ylabel="m",
-        width=120, height=25)
-    for k ∈ 2:size(M_plot, 2)
-        lineplot!(plt, 1:x_max, M_plot[:, k])
-    end
-    display(plt)
-    println()
+    # # Plot demo series
+    # M_plot = M_ts_samples[begin][:, 1:10]
+    # x_max = params["n_steps"] + 1
+    # plt = lineplot(1:x_max, M_plot[:, 1],
+    #     xlim=(0, x_max), ylim=extrema(M_plot),
+    #     xlabel="t", ylabel="m",
+    #     width=120, height=25)
+    # for k ∈ 2:size(M_plot, 2)
+    #     lineplot!(plt, 1:x_max, M_plot[:, k])
+    # end
+    # display(plt)
+    # println()
 
 end

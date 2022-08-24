@@ -443,7 +443,7 @@ Sample using the Metropolis algorithm the spin-`1/2` mean field model `spinmodel
 function metropolis!(spinmodel::AbstractSpinModel{MeanFieldFiniteState{SpinHalfState.T}}, β::Real, n_steps::Integer)
     # Loop on random sites
     @inbounds for _ ∈ 1:n_steps
-        σ = if rand() < (spinmodel.state.counts[SpinHalfState.up] / length(spinmodel))
+        σ = if rand() < (spinmodel[SpinHalfState.up] / length(spinmodel))
             SpinHalfState.up
         else
             SpinHalfState.down
@@ -767,7 +767,7 @@ where the sum is over the nearest neighbors `j` of `i`.
 
 Calculate the energy difference for a spin-`1/2` mean field Ising system `ising` if a spin with current state `σ` were to be flipped.
 
-``ΔH(sᵢ) = 2 sᵢ ∑ⱼ sⱼ = 2 sᵢ (M - sᵢ)``
+``ΔH(sᵢ) = 2 sᵢ ∑ⱼ sⱼ``
 
 where the sum is over the nearest neighbors `j` of `i`.
 """

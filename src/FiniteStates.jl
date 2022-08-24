@@ -141,7 +141,7 @@ mutable struct MeanFieldFiniteState{T} <: AbstractFiniteState{T,1}
 
     Construct mean field finite state `N` sites, all in a given initial state `σ₀` for all of them.
     """
-    function MeanFieldFiniteState(N::U, z::Integer, σ₀::T) where {T,U<:Unsigned}
+    function MeanFieldFiniteState(N::U, z::Integer, σ₀::T) where {T,U<:Integer}
         counts = Dict(instances(T) .=> zero(U))
         counts[σ₀] = N
         return new{T}(counts, z)
@@ -152,7 +152,7 @@ mutable struct MeanFieldFiniteState{T} <: AbstractFiniteState{T,1}
 
     Construct an spin state with mean field interaction with `N` spins in a random initial state.
     """
-    function MeanFieldFiniteState{T}(N::U, z::Integer, ::Val{:rand}) where {T,U<:Unsigned}
+    function MeanFieldFiniteState{T}(N::Integer, z::Integer, ::Val{:rand}) where {T}
         split_indices = [sort(rand(0:N, instance_count(T) - 1))..., N]
         site_counts = site_counts_from_split_indices(split_indices)
         return new{T}(Dict(instances(T) .=> site_counts), z)
@@ -181,7 +181,7 @@ Get a tuple with the values of the split indices `kⱼ` for the mean field finit
 
 Get the number of spins in each state given the split indices `split_indices`.
 """
-@inline site_counts_from_split_indices(split_indices::Vector{<:Unsigned}) = [split_indices[begin], diff(split_indices)...]
+@inline site_counts_from_split_indices(split_indices::Vector{<:Integer}) = [split_indices[begin], diff(split_indices)...]
 
 @doc raw"""
     length(fs::MeanFieldFiniteState)
@@ -253,11 +253,11 @@ Allow the site count for a given state `σ` to be accessed directly using the me
 @inline Base.getindex(fs::MeanFieldFiniteState{T}, σ::T) where {T} = fs.counts[σ]
 
 """
-    setindex!(fs::MeanFieldFiniteState{T}, Nᵢ::Unsigned, σᵢ::T) where {T}
+    setindex!(fs::MeanFieldFiniteState{T}, Nᵢ::Integer, σᵢ::T) where {T}
 
 Set the site count to `Nᵢ` for a given site `σᵢ` in the mean field finite state `fs`.
 """
-@inline function Base.setindex!(fs::MeanFieldFiniteState{T}, Nᵢ::Unsigned, σᵢ::T) where {T}
+@inline function Base.setindex!(fs::MeanFieldFiniteState{T}, Nᵢ::Integer, σᵢ::T) where {T}
     fs.counts[σᵢ] = Nᵢ
 end
 
