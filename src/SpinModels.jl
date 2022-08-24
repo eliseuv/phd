@@ -44,6 +44,12 @@ using Random, EnumX, Combinatorics, StatsBase, Distributions, Graphs
 using ..FiniteStates
 
 """
+###################
+    Spin-1/2 State
+###################
+"""
+
+"""
     SpinHalfState::Int8 <: SingleSpinState
 
 Enumeration of possible spin `1/2` values.
@@ -63,6 +69,42 @@ Returns the complementary of the spin-`1/2` state `σ`:
 @inline other_spin(σ::SpinHalfState.T) = SpinHalfState.T(-Integer(σ))
 
 """
+    flip!(fs::AbstractFiniteState{SpinHalfState.T}, i)
+
+Flips the `i`-th spin in the spin-`1/2` state `fs`.
+"""
+@inline function flip!(fs::AbstractFiniteState{SpinHalfState.T}, i)
+    @inbounds fs[i] = SpinHalfState.T(-Integer(fs[i]))
+end
+
+@doc raw"""
+    flip!(fs::MeanFieldSpinState{SpinHalfState.T}, i::Integer)
+
+Flip the state of the `i`-th spin in the spin-`1/2` state with mean field interaction `fs`.
+"""
+@inline function flip!(fs::MeanFieldFiniteState{SpinHalfState.T}, i::Integer)
+    sᵢ = Integer(fs[i])
+    fs[SpinHalfState.up] -= sᵢ
+    fs[SpinHalfState.down] += sᵢ
+end
+
+"""
+    flip!(fs::MeanFieldFiniteState{SpinHalfState.T}, σ::SpinHalfState.T)
+
+Flips one spin with state `σ` in the spin-`1/2` mean field state `fs`.
+"""
+@inline function flip!(fs::MeanFieldFiniteState{SpinHalfState.T}, σ::SpinHalfState.T)
+    fs[σ] -= 1
+    fs[other_spin(σ)] += 1
+end
+
+"""
+#################
+    Spin-1 State
+#################
+"""
+
+"""
     SpinOneState::Int8 <: SingleSpinState
 
 Enumeration of possible spin `1` values.
@@ -74,28 +116,20 @@ Enumeration of possible spin `1` values.
 end
 
 """
+######################
+    Single Spin State
+######################
+"""
+
+"""
     SingleSpinState
 
-Supertype for all spin states.
+Supertype for all single spin states.
 
-They are usually enums, but even if they are not enums,
-all single spin states must provide a method `instances(<:SingleSpinState)` that returns a tuple with all possible single spin states.
+They are usually Enums, but even if they are not, all single spin states must provide a method `instances(<:SingleSpinState)`
+that returns a tuple with all possible single spin states.
 """
 SingleSpinState = Union{SpinOneState.T,SpinHalfState.T}
-
-"""
-    rand_new_spin(σ::T) where {T<:SingleSpinState}
-
-Select a new random single spin state `σ′ ∈ SingleSpinState` different from `σ`.
-"""
-@inline rand_new_spin(σ::T) where {T<:SingleSpinState} = rand(filter(!=(σ), instances(T)))
-
-"""
-    rand_new_spin(σ::SpinHalfState.T)
-
-Returns the complementary of the single spin state `σ`.
-"""
-@inline rand_new_spin(σ::SpinHalfState.T) = other_spin(σ)
 
 """
     convert(::Type{T}, σ::SingleSpinState) where {T<:Number}
@@ -147,6 +181,26 @@ function Base.show(io::IO, ::MIME"text/plain", σ::SpinOneState.T)
 end
 
 """
+    rand_new_spin(σ::T) where {T<:SingleSpinState}
+
+Select a new random single spin state `σ′ ∈ SingleSpinState` different from `σ`.
+"""
+@inline rand_new_spin(σ::T) where {T<:SingleSpinState} = rand(filter(!=(σ), instances(T)))
+
+"""
+    rand_new_spin(σ::SpinHalfState.T)
+
+Returns the complementary of the single spin state `σ`.
+"""
+@inline rand_new_spin(σ::SpinHalfState.T) = other_spin(σ)
+
+"""
+###################################
+    Magnetization of Finite States
+###################################
+"""
+
+"""
     magnet_total(fs::AbstractFiniteState)
 
 Total magnetization of a spin state `fs`.
@@ -162,6 +216,12 @@ Magnetization of the spin state `fs`.
 """
 @inline magnet(fs::AbstractFiniteState) = magnet_total(fs) / length(fs)
 
+"""
+########################################
+    Interaction Energy of Finite States
+########################################
+"""
+
 @doc raw"""
     energy_interaction(fs::AbstractFiniteState)
 
@@ -173,32 +233,14 @@ where `⟨i,j⟩` represents a pair of nearest neighbors sites.
 """
 @inline energy_interaction(fs::AbstractFiniteState) = @inbounds -sum(Integer(fs[i]) * Integer(fs[j]) for (i, j) ∈ nearest_neighbors(fs))
 
-"""
-    energy_interaction(fs::MeanFieldFiniteState{T}) where {T<:SingleSpinState}
-
-Get the interaction energy of the mean field spin state `fs`.
-"""
-function energy_interaction(fs::MeanFieldFiniteState{T}) where {T<:SingleSpinState}
-    S_equal = sum(instances(T)) do σₖ
-        Nₖ = fs.counts[σₖ]
-        return ((Nₖ * (Nₖ - 1)) ÷ 2) * Integer(σₖ)^2
-    end
-    S_diff = sum(combinations(instances(T), 2)) do (σₖ, σₗ)
-        Nₖ = fs.counts[σₖ]
-        Nₗ = fs.counts[σₗ]
-        return Nₖ * Nₗ * Integer(σₖ) * Integer(σₗ)
-    end
-    return S_equal + S_diff
-end
-
 @doc raw"""
     energy_interaction(fs::MeanFieldFiniteState{SpinHalfState.T})
 
-Interaction energy of the spin-`1/2` spin state with mean field interaction `fs`.
+Interaction energy of the spin state with mean field interaction `fs`.
 
-``H_{int} = - ∑_⟨i,j⟩ sᵢsⱼ = (N - M^2) / 2``
+``H_{int} = - ∑_⟨i,j⟩ sᵢsⱼ = - \frac{z M^2}{2N}``
 """
-@inline energy_interaction(fs::MeanFieldFiniteState{SpinHalfState.T}) = (length(fs) - magnet_total(fs)^2) ÷ 2
+@inline energy_interaction(fs::MeanFieldFiniteState) = -(fs.z * magnet_total(fs)^2) / (2 * length(fs))
 
 @doc raw"""
     energy_interaction(fs::SquareLatticeFiniteState)
@@ -234,34 +276,10 @@ Get the interaction energy for a spin state on a simple graph `fs`.
 end
 
 """
-    flip!(fs::AbstractFiniteState{SpinHalfState.T}, i)
-
-Flips the `i`-th spin in the spin-`1/2` state `fs`.
+########################
+    Abstract Spin Model
+########################
 """
-@inline function flip!(fs::AbstractFiniteState{SpinHalfState.T}, i)
-    @inbounds fs[i] = SpinHalfState.T(-Integer(fs[i]))
-end
-
-@doc raw"""
-    flip!(fs::MeanFieldSpinState{SpinHalfState.T}, i::Integer)
-
-Flip the state of the `i`-th spin in the spin-`1/2` state with mean field interaction `fs`.
-"""
-@inline function flip!(fs::MeanFieldFiniteState{SpinHalfState.T}, i::Integer)
-    sᵢ = Integer(fs[i])
-    fs[SpinHalfState.up] -= sᵢ
-    fs[SpinHalfState.down] += sᵢ
-end
-
-"""
-    flip!(fs::MeanFieldFiniteState{SpinHalfState.T}, σ::SpinHalfState.T)
-
-Flips one spin with state `σ` in the spin-`1/2` mean field state `fs`.
-"""
-@inline function flip!(fs::MeanFieldFiniteState{SpinHalfState.T}, σ::SpinHalfState.T)
-    fs[σ] -= 1
-    fs[other_spin(σ)] += 1
-end
 
 """
     AbstractSpinModel{T<:AbstractFiniteState}
@@ -313,13 +331,6 @@ Size of the spins of an spin system `spinmodel`.
 @inline Base.size(spinmodel::AbstractSpinModel) = size(state(spinmodel))
 
 """
-    IndexStyle(::Type{<:AbstractSpinModel})
-
-Use the same index style from the spin state.
-"""
-@inline Base.IndexStyle(::Type{<:AbstractSpinModel{T}}) where {T} = IndexStyle(T)
-
-"""
     getindex(spinmodel::AbstractSpinModel, inds...)
 
 Index the spin system itself to access its spins.
@@ -334,23 +345,34 @@ Set the spins of a given spin at site `i` to `σ` in the spin system `spinmodel`
 @inline Base.setindex!(spinmodel::AbstractSpinModel, σ, inds...) = setindex!(state(spinmodel), σ, inds...)
 
 """
-    firstindex(spinmodel::AbstractSpinModel)
-
-Get the index of the first spin in the system.
+################################
+    Measurements on Spin Models
+################################
 """
-@inline Base.firstindex(spinmodel::AbstractSpinModel) = firstindex(state(spinmodel))
 
+@doc raw"""
+    magnet_total(spinmodel::AbstractSpinModel)
+
+Calculate the total magnetization of the spin model `spinmodel`.
+
+``M = ∑ᵢ sᵢ``
 """
-    lastindex(spinmodel::AbstractSpinModel)
-
-Get the index of the last spin in the system.
-"""
-@inline Base.lastindex(spinmodel::AbstractSpinModel) = lastindex(state(spinmodel))
-
 @inline magnet_total(spinmodel::AbstractSpinModel) = magnet_total(state(spinmodel))
 
+@doc raw"""
+    magnet(spinmodel::AbstractSpinModel)
+
+Calculate the magnetization per site of the spin model `spinmodel`.
+
+``m = (1/N) ∑ᵢ sᵢ``
+"""
 @inline magnet(spinmodel::AbstractSpinModel) = magnet(state(spinmodel))
 
+@doc raw"""
+    energy_interaction(spinmodel::AbstractSpinModel)
+
+Calculate the interaction energy of the spin model `spinmodel`.
+"""
 @inline energy_interaction(spinmodel::AbstractSpinModel) = energy_interaction(state(spinmodel))
 
 # Allow spin state measurements to be done directly on the spin model
@@ -360,9 +382,20 @@ Get the index of the last spin in the system.
 #     end
 # end
 
-@inline function flip!(spinmodel::AbstractSpinModel, i)
+"""
+    flip!(spinmodel::AbstractSpinModel{<:AbstractFiniteState{SpinHalfState.T}}, i)
+
+Flip a given spin in the spin-`1/2` spin model `spinmodel`.
+"""
+@inline function flip!(spinmodel::AbstractSpinModel{<:AbstractFiniteState{SpinHalfState.T}}, i)
     flip!(state(spinmodel), i)
 end
+
+"""
+########################
+    Metropolis Sampling
+########################
+"""
 
 """
     metropolis!(spinmodel::AbstractSpinModel, β::Real, n_steps::Integer)
@@ -527,6 +560,12 @@ function metropolis_measure_energy!(spinmodel::T, β::Real, n_steps::Integer) wh
     return results
 end
 
+"""
+######################
+    Heatbath Sampling
+######################
+"""
+
 @doc raw"""
     heatbath_weights(spinmodel::AbstractSpinModel, i, β::Real)
 
@@ -622,11 +661,23 @@ function heatbath_measure_energy!(spinmodel::T, β::Real, n_steps::Integer) wher
 end
 
 """
+#########################
+    Abstract Ising Model
+#########################
+"""
+
+"""
     AbstractIsingModel{T} <: AbstractSpinModel{T}
 
 Super type for all Ising models.
 """
 abstract type AbstractIsingModel{T} <: AbstractSpinModel{T} end
+
+"""
+################
+    Ising Model
+################
+"""
 
 @doc raw"""
     IsingModel{T} <: AbstractIsingModel{T}
@@ -722,6 +773,12 @@ where the sum is over the nearest neighbors `j` of `i`.
 """
 @inline energy_diff(ising::IsingModel{MeanFieldFiniteState{SpinHalfState.T}}, σ::SpinHalfState.T) = 2 * Integer(σ) * nearest_neighbors_sum(ising.state, σ)
 
+"""
+####################################
+    Ising Model with External Field
+####################################
+"""
+
 @doc raw"""
     IsingModelExtField{T} <: AbstractIsingModel{T}
 
@@ -808,14 +865,26 @@ where the sum is over the nearest neighbors `j` of `i`.
 @inline energy_diff(ising::IsingModelExtField{<:AbstractFiniteState{SpinHalfState.T}}, i) = 2 * Integer(ising[i]) * (nearest_neighbors_sum(ising, i) + ising.h)
 
 """
+###############################
+    Abstract Blume-Capel Model
+###############################
+"""
+
+"""
     AbstractBlumeCapelModel{T} <: AbstractSpinModel{T}
 
 Super type for all Blume-Capel models.
 """
 abstract type AbstractBlumeCapelModel{T} <: AbstractSpinModel{T} end
 
+"""
+######################
+    Blume-Capel Model
+######################
+"""
+
 @doc raw"""
-    BlumeCapelModel{T} <: AbstractSpinModel{T}
+    BlumeCapelModel{T} <: AbstractBlumeCapelModel{T}
 
 Blume-Capel model without external mangnetic field.
 

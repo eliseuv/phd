@@ -27,6 +27,11 @@ using .Thesis.Names
     set_state!(ising.state, SpinHalfState.up)
     return magnet_ts!(ising, β, n_steps)
 end...)
+# Magnetization time series matrix
+@inline magnet_ts_matrix!(blumecapel::AbstractBlumeCapelModel, β::Real, n_steps::Integer, n_samples::Integer) = hcat(map(1:n_samples) do _
+    set_state!(blumecapel.state, SpinOneState.up)
+    return magnet_ts!(blumecapel, β, n_steps)
+end...)
 @inline magnet_ts_matrix!(ca::BrassCellularAutomaton, n_steps::Integer, n_samples::Integer) = hcat(map(1:n_samples) do _
     set_state!(ca, BrassState.TH1)
     return magnet_ts!(ca, n_steps)
@@ -58,7 +63,7 @@ for params in parameters_list
     @info "Parameters:" params
 
     # Construct system
-    system = IsingModel(MeanFieldFiniteState(params["N"], SpinHalfState.up))
+    system = BlumeCapelModel(MeanFieldFiniteState(params["N"], SpinOneState.up))
 
     # Generate magnetization time series matrices
     @info "Generating magnetization time series matrix..."
