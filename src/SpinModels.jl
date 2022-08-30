@@ -28,8 +28,8 @@ export
     heatbath_measure!,
     # Energy measurements
     energy,
-    energy_local, minus_energy_local,
-    energy_diff,
+    minus_energy_local,
+    minus_energy_diff,
     # Ising models
     AbstractIsingModel,
     # Implementations of Ising models
@@ -375,13 +375,6 @@ Calculate the interaction energy of the spin model `spinmodel`.
 """
 @inline energy_interaction(spinmodel::AbstractSpinModel) = energy_interaction(state(spinmodel))
 
-# Allow spin state measurements to be done directly on the spin model
-# for func in (:magnet_total, :magnet, :energy_interaction)
-#     @eval begin
-#         @inline $func(spinmodel::AbstractSpinModel) = $func(state(spinmodel))
-#     end
-# end
-
 """
     flip!(spinmodel::AbstractSpinModel{<:AbstractFiniteState{SpinHalfState.T}}, i)
 
@@ -408,9 +401,9 @@ function metropolis!(spinmodel::AbstractSpinModel, β::Real, n_steps::Integer)
         # Select random new state
         sᵢ′ = rand_new_spin(spinmodel[i])
         # Get energy difference
-        ΔH = energy_diff(spinmodel, i, sᵢ′)
+        minus_ΔH = minus_energy_diff(spinmodel, i, sᵢ′)
         # Metropolis prescription
-        if ΔH < 0 || exp(-β * ΔH) > rand()
+        if minus_ΔH > 0 || exp(β * minus_ΔH) > rand()
             # Change spin
             spinmodel[i] = sᵢ′
         end
@@ -426,9 +419,9 @@ function metropolis!(spinmodel::AbstractSpinModel{<:AbstractFiniteState{SpinHalf
     # Loop on random sites
     @inbounds for i ∈ rand(eachindex(state(spinmodel)), n_steps)
         # Get energy difference
-        ΔH = energy_diff(spinmodel, i)
+        minus_ΔH = minus_energy_diff(spinmodel, i)
         # Metropolis prescription
-        if ΔH < 0 || exp(-β * ΔH) > rand()
+        if minus_ΔH > 0 || exp(β * minus_ΔH) > rand()
             # Flip spin
             flip!(spinmodel, i)
         end
@@ -449,9 +442,9 @@ function metropolis!(spinmodel::AbstractSpinModel{MeanFieldFiniteState{SpinHalfS
             SpinHalfState.down
         end
         # Get energy difference
-        ΔH = energy_diff(spinmodel, σ)
+        minus_ΔH = minus_energy_diff(spinmodel, σ)
         # Metropolis prescription
-        if ΔH < 0 || exp(-β * ΔH) > rand()
+        if minus_ΔH > 0 || exp(β * minus_ΔH) > rand()
             # Flip spin
             flip!(spinmodel, σ)
         end
@@ -507,13 +500,13 @@ function metropolis_measure_energy!(spinmodel::T, β::Real, n_steps::Integer) wh
             # Select random new state
             sᵢ′ = rand_new_spin(spinmodel[i])
             # Get energy difference
-            ΔH = energy_diff(spinmodel, i, sᵢ′)
+            minus_ΔH = minus_energy_diff(spinmodel, i, sᵢ′)
             # Metropolis prescription
-            if ΔH < 0 || exp(-β * ΔH) > rand()
+            if minus_ΔH > 0 || exp(β * minus_ΔH) > rand()
                 # Change spin
                 spinmodel[i] = sᵢ′
                 # Add energy difference
-                ΔH_total += ΔH
+                ΔH_total -= minus_ΔH
             end
         end
         # Update energy measurements vector
@@ -545,13 +538,13 @@ function metropolis_measure_energy!(spinmodel::T, β::Real, n_steps::Integer) wh
         # Site loop
         @inbounds for i ∈ rand(eachindex(state(spinmodel)), n_steps)
             # Get energy difference
-            ΔH = energy_diff(spinmodel, i)
+            minus_ΔH = minus_energy_diff(spinmodel, i)
             # Metropolis prescription
-            if ΔH < 0 || exp(-β * ΔH) > rand()
+            if minus_ΔH > 0 || exp(β * minus_ΔH) > rand()
                 # Change spin
                 flip!(spinmodel, i)
                 # Add energy difference
-                ΔH_total += ΔH
+                ΔH_total -= minus_ΔH
             end
         end
         # Update energy measurements vector
@@ -711,67 +704,57 @@ where `⟨i,j⟩` means that `i` and `j` are nearest neighbors.
 @inline energy(ising::IsingModel) = energy_interaction(ising)
 
 @doc raw"""
-    energy_local(ising::IsingModel, i)
+    minus_energy_local(ising::IsingModel{<:AbstractFiniteState{T}}, i, sᵢ::T=ising[i]) where {T<:SingleSpinState}
 
-Local energy of the `i`-th site in the Ising system `ising`.
+*Minus* the local energy of the `i`-th site assuming its state is `sᵢ` in the Ising system `ising`.
 
-``hᵢ = - sᵢ ∑ⱼ sⱼ``
+If no state `sᵢ` is provided, it assumes the current state `ising[i]`.
+
+``-hᵢ = sᵢ ∑ⱼ sⱼ``
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline energy_local(ising::IsingModel, i) = -Integer(ising[i]) * nearest_neighbors_sum(ising.state, i)
+@inline minus_energy_local(ising::IsingModel{<:AbstractFiniteState{T}}, i, sᵢ::T=ising[i]) where {T<:SingleSpinState} = Integer(sᵢ) * nearest_neighbors_sum(ising.state, i)
 
 @doc raw"""
-    energy_local(ising::IsingModel, i, sᵢ)
+    minus_energy_diff(ising::IsingModel, i, sᵢ′)
 
-Local energy of the `i`-th site assuming its state is `sᵢ` in the Ising system `ising`.
+Calculate the *minus* energy difference for an Ising system `ising` if the `i`-th spin were to be changed to `sᵢ′`.
 
-``hᵢ = - sᵢ ∑ⱼ sⱼ``
-
-where the sum is over the nearest neighbors `j` of `i`.
-"""
-@inline energy_local(ising::IsingModel, i, sᵢ) = -Integer(sᵢ) * nearest_neighbors_sum(ising.state, i)
-
-@doc raw"""
-    energy_diff(ising::IsingModel, i, sᵢ′)
-
-Calculate the energy difference for an Ising system `ising` if the `i`-th spin were to be changed to `sᵢ′`.
-
-``ΔHᵢ = (sᵢ - sᵢ′) ∑ⱼ sⱼ``
+``-ΔHᵢ = (sᵢ′ - sᵢ) ∑ⱼ sⱼ``
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline function energy_diff(ising::IsingModel, i, sᵢ′)
+@inline function minus_energy_diff(ising::IsingModel{<:AbstractFiniteState{T}}, i, sᵢ′::T) where {T<:SingleSpinState}
     sᵢ = ising[i]
     if sᵢ′ == sᵢ
         return 0
     else
-        return (Integer(sᵢ) - Integer(sᵢ′)) * nearest_neighbors_sum(ising.state, i)
+        return (Integer(sᵢ′) - Integer(sᵢ)) * nearest_neighbors_sum(ising.state, i)
     end
 end
 
 @doc raw"""
-    energy_diff(ising::IsingModel, i)
+    minus_energy_diff(ising::IsingModel, i)
 
-Calculate the energy difference for a spin-`1/2` Ising system `ising` if the `i`-th spin were to be flipped.
+Calculate *minus* the energy difference for a spin-`1/2` Ising system `ising` if the `i`-th spin were to be flipped.
 
-``ΔHᵢ = 2 sᵢ ∑ⱼ sⱼ``
+``-ΔHᵢ = - 2 sᵢ ∑ⱼ sⱼ``
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline energy_diff(ising::IsingModel{<:AbstractFiniteState{SpinHalfState.T}}, i) = 2 * Integer(ising[i]) * nearest_neighbors_sum(ising.state, i)
-
+@inline minus_energy_diff(ising::IsingModel{<:AbstractFiniteState{SpinHalfState.T}}, i) = -2 * Integer(ising[i]) * nearest_neighbors_sum(ising.state, i)
 
 @doc raw"""
-    energy_diff(ising::IsingModel{MeanFieldFiniteState{SpinHalfState.T}}, σ::SpinHalfState.T)
+    minus_energy_diff(ising::IsingModel{MeanFieldFiniteState{SpinHalfState.T}}, σ::SpinHalfState.T)
 
-Calculate the energy difference for a spin-`1/2` mean field Ising system `ising` if a spin with current state `σ` were to be flipped.
+Calculate *minus* the energy difference for a spin-`1/2` mean field Ising system `ising` if a spin with current state `σ` were to be flipped.
 
-``ΔH(sᵢ) = 2 sᵢ ∑ⱼ sⱼ``
+``-ΔH(sᵢ) = -2 sᵢ ∑ⱼ sⱼ = -2 sᵢ z (M - sᵢ) / N = 2 z (1 - sᵢ M) / N ``
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline energy_diff(ising::IsingModel{MeanFieldFiniteState{SpinHalfState.T}}, σ::SpinHalfState.T) = 2 * Integer(σ) * nearest_neighbors_sum(ising.state, σ)
+@inline minus_energy_diff(ising::IsingModel{MeanFieldFiniteState{SpinHalfState.T}}, σ::SpinHalfState.T) = 2 * ising.state.z * (1 - Integer(σ) * magnet_total(ising)) / length(ising)
 
 """
 ####################################
@@ -814,55 +797,46 @@ where `⟨i,j⟩` means that `i` and `j` are nearest neighbors.
 @inline energy(ising::IsingModelExtField) = energy_interaction(ising) - ising.h * magnet_total(ising)
 
 @doc raw"""
-    energy_local(ising::IsingModelExtField, i)
+    minus_energy_local(ising::IsingModelExtField{<:AbstractFiniteState{T}}, i, sᵢ::T=ising[i]) where {T<:SingleSpinState}
 
-Local energy of the `i`-th site in the Ising system `ising`.
+*Minus* the local energy of the `i`-th site assuming its state is `sᵢ` in the Ising system `ising`.
 
-``hᵢ = - sᵢ (∑ⱼ sⱼ + h)``
+if no state `sᵢ` is provided, it assumes the current site state `ising[i]`.
+
+``-hᵢ = sᵢ (∑ⱼ sⱼ + h)``
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline energy_local(ising::IsingModelExtField, i) = -Integer(ising[i]) * (nearest_neighbors_sum(ising.state, i) + ising.h)
+@inline minus_energy_local(ising::IsingModelExtField{<:AbstractFiniteState{T}}, i, sᵢ::T=ising[i]) where {T<:SingleSpinState} = Integer(sᵢ) * (nearest_neighbors_sum(ising.state, i) + ising.h)
 
 @doc raw"""
-    energy_local(ising::IsingModelExtField, i, sᵢ)
+    minus_energy_diff(ising::IsingModelExtField, i, sᵢ′)
 
-Local energy of the `i`-th site assuming its state is `sᵢ` in the Ising system `ising`.
+Calculate *minus* the energy difference for an Ising system `ising` if the `i`-th spin were to be changed to `sᵢ′`.
 
-``hᵢ = - sᵢ (∑ⱼ sⱼ + h)``
-
-where the sum is over the nearest neighbors `j` of `i`.
-"""
-@inline energy_local(ising::IsingModelExtField, i, sᵢ) = -Integer(sᵢ) * (nearest_neighbors_sum(ising.state, i) + ising.h)
-
-@doc raw"""
-    energy_diff(ising::IsingModelExtField, i, sᵢ′)
-
-Calculate the energy difference for an Ising system `ising` if the `i`-th spin were to be changed to `sᵢ′`.
-
-``ΔHᵢ = (sᵢ - sᵢ′) ( ∑ⱼ sⱼ + h)``
+``-ΔHᵢ = (sᵢ′ - sᵢ) (∑ⱼ sⱼ + h)``
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline function energy_diff(ising::IsingModelExtField, i, sᵢ′)
-    sᵢ = ising[i]
-    if sᵢ′ == sᵢ
-        return 0
-    else
-        return (Integer(sᵢ) - Integer(sᵢ′)) * (nearest_neighbors_sum(ising, i) + ising.h)
+@inline minus_energy_diff(ising::IsingModelExtField, i, sᵢ′) =
+    let sᵢ = ising[i]
+        if sᵢ′ == sᵢ
+            0
+        else
+            (Integer(sᵢ′) - Integer(sᵢ)) * (nearest_neighbors_sum(ising, i) + ising.h)
+        end
     end
-end
 
 @doc raw"""
-    energy_diff(ising::IsingModelExtField{<:AbstractFiniteState{SpinHalfState.T}}, i)
+    minus_energy_diff(ising::IsingModelExtField{<:AbstractFiniteState{SpinHalfState.T}}, i)
 
 Calculate the energy difference for a spin-`1/2` Ising system `ising` if the `i`-th spin were to be flipped.
 
-``ΔHᵢ = 2 sᵢ (∑ⱼ sⱼ + h)``
+``-ΔHᵢ = -2 sᵢ (∑ⱼ sⱼ + h)``
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline energy_diff(ising::IsingModelExtField{<:AbstractFiniteState{SpinHalfState.T}}, i) = 2 * Integer(ising[i]) * (nearest_neighbors_sum(ising, i) + ising.h)
+@inline minus_energy_diff(ising::IsingModelExtField{<:AbstractFiniteState{SpinHalfState.T}}, i) = -2 * Integer(ising[i]) * (nearest_neighbors_sum(ising, i) + ising.h)
 
 """
 ###############################
@@ -921,62 +895,36 @@ where `⟨i,j⟩` means that `i` and `j` are nearest neighbors.
 @inline energy(blumecapel::BlumeCapelModel) = energy_interaction(blumecapel) + blumecapel.D * sum(sᵢ -> sᵢ^2, blumecapel.state)
 
 @doc raw"""
-    energy_local(blumecapel::BlumeCapelModel, i)
-
-Local energy of the `i`-th site in the Blume-Capel system `blumecapel`.
-
-``hᵢ = - sᵢ ∑ⱼ sⱼ + D sᵢ²``
-
-where the sum is over the nearest neighbors `j` of `i`.
-"""
-@inline energy_local(blumecapel::BlumeCapelModel, i) =
-    let sᵢ = Integer(blumecapel[i])
-        blumecapel.D * sᵢ^2 - sᵢ * nearest_neighbors_sum(blumecapel.state, i)
-    end
-
-@doc raw"""
-    energy_local(blumecapel::BlumeCapelModel, i, sᵢ)
-
-Local energy of the `i`-th site assuming its state is `sᵢ` in the Blume-Capel system `blumecapel`.
-
-``hᵢ(sᵢ) = - sᵢ ∑ⱼ sⱼ + D sᵢ²``
-
-where the sum is over the nearest neighbors `j` of `i`.
-"""
-@inline energy_local(blumecapel::BlumeCapelModel, i, sᵢ) =
-    let sᵢ = Integer(sᵢ)
-        blumecapel.D * sᵢ^2 - sᵢ * nearest_neighbors_sum(blumecapel.state, i)
-    end
-
-@doc raw"""
-    minus_energy_local(blumecapel::BlumeCapelModel, i, sᵢ)
+    minus_energy_local(blumecapel::BlumeCapelModel{<:AbstractFiniteState{T}}, i, sᵢ::T=blumecapel[i]) where {T<:SingleSpinState}
 
 *Minus* the value of the local energy of the `i`-th site assuming its state is `sᵢ` in the Blume-Capel system `blumecapel`.
+
+If no state `sᵢ` is provided, it assumes the current site state `blumecapel[i]`.
 
 ``-hᵢ(sᵢ) = sᵢ ∑ⱼ sⱼ - D sᵢ²``
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline minus_energy_local(blumecapel::BlumeCapelModel, i, sᵢ) =
+@inline minus_energy_local(blumecapel::BlumeCapelModel{<:AbstractFiniteState{T}}, i, sᵢ::T=blumecapel[i]) where {T<:SingleSpinState} =
     let sᵢ = Integer(sᵢ)
         sᵢ * nearest_neighbors_sum(blumecapel.state, i) - blumecapel.D * sᵢ^2
     end
 
 @doc raw"""
-    energy_diff(blumecapel::BlumeCapelModel, i, sᵢ′)
+    minus_energy_diff(blumecapel::BlumeCapelModel, i, sᵢ′)
 
-Calculate the energy difference for an Blume-Capel system `blumecapel` if the `i`-th spin were to be changed to `sᵢ′`.
+Calculate *minus* the energy difference for an Blume-Capel system `blumecapel` if the `i`-th spin were to be changed to `sᵢ′`.
 
-``ΔHᵢ = (sᵢ - sᵢ′) ∑ⱼ sⱼ + D (sᵢ′² - sᵢ²)``
+``-ΔHᵢ = (sᵢ′ - sᵢ) ∑ⱼ sⱼ + D (sᵢ² - sᵢ′²)``
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline energy_diff(blumecapel::BlumeCapelModel, i, sᵢ′) =
+@inline minus_energy_diff(blumecapel::BlumeCapelModel, i, sᵢ′) =
     let sᵢ = Integer(blumecapel[i]), sᵢ′ = Integer(sᵢ′)
         if sᵢ′ == sᵢ
             0
         else
-            (sᵢ - sᵢ′) * nearest_neighbors_sum(blumecapel, i) + blumecapel.D * (sᵢ′^2 - sᵢ^2)
+            (sᵢ′ - sᵢ) * nearest_neighbors_sum(blumecapel, i) + blumecapel.D * (sᵢ^2 - sᵢ′^2)
         end
     end
 

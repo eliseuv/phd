@@ -305,19 +305,24 @@ function randomize_state!(fs::MeanFieldFiniteState{T}) where {T}
     fs.counts = Dict(instances(T) .=> site_counts)
 end
 
+@doc raw"""
+    nearest_neighbors_sum(fs::MeanFieldFiniteState{T}, σᵢ::T)
+
+Get sum of the nearest neighbors of a site of state `σᵢ` in the mean field finite state `fs`.
+
+``S(sᵢ) = z ξᵢ = z (1/N) ∑_{j!=i} sⱼ = z (M - sᵢ) / N``
+"""
+@inline nearest_neighbors_sum(fs::MeanFieldFiniteState{T}, σᵢ::T) where {T} = fs.z * (sum(fs) - Integer(σᵢ)) / length(fs)
+
 """
     nearest_neighbors_sum(fs::MeanFieldFiniteState, i::Integer)
 
 Get sum of the nearest neighbors of site `i` in the mean field finite state `fs`.
 """
-@inline nearest_neighbors_sum(fs::MeanFieldFiniteState, i::Integer) = fs.z * (sum(fs) - Integer(fs[i])) / length(fs)
-
-"""
-    nearest_neighbors_sum(fs::MeanFieldFiniteState{T}, σᵢ::T)
-
-Get sum of the nearest neighbors of a site of state `σᵢ` in the mean field finite state `fs`.
-"""
-@inline nearest_neighbors_sum(fs::MeanFieldFiniteState{T}, σᵢ::T) where {T} = fs.z * (sum(fs) - Integer(σᵢ)) / length(fs)
+@inline nearest_neighbors_sum(fs::MeanFieldFiniteState, i::Integer) =
+    let σᵢ = fs[i]
+        nearest_neighbors_sum(fs, σᵢ)
+    end
 
 """
 ##########################
