@@ -7,7 +7,6 @@ data
 videos
 plots
 notebooks
-papers
 _research
 
 *.out

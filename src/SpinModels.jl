@@ -78,24 +78,13 @@ Flips the `i`-th spin in the spin-`1/2` state `fs`.
 end
 
 @doc raw"""
-    flip!(fs::MeanFieldSpinState{SpinHalfState.T}, i::Integer)
+    flip_state_index!(fs::MeanFieldSpinState{SpinHalfState.T}, k::Integer)
 
-Flip the state of the `i`-th spin in the spin-`1/2` state with mean field interaction `fs`.
+Flip the some spin of the `k`-th (`k ∈ {1,2}`) state in the spin-`1/2` state with mean field interaction `fs`.
 """
-@inline function flip!(fs::MeanFieldFiniteState{SpinHalfState.T}, i::Integer)
-    sᵢ = Integer(fs[i])
-    fs[SpinHalfState.up] -= sᵢ
-    fs[SpinHalfState.down] += sᵢ
-end
-
-"""
-    flip!(fs::MeanFieldFiniteState{SpinHalfState.T}, σ::SpinHalfState.T)
-
-Flips one spin with state `σ` in the spin-`1/2` mean field state `fs`.
-"""
-@inline function flip!(fs::MeanFieldFiniteState{SpinHalfState.T}, σ::SpinHalfState.T)
-    fs[σ] -= 1
-    fs[other_spin(σ)] += 1
+@inline function flip_state!(fs::MeanFieldFiniteState{SpinHalfState.T}, k::Integer)
+    fs.counts[k] -= 1
+    fs.counts[mod1(k + 1, 2)] += 1
 end
 
 """
@@ -249,7 +238,7 @@ Interaction energy for a `N`-dimensional square lattice spin model `fs`.
 
 ``H_{int} = - \sum_⟨i,j⟩ σᵢ σⱼ``
 """
-function energy_interaction(fs::SquareLatticeFiniteState{T,N}) where {T<:SingleSpinState,N}
+function energy_interaction(fs::SquareLatticeFiniteState{T,N}) where {T,N}
     # Varaible to accumulate
     H = zero(Int64)
     # Loop on dimensions
@@ -384,6 +373,15 @@ Flip a given spin in the spin-`1/2` spin model `spinmodel`.
     flip!(state(spinmodel), i)
 end
 
+@inline """
+    flip_state!(spinmodel::AbstractSpinModel{<:MeanFieldFiniteState}, k)
+
+Flip a given state with index `k` in the spin model with mean field interaction `spinmodel`.
+"""
+function flip_state!(spinmodel::AbstractSpinModel{<:MeanFieldFiniteState}, k)
+    flip_state!(state(spinmodel), k)
+end
+
 """
 ########################
     Metropolis Sampling
@@ -434,19 +432,22 @@ end
 Sample using the Metropolis algorithm the spin-`1/2` mean field model `spinmodel` at temperature `β` for `n_steps` steps.
 """
 function metropolis!(spinmodel::AbstractSpinModel{MeanFieldFiniteState{SpinHalfState.T}}, β::Real, n_steps::Integer)
-    # Loop on random sites
-    @inbounds for _ ∈ 1:n_steps
-        σ = if rand() < (spinmodel[SpinHalfState.up] / length(spinmodel))
-            SpinHalfState.up
+    # Loop on steps
+    @inbounds for i ∈ rand(eachindex(state(spinmodel)), n_steps)
+        # Get state index of random selected spin
+        k = if i <= state(spinmodel).counts[begin]
+            1
         else
-            SpinHalfState.down
+            2
         end
+        # Get state
+        σ = instances(SpinHalfState.T)[k]
         # Get energy difference
         minus_ΔH = minus_energy_diff(spinmodel, σ)
         # Metropolis prescription
         if minus_ΔH > 0 || exp(β * minus_ΔH) > rand()
             # Flip spin
-            flip!(spinmodel, σ)
+            flip_state!(spinmodel, k)
         end
     end
 end
@@ -687,7 +688,7 @@ struct IsingModel{T} <: AbstractIsingModel{T}
 
     Construct an Ising system without external magnetic field and with given initial spins state `spins`
     """
-    IsingModel(state::T) where {T} = new{T}(state)
+    IsingModel(state::T) where {T<:AbstractFiniteState} = new{T}(state)
 end
 
 @doc raw"""
@@ -704,7 +705,7 @@ where `⟨i,j⟩` means that `i` and `j` are nearest neighbors.
 @inline energy(ising::IsingModel) = energy_interaction(ising)
 
 @doc raw"""
-    minus_energy_local(ising::IsingModel{<:AbstractFiniteState{T}}, i, sᵢ::T=ising[i]) where {T<:SingleSpinState}
+    minus_energy_local(ising::IsingModel{<:AbstractFiniteState{T}}, i, sᵢ::T=ising[i]) where {T}
 
 *Minus* the local energy of the `i`-th site assuming its state is `sᵢ` in the Ising system `ising`.
 
@@ -714,7 +715,7 @@ If no state `sᵢ` is provided, it assumes the current state `ising[i]`.
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline minus_energy_local(ising::IsingModel{<:AbstractFiniteState{T}}, i, sᵢ::T=ising[i]) where {T<:SingleSpinState} = Integer(sᵢ) * nearest_neighbors_sum(ising.state, i)
+@inline minus_energy_local(ising::IsingModel{<:AbstractFiniteState{T}}, i, sᵢ::T=ising[i]) where {T} = Integer(sᵢ) * nearest_neighbors_sum(ising.state, i)
 
 @doc raw"""
     minus_energy_diff(ising::IsingModel, i, sᵢ′)
@@ -725,14 +726,14 @@ Calculate the *minus* energy difference for an Ising system `ising` if the `i`-t
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline function minus_energy_diff(ising::IsingModel{<:AbstractFiniteState{T}}, i, sᵢ′::T) where {T<:SingleSpinState}
-    sᵢ = ising[i]
-    if sᵢ′ == sᵢ
-        return 0
-    else
-        return (Integer(sᵢ′) - Integer(sᵢ)) * nearest_neighbors_sum(ising.state, i)
+@inline minus_energy_diff(ising::IsingModel{<:AbstractFiniteState{T}}, i, sᵢ′::T) where {T} =
+    let sᵢ = ising[i]
+        if sᵢ′ == sᵢ
+            0
+        else
+            (Integer(sᵢ′) - Integer(sᵢ)) * nearest_neighbors_sum(ising.state, i)
+        end
     end
-end
 
 @doc raw"""
     minus_energy_diff(ising::IsingModel, i)
@@ -780,7 +781,7 @@ struct IsingModelExtField{T} <: AbstractIsingModel{T}
 
     Construct an Ising system with external magnetic field `h` and with given initial spins state `spins`
     """
-    IsingModelExtField(state::T, h::Real) where {T} = new{T}(state, h)
+    IsingModelExtField(state::T, h::Real) where {T<:AbstractFiniteState} = new{T}(state, h)
 end
 
 @doc raw"""
@@ -797,7 +798,7 @@ where `⟨i,j⟩` means that `i` and `j` are nearest neighbors.
 @inline energy(ising::IsingModelExtField) = energy_interaction(ising) - ising.h * magnet_total(ising)
 
 @doc raw"""
-    minus_energy_local(ising::IsingModelExtField{<:AbstractFiniteState{T}}, i, sᵢ::T=ising[i]) where {T<:SingleSpinState}
+    minus_energy_local(ising::IsingModelExtField{<:AbstractFiniteState{T}}, i, sᵢ::T=ising[i]) where {T}
 
 *Minus* the local energy of the `i`-th site assuming its state is `sᵢ` in the Ising system `ising`.
 
@@ -807,7 +808,7 @@ if no state `sᵢ` is provided, it assumes the current site state `ising[i]`.
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline minus_energy_local(ising::IsingModelExtField{<:AbstractFiniteState{T}}, i, sᵢ::T=ising[i]) where {T<:SingleSpinState} = Integer(sᵢ) * (nearest_neighbors_sum(ising.state, i) + ising.h)
+@inline minus_energy_local(ising::IsingModelExtField{<:AbstractFiniteState{T}}, i, sᵢ::T=ising[i]) where {T} = Integer(sᵢ) * (nearest_neighbors_sum(ising.state, i) + ising.h)
 
 @doc raw"""
     minus_energy_diff(ising::IsingModelExtField, i, sᵢ′)
@@ -818,7 +819,7 @@ Calculate *minus* the energy difference for an Ising system `ising` if the `i`-t
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline minus_energy_diff(ising::IsingModelExtField, i, sᵢ′) =
+@inline minus_energy_diff(ising::IsingModelExtField{<:AbstractFiniteState{T}}, i, sᵢ′::T) where {T} =
     let sᵢ = ising[i]
         if sᵢ′ == sᵢ
             0
@@ -895,7 +896,7 @@ where `⟨i,j⟩` means that `i` and `j` are nearest neighbors.
 @inline energy(blumecapel::BlumeCapelModel) = energy_interaction(blumecapel) + blumecapel.D * sum(sᵢ -> sᵢ^2, blumecapel.state)
 
 @doc raw"""
-    minus_energy_local(blumecapel::BlumeCapelModel{<:AbstractFiniteState{T}}, i, sᵢ::T=blumecapel[i]) where {T<:SingleSpinState}
+    minus_energy_local(blumecapel::BlumeCapelModel{<:AbstractFiniteState{T}}, i, sᵢ::T=blumecapel[i]) where {T}
 
 *Minus* the value of the local energy of the `i`-th site assuming its state is `sᵢ` in the Blume-Capel system `blumecapel`.
 
@@ -905,7 +906,7 @@ If no state `sᵢ` is provided, it assumes the current site state `blumecapel[i]
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline minus_energy_local(blumecapel::BlumeCapelModel{<:AbstractFiniteState{T}}, i, sᵢ::T=blumecapel[i]) where {T<:SingleSpinState} =
+@inline minus_energy_local(blumecapel::BlumeCapelModel{<:AbstractFiniteState{T}}, i, sᵢ::T=blumecapel[i]) where {T} =
     let sᵢ = Integer(sᵢ)
         sᵢ * nearest_neighbors_sum(blumecapel.state, i) - blumecapel.D * sᵢ^2
     end

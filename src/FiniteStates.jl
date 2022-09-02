@@ -14,7 +14,7 @@ export
     set_state!, randomize_state!,
     nearest_neighbors, nearest_neighbors_sum,
     # Mean field finite state
-    MeanFieldFiniteState, clear, split_indices, site_counts_from_split_indices,
+    MeanFieldFiniteState, split_indices, site_counts_from_split_indices,
     # Concrete finite state
     ConcreteFiniteState,
     container, similar_container,
@@ -23,7 +23,7 @@ export
     # Simple graph finite state
     SimpleGraphFiniteState
 
-using Random, Graphs
+using Random, StaticArrays, Graphs
 
 using ..Lattices
 
@@ -103,7 +103,7 @@ Every site interacts equally with every other site.
 Since in the mean field model there is no concept of space and locality,
 we represent the state of the system simply by total number of sites in each state.
 
-The `state` member is therefore of type `Dict{T,Integer}`,
+The `counts` member is therefore of type `MVector{N,Integer}`,
 storing for each state instance the total number of sites in this state.
 
 An `AbstractVector` interface for the `MeanFieldFiniteState` type can be implemented
@@ -131,7 +131,7 @@ with `k₀ = 0`.
 mutable struct MeanFieldFiniteState{T} <: AbstractFiniteState{T,1}
 
     "State of the system"
-    counts::Dict{T,Integer}
+    counts::MVector
 
     "Number of neightbors for each site"
     z::Integer
@@ -141,9 +141,9 @@ mutable struct MeanFieldFiniteState{T} <: AbstractFiniteState{T,1}
 
     Construct mean field finite state `N` sites, all in a given initial state `σ₀` for all of them.
     """
-    function MeanFieldFiniteState(N::U, z::Integer, σ₀::T) where {T,U<:Integer}
-        counts = Dict(instances(T) .=> zero(U))
-        counts[σ₀] = N
+    function MeanFieldFiniteState(N::U, z::Integer, σ₀::T) where {T<:AbstractSiteState,U<:Integer}
+        counts = zeros(MVector{instance_count(T),U})
+        counts[findfirst(isequal(σ₀), instances(T))] = N
         return new{T}(counts, z)
     end
 
@@ -152,21 +152,12 @@ mutable struct MeanFieldFiniteState{T} <: AbstractFiniteState{T,1}
 
     Construct an spin state with mean field interaction with `N` spins in a random initial state.
     """
-    function MeanFieldFiniteState{T}(N::Integer, z::Integer, ::Val{:rand}) where {T}
-        split_indices = [sort(rand(0:N, instance_count(T) - 1))..., N]
-        site_counts = site_counts_from_split_indices(split_indices)
-        return new{T}(Dict(instances(T) .=> site_counts), z)
+    function MeanFieldFiniteState{T}(N::Integer, z::Integer, ::Val{:rand}) where {T<:AbstractSiteState}
+        split_indices = (sort(rand(0:N, instance_count(T) - 1))..., N)
+        counts = site_counts_from_split_indices(split_indices)
+        return new{T}(counts, z)
     end
 
-end
-
-"""
-    clear(fs::MeanFieldFiniteState)
-
-Clears the state of the mean field finites state `fs` by setting the site count to all states to zero.
-"""
-@inline function clear(fs::MeanFieldFiniteState{T}) where {T}
-    fs.counts = Dict(instances(T) .=> zero(valtype(fs.counts)))
 end
 
 """
@@ -174,21 +165,21 @@ end
 
 Get a tuple with the values of the split indices `kⱼ` for the mean field finite state `fs`.
 """
-@inline split_indices(fs::MeanFieldFiniteState{T}) where {T} = @inbounds cumsum(fs.counts[σᵢ] for σᵢ ∈ instances(T))
+@inline split_indices(fs::MeanFieldFiniteState) = @inbounds cumsum(fs.counts)
 
 """
-    site_counts_from_split_indices(split_indices::Vector{Integer})
+    site_counts_from_split_indices(split_indices::AbstractVector{Integer})
 
 Get the number of spins in each state given the split indices `split_indices`.
 """
-@inline site_counts_from_split_indices(split_indices::Vector{<:Integer}) = [split_indices[begin], diff(split_indices)...]
+@inline site_counts_from_split_indices(split_indices::AbstractVector{Integer}) = MVector(split_indices[begin], diff(split_indices)...)
 
 @doc raw"""
     length(fs::MeanFieldFiniteState)
 
 Get the total number of sites `N` in an mean field finite state `fs`.
 """
-@inline Base.length(fs::MeanFieldFiniteState) = @inbounds sum(values(fs.counts))
+@inline Base.length(fs::MeanFieldFiniteState) = @inbounds sum(fs.counts)
 
 @doc raw"""
     size(fs::MeanFieldFiniteState)
@@ -221,44 +212,19 @@ Index of the last site in the `AbstractVector{AbstractSiteState}` interface of `
 @doc raw"""
     getindex(fs::MeanFieldFiniteState{T}, i::Integer) where {T}
 
-Get the state of the `i`-th site in the mean field finite state `fs`.
+Get the index of the state of the `i`-th site in the mean field finite state `fs`.
 """
-@inline function Base.getindex(fs::MeanFieldFiniteState{T}, i::Integer) where {T}
-    # Iterate on the possible state indices and return if smaller than a given split index
-    for (σᵢ, split_index) ∈ zip(instances(T)[1:end-1], split_indices(fs))
-        if i < split_index
-            return σᵢ
-        end
-    end
-    # If `i` is not smaller than any split indices, return the last state value
-    return instances(T)[end]
-end
+@inline Base.getindex(fs::MeanFieldFiniteState, i::Integer)::Integer = @inbounds searchsortedfirst(split_indices(fs), i)
 
 """
-    setindex!(fs::MeanFieldFiniteState{T}, σᵢ′::T, i::Integer) where {T}
+    setindex!(fs::MeanFieldFiniteState{T}, k′::Integer, i::Integer) where {T}
 
-Set the state of the `i`-th site to `σᵢ′` in the mean field finite state `fs`.
+Set the state of the `i`-th site to the state with index `k′` in the mean field finite state `fs`.
 """
-@inline function Base.setindex!(fs::MeanFieldFiniteState{T}, σᵢ′::T, i::Integer) where {T}
-    σᵢ = fs[i]
-    fs[σᵢ] -= 1
-    fs[σᵢ′] += 1
-end
-
-"""
-    getindex(fs::MeanFieldFiniteState{T}, σ::T) where {T}
-
-Allow the site count for a given state `σ` to be accessed directly using the mean field finite state `fs`.
-"""
-@inline Base.getindex(fs::MeanFieldFiniteState{T}, σ::T) where {T} = fs.counts[σ]
-
-"""
-    setindex!(fs::MeanFieldFiniteState{T}, Nᵢ::Integer, σᵢ::T) where {T}
-
-Set the site count to `Nᵢ` for a given site `σᵢ` in the mean field finite state `fs`.
-"""
-@inline function Base.setindex!(fs::MeanFieldFiniteState{T}, Nᵢ::Integer, σᵢ::T) where {T}
-    fs.counts[σᵢ] = Nᵢ
+@inline function Base.setindex!(fs::MeanFieldFiniteState{T}, k′::Integer, i::Integer) where {T}
+    k = fs[i]
+    fs[k] -= 1
+    fs[k′] += 1
 end
 
 """
@@ -266,12 +232,12 @@ end
 
 Get the sum of the states of all sites in the mean field finite state `fs` with the function `f` applied to each.
 """
-@inline Base.sum(f::Function, fs::MeanFieldFiniteState) =
-    @inbounds sum(fs.counts) do (σᵢ, Nᵢ)
+@inline Base.sum(f::Function, fs::MeanFieldFiniteState{T}) where {T} =
+    @inbounds sum(zip(instances(T), fs.counts)) do (σᵢ, Nᵢ)
         Nᵢ * f(Integer(σᵢ))
     end
-@inline Base.sum(fs::MeanFieldFiniteState) =
-    @inbounds sum(fs.counts) do (σᵢ, Nᵢ)
+@inline Base.sum(fs::MeanFieldFiniteState{T}) where {T} =
+    @inbounds sum(zip(instances(T), fs.counts)) do (σᵢ, Nᵢ)
         Nᵢ * Integer(σᵢ)
     end
 
@@ -280,7 +246,7 @@ Get the sum of the states of all sites in the mean field finite state `fs` with 
 
 Get the state count for the mean field finite state `fs`.
 """
-@inline state_count(fs::MeanFieldFiniteState) = tuple(values(fs.counts)...)
+@inline state_count(fs::MeanFieldFiniteState) = fs.counts
 
 """
     set_state!(fs::MeanFieldFiniteState{T}, σ₀::T) where {T}
@@ -289,8 +255,8 @@ Set the state of all sites to `σ₀` in a mean field finite state `fs`.
 """
 function set_state!(fs::MeanFieldFiniteState{T}, σ₀::T) where {T}
     N = length(fs)
-    clear(fs)
-    fs[σ₀] = N
+    fs.counts = zero(fs.counts)
+    fs.counts[findfirst(isequal(σ₀), instances(T))] = N
 end
 
 """
@@ -300,9 +266,8 @@ Randomize the state of a mean field finite state `fs`.
 """
 function randomize_state!(fs::MeanFieldFiniteState{T}) where {T}
     N = length(fs)
-    split_indices = [sort(rand(0:N, instance_count(T) - 1))..., N]
-    site_counts = site_counts_from_split_indices(split_indices)
-    fs.counts = Dict(instances(T) .=> site_counts)
+    split_indices = (sort(rand(0:N, instance_count(T) - 1))..., N)
+    fs.counts = site_counts_from_split_indices(split_indices)
 end
 
 @doc raw"""
