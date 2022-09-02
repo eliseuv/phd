@@ -14,7 +14,7 @@ export
     # Measurements on spins states that depend on locality
     energy_interaction,
     # Symmetries explored
-    flip!,
+    flip!, flip_state_index!,
     # Spin models
     AbstractSpinModel,
     # General properties of spin models
@@ -82,7 +82,7 @@ end
 
 Flip the some spin of the `k`-th (`k ∈ {1,2}`) state in the spin-`1/2` state with mean field interaction `fs`.
 """
-@inline function flip_state!(fs::MeanFieldFiniteState{SpinHalfState.T}, k::Integer)
+@inline function flip_state_index!(fs::MeanFieldFiniteState{SpinHalfState.T}, k::Integer)
     fs.counts[k] -= 1
     fs.counts[mod1(k + 1, 2)] += 1
 end
@@ -374,12 +374,12 @@ Flip a given spin in the spin-`1/2` spin model `spinmodel`.
 end
 
 @inline """
-    flip_state!(spinmodel::AbstractSpinModel{<:MeanFieldFiniteState}, k)
+    flip_state_index!(spinmodel::AbstractSpinModel{<:MeanFieldFiniteState}, k)
 
 Flip a given state with index `k` in the spin model with mean field interaction `spinmodel`.
 """
-function flip_state!(spinmodel::AbstractSpinModel{<:MeanFieldFiniteState}, k)
-    flip_state!(state(spinmodel), k)
+function flip_state_index!(spinmodel::AbstractSpinModel{<:MeanFieldFiniteState}, k)
+    flip_state_index!(state(spinmodel), k)
 end
 
 """
@@ -447,7 +447,7 @@ function metropolis!(spinmodel::AbstractSpinModel{MeanFieldFiniteState{SpinHalfS
         # Metropolis prescription
         if minus_ΔH > 0 || exp(β * minus_ΔH) > rand()
             # Flip spin
-            flip_state!(spinmodel, k)
+            flip_state_index!(spinmodel, k)
         end
     end
 end
