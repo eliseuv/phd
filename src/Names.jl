@@ -2,9 +2,9 @@ module Names
 
 export name
 
-using ..FiniteStates,
-    ..SpinModels,
-    ..CellularAutomata
+using ..CellularAutomata
+using ..FiniteStates
+using ..SpinModels
 
 """
     Names for finite states
@@ -22,4 +22,5 @@ using ..FiniteStates,
     Names for cellular automata
 """
 @inline name(ca::BrassCellularAutomaton) = "BrassCA" * name(ca.state)
+
 end

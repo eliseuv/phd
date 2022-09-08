@@ -1,11 +1,11 @@
 @doc raw"""
     Thesis
 
-Main module for collecting all submodules necessary for the simulations
+Main module for collecting all submodules necessary for the simulations.
 """
 module Thesis
 
-# Metaprogramming macors and utils
+# Metaprogramming macros and utils
 include("Metaprogramming.jl")
 
 # Data files utils

@@ -1,6 +1,8 @@
 #+title: Thesis notes
 #+author: evf
 
+#+startup: latexpreview
+
 #+latex_header: \usepackage{dsfont}
 
 * Ising model
