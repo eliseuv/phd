@@ -74,8 +74,20 @@ end
 filter!(row -> all(x -> !(x isa Number && isnan(x)), row), df)
 @show df
 
-# Save data
-output_path = joinpath(data_dirpath, "p-r_map", filename(prefix * "PRMap", params_req))
-mkpath(dirname(output_path))
-@info "Saving data..." output_path
-JLD2.save_object(output_path, df)
+# Plot data
+plot_prefix = prefix * "DetCoeff"
+plot_params = deepcopy(params_req)
+plot_filename = filename(plot_prefix, plot_params, ext=".png")
+plot_filepath = plotsdir(plot_filename)
+L = plot_params["L"]
+n_steps = plot_params["n_steps"]
+n_samples = plot_params["n_samples"]
+plot_title = "Brass CA (L = $L, n_steps = $n_steps, n_samples = $n_samples) magnetization time series determination coefficient"
+
+@info "Plotting..."
+plt = plot(df, x=:p, y=:r, color=:r2,
+    Geom.point,
+    Guide.title(plot_title),
+    Guide.xlabel("p"), Guide.ylabel("r"),
+    Guide.colorkey(title="r²"))
+draw(PNG(plot_filepath, 25cm, 15cm), plt)
