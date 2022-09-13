@@ -5,12 +5,18 @@ Utilities for reading and writing to data files.
 """
 module DataIO
 
-export script_show,
-    get_extension, keep_extension,
-    filename, parse_filename,
-    print_dict,
+export
+    # Print in script as if in the REPL
+    script_show,
+    # File extensions
+    get_extension,
+    keep_extension,
+    # Filanames
+    filename,
+    parse_filename,
+    # Check parameters dicts
     check_params,
-    filter_datadir
+    find_datafiles_with_params
 
 using Logging, JLD2
 
@@ -132,16 +138,10 @@ function parse_filename(path::AbstractString; sep::AbstractString="_")
     return param_dict
 end
 
-function print_dict(dict::Dict)
-    for (key, value) in dict
-        println(key, "=>", value)
-    end
-end
-
 @doc raw"""
     check_params(params::Dict{String}, reqs::Dict{String})
 
-Checks of the parameters dictionary `params` satisfies the values defined in the parameters requirements dictionary `reqs`.
+Checks if the parameters dictionary `params` satisfies the values defined in the parameters requirements dictionary `reqs`.
 """
 function check_params(params::Dict{String}, reqs::Dict{String})
     for (req_key, req_value) in reqs
@@ -155,7 +155,7 @@ end
 @doc raw"""
     check_params(params::Dict{String}, req::Pair{String})
 
-Checks of the parameters dictionary `params` has the key-value pair specified by the pair `req`.
+Checks if the parameters dictionary `params` has the key-value pair specified by the pair `req`.
 """
 function check_params(params::Dict{String}, req::Pair{String})
     (key, value) = req
@@ -165,17 +165,23 @@ end
 @doc raw"""
     check_params(params::Dict{String}, reqs...)
 
-Checks of the parameters dictionary `params` satisfies the values defined in the parameters dictionaries and pairs `reqs...`.
+Checks if the parameters dictionary `params` satisfies the values defined in the parameters dictionaries and pairs `reqs...`.
 """
 check_params(params::Dict{String}, reqs...) = all(x -> check_params(params, x), reqs)
 
-function filter_datadir(datadir_path::String, reqs...)
+
+"""
+    find_datafiles_with_params(datadirs::String, reqs...)
+
+Find data files in the directory `datadirs` that have the satisfies the required parameters `reqs...`.
+"""
+function find_datafiles_with_params(datadirs::String, reqs...)
 
     # Selected data file paths
     datafile_paths = String[]
 
     # Loop on datafiles
-    for datafile_name in readdir(datadir_path)
+    for datafile_name in readdir(datadirs)
 
         filename_params = parse_filename(datafile_name)
 
@@ -184,7 +190,7 @@ function filter_datadir(datadir_path::String, reqs...)
             continue
         end
 
-        push!(datafile_paths, joinpath(datadir_path, datafile_name))
+        push!(datafile_paths, joinpath(datadirs, datafile_name))
     end
 
     return datafile_paths

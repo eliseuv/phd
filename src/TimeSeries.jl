@@ -1,4 +1,4 @@
-module CorrelationMatrices
+module TimeSeries
 
 export normalize_ts_matrix, normalize_ts_matrix!,
     cross_correlation_matrix
@@ -6,9 +6,9 @@ export normalize_ts_matrix, normalize_ts_matrix!,
 using LinearAlgebra, Statistics
 
 @doc raw"""
-    normalize_M_ts(M_ts::AbstractMatrix)
+    normalize_ts_matrix(M_ts::AbstractMatrix)
 
-Normalizes a given time series matrix `M_ts` by normalizing each of its columns (time series samples).
+Returns a new normalized version version of a time series matrix `M_ts` by normalizing each of its columns (time series samples).
 
 Its `j`-th column (`mⱼ`) becomes:
 
@@ -18,13 +18,27 @@ Its `j`-th column (`mⱼ`) becomes:
 - `M_ts::AbstractMatrix`: `N×M` Matrix whose each of its `M` columns corresponds to a sample of a time series `Xₜ` of length `N`.
 """
 @inline normalize_ts_matrix(M_ts::AbstractMatrix) = hcat(
-    @views map(eachcol(M_ts)) do mⱼ
-        (mⱼ .- mean(mⱼ)) ./ std(mⱼ)
+    map(eachcol(M_ts)) do xⱼ
+        xⱼ_avg = mean(xⱼ)
+        (xⱼ .- xⱼ_avg) ./ stdm(xⱼ, xⱼ_avg)
     end...)
 
+@doc raw"""
+    normalize_ts_matrix!(M_ts::AbstractMatrix)
+
+Normalizes *inplace* a given time series matrix `M_ts` by normalizing each of its columns (time series samples).
+
+Its `j`-th column (`mⱼ`) becomes:
+
+    ``\frac{ m_j - ⟨m_j⟩ }{ √{ ⟨m_j^2⟩ - ⟨m_j⟩^2 } }``
+
+# Arguments:
+- `M_ts::AbstractMatrix`: `N×M` Matrix whose each of its `M` columns corresponds to a sample of a time series `Xₜ` of length `N`.
+"""
 @inline function normalize_ts_matrix!(M_ts::AbstractMatrix)
-    @views for mⱼ ∈ eachcol(M_ts)
-        mⱼ .= (mⱼ .- mean(mⱼ)) ./ std(mⱼ)
+    for xⱼ ∈ eachcol(M_ts)
+        xⱼ_avg = mean(xⱼ)
+        xⱼ .= (xⱼ .- xⱼ_avg) ./ stdm(xⱼ, xⱼ_avg)
     end
 end
 

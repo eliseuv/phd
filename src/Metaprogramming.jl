@@ -5,11 +5,18 @@ Macros and quote macros for manipulating variables and regular expressions.
 """
 module Metaprogramming
 
-export @defvar,
+export
+    # Define variable
+    @defvar,
+    # Print variables
     @strvar, @strvars,
+    # Special strings
     @p_str, @dq_str, @sq_str,
+    # Extract from ::Val
     extract_val,
+    # Regexes
     NUMBER_REGEXES,
+    # Infer variable type from string
     infer_type
 
 @doc raw"""

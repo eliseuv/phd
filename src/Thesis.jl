@@ -26,4 +26,10 @@ include("CellularAutomata.jl")
 # Names for systems
 include("Names.jl")
 
+# Time series utils
+include("TimeSeries.jl")
+
+# Measurements
+include("Measurements.jl")
+
 end
