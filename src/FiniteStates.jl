@@ -20,6 +20,7 @@ export
     container, similar_container,
     # Square lattice finite state
     SquareLatticeFiniteState,
+    dim,
     # Simple graph finite state
     SimpleGraphFiniteState
 
@@ -471,6 +472,13 @@ mutable struct SquareLatticeFiniteState{T,N} <: ConcreteFiniteState{T,N}
     SquareLatticeFiniteState(::Val{N}, L::Integer, ::Type{T}, ::Val{:rand}) where {T,N} = SquareLatticeFiniteState(ntuple(_ -> L, Val(N)), T, Val(:rand))
 
 end
+
+"""
+    dim(::SquareLatticeFiniteState)
+
+Get the dimensionality of a given square lattice finite state.
+"""
+@inline dim(::SquareLatticeFiniteState{T,N}) where {T,N} = N
 
 """
     IndexStyle(::Type{<:SquareLatticeFiniteState})

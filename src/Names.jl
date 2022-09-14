@@ -16,11 +16,11 @@ using ..SpinModels
 """
     Names for spin models
 """
-@inline name(ising::IsingModel) = "Ising" * name(ising.state)
+@inline name(ising::IsingModel) = "Ising_" * name(ising.state)
 
 """
     Names for cellular automata
 """
-@inline name(ca::BrassCellularAutomaton) = "BrassCA" * name(ca.state)
+@inline name(ca::BrassCellularAutomaton) = "BrassCA_" * name(ca.state)
 
 end

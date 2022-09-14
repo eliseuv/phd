@@ -1,5 +1,5 @@
 @doc raw"""
-    Calculate the eigenvalues for the normalized correlation matrices of the magnetization time series matrices.
+
 """
 
 using DrWatson

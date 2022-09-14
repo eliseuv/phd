@@ -18,7 +18,7 @@ export
     check_params,
     find_datafiles_with_params
 
-using Logging, JLD2
+using Logging, SHA, JLD2
 
 using ..Metaprogramming
 
@@ -196,5 +196,17 @@ function find_datafiles_with_params(datadirs::String, reqs...)
     return datafile_paths
 
 end
+
+@inline script_hash() = Base.source_path() |> sha256 |> bytes2hex
+
+@inline function script_lock_file()
+    hash = script_hash()
+    return "/tmp/$(hash).lock"
+end
+
+@inline function create_lock_file()
+    touch(script_lock_file())
+end
+
 
 end
