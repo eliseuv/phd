@@ -16,7 +16,9 @@ export
     parse_filename,
     # Check parameters dicts
     check_params,
-    find_datafiles_with_params
+    find_datafiles_with_params,
+    # Locks
+    filepath_lock, get_lock, remove_lock
 
 using Logging, SHA, JLD2
 
@@ -197,15 +199,24 @@ function find_datafiles_with_params(datadirs::String, reqs...)
 
 end
 
-@inline script_hash() = Base.source_path() |> sha256 |> bytes2hex
-
-@inline function script_lock_file()
-    hash = script_hash()
-    return "/tmp/$(hash).lock"
+@inline function filepath_lock(path::AbstractString)
+    path_hash = path |> sha256 |> bytes2hex
+    return "/tmp/$(path_hash).lock"
 end
 
-@inline function create_lock_file()
-    touch(script_lock_file())
+@inline function get_lock(path::AbstractString)
+    lock_file = filepath_lock(path)
+    # Wait if file is already locked
+    while isfile(lock_file)
+        sleep(0.001)
+    end
+    # Once file unlock create lock
+    touch(lock_file)
+end
+
+@inline function remove_lock(path::AbstractString)
+    lock_file = filepath_lock(path)
+    rm(lock_file, force=true)
 end
 
 
