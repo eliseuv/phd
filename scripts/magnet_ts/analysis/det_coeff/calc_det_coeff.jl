@@ -30,12 +30,11 @@ output_data_path = datadir("sims", "brass_ca", "magnet_ts", "time_series")
 mkpath(output_data_path)
 # Ouput filename
 output_params = deepcopy(params_combi)
-delete!(output_params, "p")
 delete!(output_params, "r")
 data_filename = filename("BrassCASquareLattice", output_params, ext="csv")
 output_file_path = joinpath(output_data_path, data_filename)
 @info "Writing data file" output_file_path
-df = DataFrame(p=Float64[], r=Float64[], z=Float64[], σ_x=Float64[], r2=Float64[], σ_r2=Float64[])
+df = DataFrame(p=Float64[], r=Float64[], z=Float64[], r2=Float64[])
 CSV.write(output_file_path, df)
 
 # Serialize parameters
@@ -53,7 +52,5 @@ for params in params_list
     (z, r2) = fit_dynamic_exponent!(ca, params["n_steps"], params["n_samples"])
 
     # Save data
-    get_lock(output_file_path)
     CSV.write(output_file_path, DataFrame(p=params["p"], r=params["r"], z=z, r2=r2), append=true)
-    remove_lock(output_file_path)
 end
