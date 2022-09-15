@@ -22,7 +22,7 @@ const params_combi::Dict{String} = Dict(
     "p" => parse(Float64, ARGS[2]),
     "r" => collect(0.0:0.01:1.0),
     "n_steps" => 300,
-    "n_samples" => 256
+    "n_samples" => 128
 )
 
 # Output dir
