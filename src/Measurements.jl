@@ -73,12 +73,7 @@ magnet_ts_matrix!(ca::AbstractCellularAutomaton, ::Val{:rand}, n_steps::Integer,
 #########################################
 """
 
-"""
-    magnet_ts_avg!(ca::BrassCellularAutomaton, n_steps::Integer, n_samples::Integer)
-
-TBW
-"""
-@inline magnet_ts_avg!(ca::BrassCellularAutomaton, n_steps::Integer, n_samples::Integer) = vec(mean(magnet_ts_matrix!(ca, BrassState.TH1, n_steps, n_samples), dims=2))
+@inline magnet_ts_avg!(ca::AbstractCellularAutomaton{<:AbstractFiniteState{T}}, σ₀::T, n_steps::Integer, n_samples::Integer) where {T} = vec(mean(magnet_ts_matrix!(ca, σ₀, n_steps, n_samples), dims=2))
 
 """
     magnet_ts_var!(ca::AbstractCellularAutomaton, n_steps::Integer, n_samples::Integer)
