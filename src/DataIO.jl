@@ -115,8 +115,8 @@ Retuns a `Dict{Symbol,Any}` with keys being the names of the parameters as symbo
 function parse_filename(path::AbstractString; sep::AbstractString="_")
     filename = splitext(basename(path))[1]
     namechunks = split(filename, sep)
+    prefix = popfirst!(namechunks)
     param_dict = Dict{String,Any}()
-    param_dict["prefix"] = popfirst!(namechunks)
     while length(namechunks) != 0
         param = popfirst!(namechunks)
         while !occursin("=", param) && length(namechunks) != 0
@@ -137,7 +137,7 @@ function parse_filename(path::AbstractString; sep::AbstractString="_")
             param_dict[string(param_name)] = param_value
         end
     end
-    return param_dict
+    return (prefix, param_dict)
 end
 
 @doc raw"""

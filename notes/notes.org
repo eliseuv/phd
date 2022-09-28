@@ -5,12 +5,45 @@
 
 #+latex_header: \usepackage{dsfont}
 
-* Ising model
+* Hamiltonian Models
+
+A =hamiltonian model= is a statistical mechanical model for which a hamiltonian can be defined.
+
+
+** Ising model
 
 \[H = - J \sum_{\langle i, j \rangle} s_i s_j\]
 
 
-* Determination Coefficient
+** Blume-Capel model
+
+\[ H = - J \sum_{\langle i, j \rangle} s_i s_j + D \sum_i s_i^2 \]
+
+Assuming $J=1$:
+
+| Type      |       D |     T_C |
+|-----------+---------+---------|
+| 2nd order |       0 | 1.69378 |
+| TCP       | 1.96582 | 0.60858 |
+
+
+* Non-hamiltonian Models
+
+
+
+
+** Domany-Kinzel
+
+
+
+** Brass Cellular Automaton
+
+
+
+* Analysis
+
+** Determination Coefficient
+
 Given samples time series of the magnetization $m_i(t)$:
 
 \[F_2 = \frac{\langle m^2 \rangle}{\langle m \rangle^2}\]
@@ -26,21 +59,9 @@ Given samples time series of the magnetization $m_i(t)$:
 [[file:plots/BrassCA2DMagnetTSSystemSizeDetCoeff_p=0.3.png]]
 
 
+* Appendices
 
-
-* Blume-Capel model
-
-\[ H = - J \sum_{\langle i, j \rangle} s_i s_j + D \sum_i s_i^2 \]
-
-Assuming $J=1$:
-
-| Type      |       D |     T_C |
-|-----------+---------+---------|
-| 2nd order |       0 | 1.69378 |
-| TCP       | 1.96582 | 0.60858 |
-
-
-* Histogram integration
+** Histogram integration
 
 Consider a histogram constructed from $M$ intervals $\left[A_i\right]_{i=1}^{M}$ the $i$-th interval being $A_i = [a_i, b_i)$ with $a_{i+1} = b_i$.
 
@@ -78,7 +99,7 @@ In the limit of infinite number of intervals, this integral will approach the sa
 \[ \lim_{M \to \infty} I_M = \frac{1}{N} \sum_{k=1}^N \lambda_k = \bar{\lambda}\]
 
 
-* Distribution integration
+** Distribution integration
 
 Given a distribution $\rho(\lambda)$
 
@@ -101,6 +122,15 @@ Arbitrary function:
 
 * TODO
 
++ Determination coefficient
+  + Test more intervals for $z$ exponent Brass CA det coeff method
+    + [80-300]
+  + L = 256
+  + N_samples = 10_000
++ p-r map
+  + Find curve of max goodness
 + Sync Brass CA
 + Contact process
 + SIR
++ Play with matrices
+  + Wichard

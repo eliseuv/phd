@@ -8,19 +8,19 @@ using DrWatson
 
 using Logging, JLD2, LinearAlgebra, UnicodePlots
 
-include("../../../../src/DataIO.jl")
-include("../../../../src/Matrices.jl")
-using .DataIO
-using .Matrices
+include("../../../../src/Thesis.jl")
+using .Thesis.DataIO
+using .Thesis.TimeSeries
 
 # Path for datafiles
-data_dirpath = datadir("sims", "ising", "magnet_ts", "mult_mat", "rand_start")
+data_dirpath = datadir("sims", "brass_ca", "magnet_ts", "mult_mat", "rand_start")
 
 # Desired parameters
+const prefix_req = "BrassCA2DMagnetTSMatrix"
 const params_req = Dict(
-    "prefix" => "IsingMagnetTSMatrix",
-    "dim" => 2,
+    # "dim" => 2,
     "L" => 100,
+    "p" => 0.3,
     "n_runs" => 1000,
     "n_samples" => 100,
     "n_steps" => 300
@@ -29,11 +29,11 @@ const params_req = Dict(
 for data_filename in readdir(data_dirpath)
 
     @info data_filename
-    filename_params = parse_filename(data_filename)
+    (filename_prefix, filename_params) = parse_filename(data_filename)
     # script_show(filename_params)
 
     # Ignore unrelated data files
-    if !check_params(parse_filename(data_filename), params_req)
+    if filename_prefix != prefix_req || !check_params(filename_params, params_req)
         @info "Skipping unrelated file..."
         continue
     end
@@ -51,10 +51,10 @@ for data_filename in readdir(data_dirpath)
 
     # Fetch parameters
     params = data["Params"]
-    print_dict(params)
-    β = params["beta"]
-    dim = params["dim"]
+    @show params
+    dim = 2
     L = params["L"]
+    r = params["r"]
 
     # Fetch magnet time series matrix samples
     M_ts_samples = data["M_ts_samples"]
@@ -89,7 +89,7 @@ for data_filename in readdir(data_dirpath)
 
     # Plot eigenvalues histogram
     display(histogram(vcat(λs...), nbins=64, xscale=log10,
-        title="Eigenvalues of cross correlation matrix (β = $β)",
+        title="Eigenvalues of cross correlation matrix (r = $r)",
         ylabel="λ", xlabel="ρ(λ)",
         width=110))
     println()

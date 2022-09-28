@@ -15,16 +15,14 @@ using .Thesis.DataIO
 data_dirpath = datadir("sims", "brass_ca", "magnet_ts", "mult_mat", "rand_start")
 
 # Selected parameters
-prefix = "BrassCA2DMagnetTSMatrix"
+const prefix_req = "BrassCA2DMagnetTSMatrix"
 const params_req = Dict(
-    "prefix" => prefix,
     # "dim" => 2,
-    "p" => 0.3,
-    # "p" => 0.3,
     "L" => 100,
+    "p" => 0.3,
+    "n_runs" => 1000,
     "n_samples" => 100,
-    "n_steps" => 300,
-    "n_runs" => 1000
+    "n_steps" => 300
 )
 
 # Resulting dataframe
@@ -37,12 +35,12 @@ df = DataFrame(r=Float64[],
 # Loop on datafiles
 for data_filename in readdir(data_dirpath)
 
-    filename_params = parse_filename(data_filename)
-    @info data_filename filename_params
+    @info data_filename
+    (filename_prefix, filename_params) = parse_filename(data_filename)
 
     # Ignore unrelated data files
-    if !check_params(filename_params, params_req)
-        @info "Skipping unrelated file..."
+    if filename_prefix != prefix_req || !check_params(filename_params, params_req)
+        # @info "Skipping unrelated file..."
         continue
     end
 
@@ -59,7 +57,7 @@ for data_filename in readdir(data_dirpath)
 
     # Fetch parameters
     params = data["Params"]
-    print_dict(params)
+    @show params
     # β = params["beta"]
     r = params["r"]
 
@@ -106,10 +104,8 @@ display(df)
 println()
 
 # Save results
-results_params = deepcopy(params_req)
-delete!(results_params, "prefix")
-results_prefix = prefix * "EigvalsStats"
-results_filepath = joinpath(data_dirpath, filename(results_prefix, results_params))
+results_prefix = prefix_req * "EigvalsStats"
+results_filepath = joinpath(data_dirpath, filename(results_prefix, params_req))
 @info "Saving data:" results_filepath
 JLD2.save_object(results_filepath, df)
 
@@ -136,8 +132,8 @@ xdata = "r" => :r
 xintercept = [1]
 
 @info "Plotting eigenvalues mean..."
-plot_prefix = prefix * "EigvalsMean"
-plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
+plot_prefix = prefix_req * "EigvalsMean"
+plot_filepath = plotsdir(filename(plot_prefix, params_req, ext=".png"))
 plt = plot(df, x=xdata.second, y=:lambda_mean,
     Geom.point, Geom.line,
     Guide.title(plot_title * " correlation matrix eigenvalues mean"),
@@ -147,8 +143,8 @@ plt = plot(df, x=xdata.second, y=:lambda_mean,
 draw(PNG(plot_filepath, 25cm, 15cm), plt)
 
 @info "Plotting eigenvalues variance..."
-plot_prefix = prefix * "EigvalsVar"
-plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
+plot_prefix = prefix_req * "EigvalsVar"
+plot_filepath = plotsdir(filename(plot_prefix, params_req, ext=".png"))
 plt_fit = layer(x=x_fit, y=y_fit,
     Geom.line)
 plt_data = layer(df, x=xdata.second, y=:lambda_var,
@@ -160,8 +156,8 @@ plt = plot(plt_fit, plt_data,
 draw(PNG(plot_filepath, 25cm, 15cm), plt)
 
 @info "Plotting maximum eigenvalue mean..."
-plot_prefix = prefix * "EigvalsMaxMean"
-plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
+plot_prefix = prefix_req * "EigvalsMaxMean"
+plot_filepath = plotsdir(filename(plot_prefix, params_req, ext=".png"))
 plt = plot(df, x=xdata.second, y=:lambda_max_mean,
     Geom.point, Geom.line,
     Guide.title(plot_title * " correlation matrix average maximum eigenvalue"),
@@ -170,8 +166,8 @@ plt = plot(df, x=xdata.second, y=:lambda_max_mean,
 draw(PNG(plot_filepath, 25cm, 15cm), plt)
 
 @info "Plotting eigenvalues gap mean..."
-plot_prefix = prefix * "EigvalsGapMean"
-plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
+plot_prefix = prefix_req * "EigvalsGapMean"
+plot_filepath = plotsdir(filename(plot_prefix, params_req, ext=".png"))
 plt = plot(df, x=xdata.second, y=:lambda_gap_mean,
     Geom.point, Geom.line,
     Guide.title(plot_title * " correlation matrix average eigenvalue gap"),
@@ -180,8 +176,8 @@ plt = plot(df, x=xdata.second, y=:lambda_gap_mean,
 draw(PNG(plot_filepath, 25cm, 15cm), plt)
 
 @info "Plotting eigenvalues integral..."
-plot_prefix = prefix * "EigvalsIntegral"
-plot_filepath = plotsdir(filename(plot_prefix, results_params, ext=".png"))
+plot_prefix = prefix_req * "EigvalsIntegral"
+plot_filepath = plotsdir(filename(plot_prefix, params_req, ext=".png"))
 plt = plot(df, x=xdata.second, y=:lambda_integral,
     Geom.point, Geom.line,
     Guide.title(plot_title * " correlation matrix eigenvalue distribution integral"),
