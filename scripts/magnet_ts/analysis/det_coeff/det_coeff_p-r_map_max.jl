@@ -26,11 +26,11 @@ const params_req = Dict(
 for data_filename in readdir(data_dirpath)
 
     @info data_filename
-    filename_params = parse_filename(data_filename)
+    (filename_prefix, filename_params) = parse_filename(data_filename)
     # script_show(filename_params)
 
     # Ignore unrelated data files
-    if !check_params(filename_params, "prefix" => prefix, params_req)
+    if filename_prefix != prefix || !check_params(filename_params, params_req)
         @info "Skipping unrelated file..."
         continue
     end
