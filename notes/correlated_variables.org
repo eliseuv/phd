@@ -1,0 +1,23 @@
+#+title: Correlated variables
+#+author: evf
+
+#+startup: latexpreview
+
+* Method
+
+Assume $\varphi_1$ and $\varphi_2$ to be independent and identically distributed random variables.
+
+For an arbitrary corralation $\rho \in [-1, 1]$
+
+\[\theta = \frac{1}{2} \sin^{-1} \rho\]
+
+Therefore, the variables
+
+\begin{equation*}
+\begin{cases}
+\phi_1 = \sin(\theta) \varphi_1 + \cos(\theta) \varphi_2 \\
+\phi_2 = \cos(\theta) \varphi_1 + \sin(\theta) \varphi_2 \\
+\end{cases}
+\end{equation*}
+
+are distributed according to same original distribution and its correlation is $\rho$.

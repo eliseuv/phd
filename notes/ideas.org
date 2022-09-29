@@ -1,0 +1,18 @@
+#+title: Ideas
+#+author: evf
+
+#+startup: latexpreview
+
+* Questions
+
++ Eigenvalue distribution for a pseudo-random matrix (chaos, logistic map)
+
+  + Can the distribution tell is the matrix is truly random?
+
+* Calculations :analytical:
+
++ Small matrix (2\times2, 3\times3, \cdots) with correlated entries.
+
+  + Analytical calculation of eigenvaluesots)
+
++ Perturbation of a Vandermonde matrix
