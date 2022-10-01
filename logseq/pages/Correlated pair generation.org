@@ -1,0 +1,10 @@
+* Assume $\varphi_1$ and $\varphi_2$ to be independent and identically distributed random variables.
+For an arbitrary correlation $\rho \in [-1,1]$:
+$$\theta = \frac{1}{2} \sin^{-1} \rho$$
+Therefore the variables:
+\begin{cases}
+\phi_1 = \sin(\theta) \varphi_1 + \cos(\theta) \varphi_2 \\
+\phi_2 = \cos(\theta) \varphi_1 + \sin(\theta) \varphi_2 \\
+\end{cases}
+are distributed according to the same original distribution and their correlation is $\rho$.
+*
