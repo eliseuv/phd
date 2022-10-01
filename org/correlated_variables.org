@@ -1,6 +1,10 @@
 #+title: Correlated variables
 #+author: evf
 
+:properties:
+:header-kernel: julia
+:end:
+
 #+startup: latexpreview
 
 * Method
