@@ -1,0 +1,22 @@
+#+title: To do list
+#+author: evf
+
+#+startup: latexpreview
+
+* Research
+
+**
+
+* Home computer
+
+** TODO Create precompiled julia command
+
+* IF-UFRGS computer
+
+** TODO Set up ssh daemon
+
+** TODO Install xmonad
+
+* Remote computers
+
+** TODO Create CESUP account

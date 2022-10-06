@@ -1,4 +1,3 @@
-using Gadfly: GeometryElement
 @doc raw"""
     Generate a magnetization time series
 """
