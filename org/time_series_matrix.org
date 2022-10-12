@@ -1,0 +1,35 @@
+#+title: Time series matrix
+#+author: evf
+
+#+startup: latexpreview
+
+Consider the following $t_{max} \times N$ matrix:
+
+\begin{equation*}
+S =
+\begin{pmatrix}
+    s_{11} & s_{12} & \cdots & s_{1N} \\
+    s_{21} & s_{22} & \cdots & s_{2N} \\
+    \vdots      & \vdots      & \ddots & \vdots      \\
+    s_{t_{max}1} & s_{t_{max}2} & \cdots & s_{t_{max}N}
+\end{pmatrix}
+\end{equation*}
+
+Where each of the $N$ columns correspond to a different time series of length $t_{max}$.
+
+* Normalization
+
+From a given time series matrix $S$ we can construct another matrix $S^{*}$ whose columns (time series) are normalized in the following way:
+
+$$s^{*}_{ij} = \frac{s_{ij} - \bar{s}_j}{\sigma_j}$$
+
+where $\bar{s}_j$ is the $j$-th time series average:
+$$\bar{s}_j = \frac{1}{t_{max}} \sum_{i=1}^{t_{max}} s_{ij}$$
+
+and $\sigma_j^2$ is the $j$-th time series variance:
+$$\sigma_j^2 = \frac{1}{t_{max}} \sum_{i=1}^{t_{max}} (s_{ij} - \bar{s}_j)^2$$
+
+
+* Cross correlation matrix
+
+$$G = \frac{1}{t_{max}} S^T S$$

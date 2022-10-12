@@ -1,5 +1,5 @@
 @doc raw"""
-    Calcaulation of the eigenvalues of time
+    Calculation of the eigenvalues of time
     Generate a magnetization time series
 """
 
@@ -25,23 +25,25 @@ function correlated_pair(ρ::Real, dist::Distribution=Normal())
     return ϕ
 end
 
+# Create 2x2 correlated matrix
 function correlated_matrix(ρ::Real, dist::Distribution=Normal())
     ϕ = correlated_pair(ρ, dist)
     ψ = correlated_pair(ρ, dist)
     return vcat(ϕ', ψ')
 end
 
+# Normaliza time series matrix
 @inline normalize_ts_matrix(M_ts::AbstractMatrix) = hcat(
     map(eachcol(M_ts)) do xⱼ
         xⱼ_avg = mean(xⱼ)
         (xⱼ .- xⱼ_avg) ./ stdm(xⱼ, xⱼ_avg, corrected=false)
     end...)
 
-@inline function normalize_ts_matrix!(M_ts::AbstractMatrix)
-    for xⱼ ∈ eachcol(M_ts)
-        xⱼ_avg = mean(xⱼ)
-        xⱼ .= (xⱼ .- xⱼ_avg) ./ stdm(xⱼ, xⱼ_avg)
-    end
+# Create cross correlation matrix
+@inline function cross_correlation_matrix(M_ts::AbstractMatrix)
+    # Number of steps = number of rows
+    n_steps = size(M_ts, 1)
+    return (1 / n_steps) .* Symmetric(transpose(M_ts) * M_ts)
 end
 
-mean(map(eigvals, [normalize_ts_matrix(correlated_matrix(0.99)) for _ ∈ 1:100000]))
+# eigvals(ρ, N) = map(eigvals, [cross_correlation_matrix(normalize_ts_matrix(correlated_matrix(ρ))) for _ ∈ 1:N])

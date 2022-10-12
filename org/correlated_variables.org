@@ -11,7 +11,7 @@
 
 Assume $\varphi_1$ and $\varphi_2$ to be independent and identically distributed random variables.
 
-For an arbitrary corralation $\rho \in [-1, 1]$
+For an arbitrary correlation $\rho \in [-1, 1]$
 
 \[\theta = \frac{1}{2} \sin^{-1} \rho\]
 
@@ -25,3 +25,18 @@ Therefore, the variables
 \end{equation*}
 
 are distributed according to same original distribution and its correlation is $\rho$.
+
+
+* Matrix of correlated time series
+
+Consider the following matrix
+
+\begin{equation*}
+S =
+\begin{pmatrix}
+    \phi_1 & \phi_2 \\
+    \psi_1 & \psi_2
+\end{pmatrix}
+\end{equation*}
+
+where the pairs $(\phi_1, \phi_2)$ and $(\psi_1, \psi_2)$ are correlated.

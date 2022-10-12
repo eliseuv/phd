@@ -1,0 +1,19 @@
+#+title: Time series matrices
+#+author: evf
+
+#+startup: latexpreview
+
+* Time series matrix
+
+Consider the following $M \times N$ matrix:
+
+\begin{equation}
+S = 
+\begin{pmatrix}
+    s_{11} & s_{12} & \cdots & s_{1N} \\
+    s_{21} & s_{22} & \cdots & s_{2N} \\
+    \vdots      & \vdots      & \ddots & \vdots      \\
+    s_{M1} & s_{M2} & \cdots & s_{MN} \\
+\end{pmatrix}
+\end{equation}
+*

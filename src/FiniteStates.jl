@@ -483,7 +483,7 @@ Get the dimensionality of a given square lattice finite state.
 """
     IndexStyle(::Type{<:SquareLatticeFiniteState})
 
-Prefer cartesian indices for multidimensional square lattice finite states.
+Prefer Cartesian indices for multidimensional square lattice finite states.
 """
 # Base.IndexStyle(::Type{<:SquareLatticeFiniteState}) = IndexCartesian()
 
@@ -497,7 +497,7 @@ Gets a vector containing the indices of the nearest neighbors to the `i`-site in
 """
     nearest_neighbors_sum(fs::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N}
 
-Sum of the nearest neighbors of the `i`-th site for a multidimensional square lattice finites state `fs`.
+Sum of the nearest neighbors of the `i`-th site for a multidimensional square lattice finite state `fs`.
 """
 @inline nearest_neighbors_sum(fs::SquareLatticeFiniteState{T,N}, i::CartesianIndex{N}) where {T,N} = @inbounds square_lattice_nearest_neighbors_sum(fs.container, i)
 # @inline nearest_neighbors_sum(spins::SquareLatticeFiniteState{T,N}, i::Integer) where {T,N} = nearest_neighbors_sum(spins, CartesianIndices(spins)[i])
@@ -533,7 +533,7 @@ mutable struct SimpleGraphFiniteState{T} <: ConcreteFiniteState{T,1}
 
     Construct a new finite state with graph structure `graph` and random initial states at each site.
     """
-    SimpleGraphFiniteState(graph::SimpleGraph, ::Val{:rand}) where {T} = new{T}(graph, rand(instances(T), nv(graph)))
+    SimpleGraphFiniteState(graph::SimpleGraph, ::Type{T}, ::Val{:rand}) where {T} = new{T}(graph, rand(instances(T), nv(graph)))
 
 end
 

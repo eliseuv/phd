@@ -1,15 +1,9 @@
-[{:block/name "2022-10-03",
-  :block/created-at 1664827959157,
-  :block/updated-at 1664827959157}
- {:block/name "2022-10-10",
-  :block/created-at 1665441425198,
-  :block/updated-at 1665441425198}
+[{:block/name "2022-10-06",
+  :block/created-at 1665079867967,
+  :block/updated-at 1665079867967}
  {:block/name "a",
   :block/created-at 1664581860990,
   :block/updated-at 1664581860990}
- {:block/name "author",
-  :block/created-at 1665441750855,
-  :block/updated-at 1665441750855}
  {:block/name "b",
   :block/created-at 1664581860990,
   :block/updated-at 1664581860990}
@@ -49,15 +43,6 @@
  {:block/name "now",
   :block/created-at 1664581860990,
   :block/updated-at 1664581860990}
- {:block/name "startup",
-  :block/created-at 1665441729535,
-  :block/updated-at 1665441729535}
- {:block/name "time series matrices",
-  :block/created-at 1665441472932,
-  :block/updated-at 1665441609565}
- {:block/name "time series matrix",
-  :block/created-at 1665441750857,
-  :block/updated-at 1665441750857}
  {:block/name "todo",
   :block/created-at 1664581860990,
   :block/updated-at 1664581860990}

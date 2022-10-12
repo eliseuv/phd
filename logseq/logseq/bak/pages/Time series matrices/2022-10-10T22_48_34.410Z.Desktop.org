@@ -1,0 +1,20 @@
+#+title: Time series matrices
+#+author: evf
+
+#+startup: latexpreview
+
+* Time series matrix
+
+Consider the following $t_{max} \times N$ matrix:
+
+\begin{equation*}
+S = 
+\begin{pmatrix}
+    s_{11} & s_{12} & \cdots & s_{1N} \\
+    s_{21} & s_{22} & \cdots & s_{2N} \\
+    \vdots      & \vdots      & \ddots & \vdots      \\
+    s_{t_{max}1} & s_{t_{max}2} & \cdots & s_{t_{max}N}
+\end{pmatrix}
+\end{equation*}
+
+Where each of the $N$ columns correspond to a different time series of length $t_{max}$.
