@@ -15,22 +15,18 @@ include("../../src/Thesis.jl")
 using .Thesis.Metaprogramming
 
 # Generated correlated pair of random variable with given correlation
-function correlated_pair(ρ::Real, dist::Distribution=Normal())
+@inline function correlated_pair(ρ::Real, dist::Distribution=Normal())
     # Uncorrelated pair
     φ = rand(dist, 2)
     # Create correlated pair
     θ = 0.5 * asin(ρ)
-    ϕ = [φ[1] * sin(θ) + φ[2] * cos(θ),
-        φ[1] * cos(θ) + φ[2] * sin(θ)]
+    ϕ = (φ[1] * sin(θ) + φ[2] * cos(θ),
+        φ[1] * cos(θ) + φ[2] * sin(θ))
     return ϕ
 end
 
 # Create 2x2 correlated matrix
-function correlated_matrix(ρ::Real, dist::Distribution=Normal())
-    ϕ = correlated_pair(ρ, dist)
-    ψ = correlated_pair(ρ, dist)
-    return vcat(ϕ', ψ')
-end
+@inline correlated_matrix(ρ::Real, M::Integer=2, dist::Distribution=Normal()) = vcat(map(ϕ -> [ϕ[1] ϕ[2]], correlated_pair(ρ, dist) for _ in 1:M)...)
 
 # Normaliza time series matrix
 @inline normalize_ts_matrix(M_ts::AbstractMatrix) = hcat(
@@ -46,4 +42,9 @@ end
     return (1 / n_steps) .* Symmetric(transpose(M_ts) * M_ts)
 end
 
-# eigvals(ρ, N) = map(eigvals, [cross_correlation_matrix(normalize_ts_matrix(correlated_matrix(ρ))) for _ ∈ 1:N])
+function eigvals_stats(ρ, M, N)
+    λs = map(eigvals, [cross_correlation_matrix(normalize_ts_matrix(correlated_matrix(ρ, M))) for _ ∈ 1:N])
+    λ_mean = mean(λs)
+    λ_var = varm(λs, λ_mean)
+    return (λ_mean, sqrt.(λ_var))
+end
