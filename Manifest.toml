@@ -2,7 +2,7 @@
 
 julia_version = "1.8.2"
 manifest_format = "2.0"
-project_hash = "9a4f5564eeebd0cf2f0dea320fc8637608d932df"
+project_hash = "b5c121dc9b13ef6a8f564c94bdb305d4e0487c74"
 
 [[deps.AbstractAlgebra]]
 deps = ["GroupsCore", "InteractiveUtils", "LinearAlgebra", "MacroTools", "Markdown", "Random", "RandomExtensions", "SparseArrays", "Test"]
@@ -72,6 +72,12 @@ git-tree-sha1 = "a1e2cf6ced6505cbad2490532388683f1e88c3ed"
 uuid = "dd5226c6-a4d4-4bc7-8575-46859f9c95b9"
 version = "0.1.0"
 
+[[deps.ArrayLayouts]]
+deps = ["FillArrays", "LinearAlgebra", "SparseArrays"]
+git-tree-sha1 = "9a8017694c92ca097b23b3b43806be560af4c2ce"
+uuid = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
+version = "0.8.12"
+
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 
@@ -91,6 +97,18 @@ deps = ["LinearAlgebra", "Random", "SparseArrays", "WoodburyMatrices"]
 git-tree-sha1 = "66771c8d21c8ff5e3a93379480a2307ac36863f7"
 uuid = "13072b0f-2c55-5437-9ae7-d433b7a33950"
 version = "1.0.1"
+
+[[deps.BSplineKit]]
+deps = ["ArrayLayouts", "BandedMatrices", "FastGaussQuadrature", "LazyArrays", "LinearAlgebra", "Random", "Reexport", "SparseArrays", "StaticArrays"]
+git-tree-sha1 = "0cf00898ce091b479c1431d472a1bb07550e46eb"
+uuid = "093aae92-e908-43d7-9660-e50ee39d5a0a"
+version = "0.12.2"
+
+[[deps.BandedMatrices]]
+deps = ["ArrayLayouts", "FillArrays", "LinearAlgebra", "Random", "SparseArrays"]
+git-tree-sha1 = "d37d493a1fc680257f424e656da06f4704c4444b"
+uuid = "aae01518-5342-5314-be14-df237901396f"
+version = "0.17.7"
 
 [[deps.BangBang]]
 deps = ["Compat", "ConstructionBase", "Future", "InitialValues", "LinearAlgebra", "Requires", "Setfield", "Tables", "ZygoteRules"]
@@ -434,6 +452,12 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "c6033cc3892d0ef5bb9cd29b7f2f0331ea5184ea"
 uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
 version = "3.3.10+0"
+
+[[deps.FastGaussQuadrature]]
+deps = ["LinearAlgebra", "SpecialFunctions", "StaticArrays"]
+git-tree-sha1 = "58d83dd5a78a36205bdfddb82b1bb67682e64487"
+uuid = "442a2c76-b920-505d-bb47-c5924d526838"
+version = "0.4.9"
 
 [[deps.FileIO]]
 deps = ["Pkg", "Requires", "UUIDs"]
@@ -806,6 +830,12 @@ git-tree-sha1 = "ab9aa169d2160129beb241cb2750ca499b4e90e9"
 uuid = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
 version = "0.15.17"
 
+[[deps.LazyArrays]]
+deps = ["ArrayLayouts", "FillArrays", "LinearAlgebra", "MacroTools", "MatrixFactorizations", "SparseArrays", "StaticArrays"]
+git-tree-sha1 = "8d9837955df02124bc74f0deb38adbd3a1437846"
+uuid = "5078a376-72f3-5289-bfd5-ec5146d43c02"
+version = "0.22.12"
+
 [[deps.LazyArtifacts]]
 deps = ["Artifacts", "Pkg"]
 uuid = "4af54fe1-eca0-43a8-85a7-787d91b784e3"
@@ -953,6 +983,12 @@ deps = ["AbstractTrees", "Automa", "DataStructures", "FreeTypeAbstraction", "Geo
 git-tree-sha1 = "114ef48a73aea632b8aebcb84f796afcc510ac7c"
 uuid = "0a4f8689-d25c-4efe-a92b-7142dfc1aa53"
 version = "0.4.3"
+
+[[deps.MatrixFactorizations]]
+deps = ["ArrayLayouts", "LinearAlgebra", "Printf", "Random"]
+git-tree-sha1 = "4a02641a5b58e09bd04123ecb6eda64bbaee15b0"
+uuid = "a3b82374-2e81-5b9e-98ce-41277c0e4c87"
+version = "0.9.3"
 
 [[deps.MbedTLS_jll]]
 deps = ["Artifacts", "Libdl"]

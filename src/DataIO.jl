@@ -177,7 +177,7 @@ check_params(params::Dict{String}, reqs...) = all(x -> check_params(params, x), 
 
 Find data files in the directory `datadirs` that have the satisfies the required parameters `reqs...`.
 """
-function find_datafiles_with_params(datadirs::String, reqs...)
+function find_datafiles_with_params(datadirs::String, prefix_req::String, reqs...)
 
     # Selected data file paths
     datafile_paths = String[]
@@ -185,10 +185,10 @@ function find_datafiles_with_params(datadirs::String, reqs...)
     # Loop on datafiles
     for datafile_name in readdir(datadirs)
 
-        filename_params = parse_filename(datafile_name)
+        (filename_prefix, filename_params) = parse_filename(datafile_name)
 
         # Ignore unrelated data files
-        if !check_params(filename_params, reqs...)
+        if filename_prefix != prefix_req || !check_params(filename_params, reqs...)
             continue
         end
 
