@@ -35,7 +35,7 @@ end
 @inline normalize_ts_matrix(M_ts::AbstractMatrix) = hcat(
     map(eachcol(M_ts)) do xⱼ
         xⱼ_avg = mean(xⱼ)
-        (xⱼ .- xⱼ_avg) ./ stdm(xⱼ, xⱼ_avg, corrected=false)
+        (xⱼ .- xⱼ_avg) ./ stdm(xⱼ, xⱼ_avg, corrected=true)
     end...)
 @inline function normalize_ts_matrix!(M_ts::AbstractMatrix)
     for xⱼ ∈ eachcol(M_ts)
