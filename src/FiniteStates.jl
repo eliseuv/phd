@@ -10,6 +10,7 @@ export
     AbstractSiteState, instance_count,
     # Abstract finite state
     AbstractFiniteState,
+    name,
     state_count, state_concentration,
     set_state!, randomize_state!,
     nearest_neighbors, nearest_neighbors_sum,
@@ -160,6 +161,8 @@ mutable struct MeanFieldFiniteState{T} <: AbstractFiniteState{T,1}
     end
 
 end
+
+@inline name(::MeanFieldFiniteState) = "MeanField"
 
 """
     split_indices(fs::MeanFieldFiniteState)
@@ -473,6 +476,8 @@ mutable struct SquareLatticeFiniteState{T,N} <: ConcreteFiniteState{T,N}
 
 end
 
+@inline name(::SquareLatticeFiniteState{T,N}) where {T,N} = "SquareLattice" * string(N) * "D"
+
 """
     dim(::SquareLatticeFiniteState)
 
@@ -536,6 +541,8 @@ mutable struct SimpleGraphFiniteState{T} <: ConcreteFiniteState{T,1}
     SimpleGraphFiniteState(graph::SimpleGraph, ::Type{T}, ::Val{:rand}) where {T} = new{T}(graph, rand(instances(T), nv(graph)))
 
 end
+
+@inline name(::SimpleGraphFiniteState) = "SimpleGraph"
 
 """
     nearest_neighbors(fs::SimpleGraphFiniteState)

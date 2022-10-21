@@ -303,6 +303,8 @@ struct BrassCellularAutomaton{T<:AbstractFiniteState{BrassState.T}} <: AbstractC
 
 end
 
+@inline name(ca::BrassCellularAutomaton) = "BrassCA_" * FiniteStates.name(ca.state)
+
 @doc raw"""
     cumulative_transition_probabilities(σᵢ::BrassState.T, sᵢ::T, p::Float64, r::Float64) where {T<:Integer}
 

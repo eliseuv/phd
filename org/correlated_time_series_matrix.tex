@@ -1,15 +1,39 @@
-#+title: Correlated Time Series Matrix
-#+author: evf
-#+date: <2022-10-17 Mon>
+% Created 2022-10-21 Fri 16:38
+% Intended LaTeX compiler: pdflatex
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\usepackage[margin=0.5in]{geometry}
+\usepackage{cancel}
+\author{evf}
+\date{\textit{<2022-10-17 Mon>}}
+\title{Correlated Time Series Matrix}
+\hypersetup{
+ pdfauthor={evf},
+ pdftitle={Correlated Time Series Matrix},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 28.1 (Org mode 9.6)}, 
+ pdflang={English}}
+\usepackage{biblatex}
 
-#+startup: latexpreview
+\begin{document}
 
-#+LATEX_HEADER: \usepackage[margin=0.5in]{geometry}
-#+latex_header: \usepackage{cancel}
+\maketitle
+\tableofcontents
 
 Let \(\varphi_j^i\) (\(j=1,2\) and \(i=1,2,\cdots,M\)) be independent and identically distributed (i.i.d.) random variables derived from a centered distribution with unit variance.
 
-We use the method outlined in [[file:correlated_variables.org][Correlated Pair Generation]] to create \(M\) pairs of correlated random variables, each pair with correlation \(\rho \in [-1,1]\).
+We use the method outlined in \href{correlated\_variables.org}{Correlated Pair Generation} to create \(M\) pairs of correlated random variables, each pair with correlation \(\rho \in [-1,1]\).
 
 \begin{equation*}
 \begin{cases}
@@ -229,3 +253,4 @@ Solving this quadratic equation for the eigenvalues \(\lambda\):
     & \quad - 4 \left( \left( \varphi_1\cdot\varphi_1 \right) \left( \varphi_2\cdot\varphi_2 \right) \left| 1 - \rho^2 \right| + \left( \varphi_1\cdot\varphi_2 \right)^2 \left( \cancel{\rho^2} - 1 \right) \right) \\
   &= \left( \left( \varphi_1\cdot\varphi_1 \right) + \left( \varphi_2\cdot\varphi_2 \right) \right)^2 + 4 \rho \left( \varphi_1\cdot\varphi_2 \right) \left( \left( \varphi_1\cdot\varphi_1 \right) + \left( \varphi_2\cdot\varphi_2 \right) \right) - 4 \left( \varphi_1\cdot\varphi_1 \right) \left( \varphi_2\cdot\varphi_2 \right) \left| 1 - \rho^2 \right| + 4 \left( \varphi_1\cdot\varphi_2 \right)^2 \\
 \end{align*}
+\end{document}

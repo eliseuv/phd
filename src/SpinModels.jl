@@ -691,6 +691,8 @@ struct IsingModel{T} <: AbstractIsingModel{T}
     IsingModel(state::T) where {T<:AbstractFiniteState} = new{T}(state)
 end
 
+@inline name(ising::IsingModel) = "Ising_" * FiniteStates.name(ising.state)
+
 @doc raw"""
     energy(ising::IsingModel)
 

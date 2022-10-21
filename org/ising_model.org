@@ -1,0 +1,8 @@
+#+title: Ising_model
+#+author: evf
+
+#+startup: latexpreview
+
+* Hamiltonian
+
+\[H = - J \sum_{\langle i, j \rangle} s_i s_j + h \sum_{i} s_i\]

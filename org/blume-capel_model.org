@@ -1,0 +1,15 @@
+#+title: Blume Capel_model
+#+author: evf
+
+#+startup: latexpreview
+
+* Hamiltonian
+
+\[ H = - J \sum_{\langle i, j \rangle} s_i s_j + D \sum_i s_i^2 \]
+
+Assuming $J=1$:
+
+| Type      |       D |     T_C |
+|-----------+---------+---------|
+| 2nd order |       0 | 1.69378 |
+| TCP       | 1.96582 | 0.60858 |

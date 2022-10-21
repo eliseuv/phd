@@ -17,17 +17,14 @@ include("Lattices.jl")
 # Finite state
 include("FiniteStates.jl")
 
-# Spin models
-include("SpinModels.jl")
-
 # Cellular automata models
 include("CellularAutomata.jl")
 
-# Names for systems
-include("Names.jl")
+# Spin models
+include("SpinModels.jl")
 
 # Time series utils
-include("TimeSeries.jl")
+include("RandomMatrices.jl")
 
 # Measurements
 include("Measurements.jl")
