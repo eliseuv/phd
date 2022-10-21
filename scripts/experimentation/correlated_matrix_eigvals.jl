@@ -40,7 +40,7 @@ end
 @inline function normalize_ts_matrix!(M_ts::AbstractMatrix)
     for xⱼ ∈ eachcol(M_ts)
         xⱼ_avg = mean(xⱼ)
-        xⱼ .= (xⱼ .- xⱼ_avg) ./ stdm(xⱼ, xⱼ_avg)
+        xⱼ .= (xⱼ .- xⱼ_avg) ./ stdm(xⱼ, xⱼ_avg, corrected=true)
     end
 end
 
