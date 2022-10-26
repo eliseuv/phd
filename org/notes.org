@@ -40,7 +40,7 @@ Given samples time series of the magnetization $m_i(t)$:
 #+caption: Dependence of the goodness of fit curve on the system size
 [[file:plots/BrassCA2DMagnetTSSystemSizeDetCoeff_p=0.3.png]]
 
-* TODO
+* Inbox
 
 + Determination coefficient
   + Test more intervals for $z$ exponent Brass CA det coeff method

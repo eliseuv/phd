@@ -1,0 +1,55 @@
+#+title Meeting 2022 10 25
+
+#+startup: latexpreview
+
+Spin models or more complex systems:
+
+\[\lambda_{max} - \lambda_{min} = f(\rho)\]
+
+Generated with given correlation:
+
+\[\lambda_{max} - \lambda_{min} = 2 \rho\]
+
+** Histogram of eigenvalues
+
+*** \(2 \times 2\) matrix
+
+A single peak centered at \(\lambda = 1\) for \(\rho \approx 0\), that separates into two peaks centered at \(\lambda_{\pm} = 1 \pm \rho\) as the correlation \(\rho\) increases.
+
+*** \(N \times N\) matrix
+
++ \(\rho \approx 0\)
+  Marcenko-Pastur law
+
++ \(\rho > 0\)
+  Deviations from MP law
+
+*** \(N \times 2\) matrix
+
+Mean field analysis may yield \(\lambda_{\pm} = 1 \pm \rho\).
+
+
+** Wishart-Laguerre distribution
+
++ Does it have phase transition?
+
++ \(P(\lambda_1,\cdots,\lambda_N)\)
+
+
+** Image analysis
+
++ Spatial: Deviation from semi-circle law
+
++ Temporal: Deviation from MP law
+
+
+** Logistic maps
+
+\[x_n = \alpha x_{n-1} (1 - x_{n-1})\]
+
+Analyse correlations in weak and strong chaos.
+
+
+** Spin Models
+
+Traditional QM applications.

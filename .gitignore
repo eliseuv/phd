@@ -77,6 +77,9 @@ Backup of *.doc*
 #                                    LaTeX                                     #
 ################################################################################
 
+## Ignore tex files for now, as they are generated from org-mode files
+*.tex
+
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof

@@ -4,8 +4,7 @@
 
 #+startup: latexpreview
 
-#+LATEX_HEADER: \usepackage[margin=0.5in]{geometry}
-#+latex_header: \usepackage{cancel}
+#+latex_class: note
 
 Let \(\varphi_j^i\) (\(j=1,2\) and \(i=1,2,\cdots,M\)) be independent and identically distributed (i.i.d.) random variables derived from a centered distribution with unit variance.
 

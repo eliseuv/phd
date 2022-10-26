@@ -6,18 +6,25 @@ Macros and quote macros for manipulating variables and regular expressions.
 module Metaprogramming
 
 export
+    # Extract from ::Val
+    extract_val,
     # Define variable
     @defvar,
     # Print variables
     @strvar, @strvars,
     # Special strings
-    @p_str, @dq_str, @sq_str,
-    # Extract from ::Val
-    extract_val,
+    @dq_str, @sq_str, @p_str,
     # Regexes
     NUMBER_REGEXES,
     # Infer variable type from string
     infer_type
+
+@doc raw"""
+    extract_val(::Val{X}) where {X}
+
+Extracts the static value of a value type.
+"""
+@inline @generated extract_val(::Val{X}) where {X} = X
 
 @doc raw"""
     @defvar(name, value)
@@ -127,6 +134,26 @@ end
 # Quote macros (Suggested by https://stackoverflow.com/a/20483464)
 
 @doc raw"""
+Double quotes quote string
+
+# Usage:
+    dq"with double quotes" -> "with double quotes"
+"""
+macro dq_str(s)
+    "\"" * s * "\""
+end
+
+@doc raw"""
+Simple quotes quote string
+
+# Usage:
+    sq"with simple quotes" -> 'with simple quotes'
+"""
+macro sq_str(s)
+    "'" * s * "'"
+end
+
+@doc raw"""
     p"quote"
 
 p"quote" macro
@@ -148,61 +175,37 @@ macro p_str(s)
     s
 end
 
-@doc raw"""
-Double quotes quote string
-
-# Usage:
-    dq"with double quotes" -> "with double quotes"
-"""
-macro dq_str(s)
-    "\"" * s * "\""
-end
-
-@doc raw"""
-Simple quotes quote string
-
-# Usage:
-    sq"with simple quotes" -> 'with simple quotes'
-"""
-macro sq_str(s)
-    "'" * s * "'"
-end
-
-@doc raw"""
-    extract_val(::Val{X}) where {X}
-
-Extracts the value of a value type.
-"""
-@generated extract_val(::Val{X}) where {X} = X
-
 # Regular expressions that match certain types
 @doc raw"""
     NUMBER_REGEXES
+
+Dictionary that associates each numerical type with the corresponding regular expression used to infer it.
 """
 const NUMBER_REGEXES = Dict{Type,String}(
-    Int64 => p"[-+]?[0-9]*([eE][+]?[0-9]+)?",
-    Float64 => p"[-+]?[0-9]*\.[0-9]+([eE][-+]?[0-9]+)?",
-    Complex{Int64} => p"[-+]?[0-9]*([eE][+]?[0-9]+)?([ ]*)?[-+]([ ]*)?[0-9]*([eE][+]?[0-9]+)?([ ]*)[ij]",
-    Complex{Float64} => p"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?([ ]*)?[-+]([ ]*)?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?([ ]*)[ij]",
-    Real => p"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?",
+    # Real numbers
+    Integer => p"[-+]?[0-9]*([eE][+]?[0-9]+)?",
+    AbstractFloat => p"[-+]?[0-9]*\.[0-9]+([eE][-+]?[0-9]+)?",
+    # Complex numbers
+    Complex{Integer} => p"[-+]?[0-9]*([eE][+]?[0-9]+)?([ ]*)?[-+]([ ]*)?[0-9]*([eE][+]?[0-9]+)?([ ]*)[ij]",
+    Complex{AbstractFloat} => p"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?([ ]*)?[-+]([ ]*)?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?([ ]*)[ij]",
 )
 
 @doc raw"""
     infer_type(value::AbstractString)::Type
 
-Try to infer the type of the value in the string `value`.
+Try to infer the type of the numerical value in the string `value`.
 
 If no type could be inferred, returns `Any`.
 """
 function infer_type(value::AbstractString)::Type
-    # Test if a number
-    for Type in (Int64, Float64, Complex{Int64}, Complex{Float64})
+    # Test numerical types in a given order
+    for Type in (Integer, AbstractFloat, Complex{Integer}, Complex{AbstractFloat})
         re = Regex(p"^" * NUMBER_REGEXES[Type] * p"$")
         if occursin(re, strip(value))
             return Type
         end
     end
-    # If not a number, return Any
+    # If no numerical type could be inferred, return `Any`
     return Any
 end
 

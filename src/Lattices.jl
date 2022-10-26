@@ -5,12 +5,12 @@ Lattice geometry utilities.
 """
 module Lattices
 
-export square_gird_iter,
+export square_grid_iter,
     square_lattice_nearest_neighbors, square_lattice_nearest_neighbors_flat,
     square_lattice_nearest_neighbors_sum
 
 @doc raw"""
-    square_gird_iter(::Val{N}, iter::Integer) where {N}
+    square_grid_iter(::Val{N}, iter::Integer) where {N}
 
 Fill a `N`-dimensional unit domain with uniformly spaced points iteratively.
 The coordinates of the points in this unit domain are given as a fraction.
@@ -49,8 +49,8 @@ Points associated with current iteration are represented by `*` and those associ
 # Returns:
     - `::Vector{NTuple{N,Rational}}`: Array of cartesian indices (given as fractions) of the points associated with the iteration `iter`.
 """
-function square_gird_iter(::Val{N}, iter::Integer) where {N}
-    @assert iter >= 0
+function square_grid_iter(::Val{N}, iter::Integer) where {N}
+    @assert iter >= 0 "The iteration step must be non-negative."
     if iter == 0
         # Just the endpoints
         Tuple.(CartesianIndices(ntuple(_ -> 0:1, Val(N))))

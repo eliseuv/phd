@@ -5,13 +5,13 @@ Main module for collecting all submodules necessary for the simulations.
 """
 module Thesis
 
-# Metaprogramming macros and utils
+# Useful macros, quote macros and type utils
 include("Metaprogramming.jl")
 
 # Data files utils
 include("DataIO.jl")
 
-# Lattices specialized methods
+# Lattice geometry utils
 include("Lattices.jl")
 
 # Finite state
@@ -23,7 +23,7 @@ include("CellularAutomata.jl")
 # Spin models
 include("SpinModels.jl")
 
-# Time series utils
+# Random matrices utils
 include("RandomMatrices.jl")
 
 # Measurements
