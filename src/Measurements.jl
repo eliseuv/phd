@@ -10,7 +10,6 @@ using Statistics, DataFrames, GLM
 using ..CellularAutomata
 using ..FiniteStates
 using ..SpinModels
-using ..TimeSeries
 
 """
 ###########################################

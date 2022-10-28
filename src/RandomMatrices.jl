@@ -1,59 +1,58 @@
+@doc raw"""
+    Random Matrices
+
+
+"""
 module RandomMatrices
 
 export
-    correlated_pair, correlated_ts_matrix,
-    normalize_ts_matrix, normalize_ts_matrix!,
+    normalize_ts_matrix!, normalize_ts_matrix,
     shuffle_cols!,
     cross_correlation_matrix
 
-using Base: permutecols!!
 using Random, Statistics, Distributions, LinearAlgebra
 
-struct CorrelatedPair{S<:ValueSupport} <: Sampleable{Multivariate,S}
+"""
+    shuffle_cols!([rng=GLOBAL_RNG,] M::AbstractMatrix)
 
-    ρ::Real
-    base_dist::Distribution{Univariate,S}
+Shuffles the columns of a given matrix `M`.
+"""
+@inline shuffle_cols!(rng::AbstractRNG, M::AbstractMatrix) =
+    Base.permutecols!!(M, randperm(rng, size(M, 2)))
 
-    CorrelatedPair(ρ::Real, dist::Distribution{Univariate,S}) where {S<:ValueSupport} = new{S}(ρ, dist)
+@inline shuffle_cols!(M::AbstractMatrix) =
+    Base.permutecols!!(M, randperm(size(M, 2)))
 
+# Normalize a given time series vector and store the result in another vector
+function _normalize_ts!(x::AbstractVector, x′::AbstractVector)
+    x̄ = mean(x)
+    x′ .= (x .- x̄) ./ stdm(x, x̄, corrected=true)
 end
 
-@inline Base.length(::CorrelatedPair) = 2
-
-@inline function _rand!(rng::AbstractRNG, corr_pair::CorrelatedPair, x::AbstractVector{T}) where {T<:Real}
-    # Uncorrelated pair
-    rand!(rng, corr_pair.base_dist, x)
-    # Create correlated pair
-    θ = 0.5 * asin(corr_pair.ρ)
-    x = [x[1] * sin(θ) + x[2] * cos(θ),
-        x[1] * cos(θ) + x[2] * sin(θ)]
+# Normalize each column of a time series matrix and store the result in another matrix
+@inline function _normalize_ts_matrix!(M::AbstractMatrix, M′::AbstractMatrix)
+    for (xⱼ, x′ⱼ) ∈ zip(eachcol(M), eachcol(M′))
+        _normalize_ts!(xⱼ, x′ⱼ)
+    end
+    return M′
 end
 
 @doc raw"""
-    correlated_pair(ρ::Real, dist::Distribution=Normal())
+    normalize_ts_matrix!(M::AbstractMatrix)
 
-Generates a pair of correlated random variables.
-"""
-@inline function correlated_pair(ρ::Real, dist::Distribution=Normal())
-    # Uncorrelated pair
-    φ = rand(dist, 2)
-    # Create correlated pair
-    θ = 0.5 * asin(ρ)
-    ϕ = (φ[1] * sin(θ) + φ[2] * cos(θ),
-        φ[1] * cos(θ) + φ[2] * sin(θ))
-    return ϕ
-end
+Normalizes *inplace* a given time series matrix `M` by normalizing each of its columns (time series samples).
 
-"""
-    correlated_ts_matrix(ρ::Real, M::Integer=2, n_pairs::Integer=1, dist::Distribution=Normal())
+Its `j`-th column (`mⱼ`) becomes:
 
-Create a matrix consisting
+    ``\frac{ m_j - ⟨m_j⟩ }{ √{ ⟨m_j^2⟩ - ⟨m_j⟩^2 } }``
+
+# Arguments:
+- `M::AbstractMatrix`: `N×M` Matrix whose each of its `M` columns corresponds to a sample of a time series `Xₜ` of length `N`.
 """
-@inline correlated_ts_matrix(ρ::Real, t_max::Integer=2, n_pairs::Integer=1, dist::Distribution=Normal()) =
-    hcat([vcat(map(ϕ -> [ϕ[1] ϕ[2]], correlated_pair(ρ, dist) for _ in 1:t_max)...) for _ in 1:n_pairs]...)
+normalize_ts_matrix!(M::AbstractMatrix) = _normalize_ts_matrix!(M, M)
 
 @doc raw"""
-    normalize_ts_matrix(M_ts::AbstractMatrix)
+    normalize_ts_matrix(M::AbstractMatrix)
 
 Returns a new normalized version version of a time series matrix `M_ts` by normalizing each of its columns (time series samples).
 
@@ -62,57 +61,20 @@ Its `j`-th column (`mⱼ`) becomes:
     ``\frac{ m_j - ⟨m_j⟩ }{ √{ ⟨m_j^2⟩ - ⟨m_j⟩^2 } }``
 
 # Arguments:
-- `M_ts::AbstractMatrix`: `N×M` Matrix whose each of its `M` columns corresponds to a sample of a time series `Xₜ` of length `N`.
+- `M::AbstractMatrix`: `N×M` Matrix whose each of its `M` columns corresponds to a sample of a time series `Xₜ` of length `N`.
 """
-@inline normalize_ts_matrix(M_ts::AbstractMatrix) = hcat(
-    map(eachcol(M_ts)) do xⱼ
-        xⱼ_avg = mean(xⱼ)
-        (xⱼ .- xⱼ_avg) ./ stdm(xⱼ, xⱼ_avg, corrected=true)
-    end...)
-
-
-"""
-    shuffle_cols!(M_ts::AbstractMatrix)
-
-TBW
-"""
-@inline function shuffle_cols!(M_ts::AbstractMatrix)
-    permutecols!!(M_ts, randperm(size(M_ts, 2)))
-end
+normalize_ts_matrix(M::AbstractMatrix) = _normalize_ts_matrix!(M, similar(M))
 
 @doc raw"""
-    normalize_ts_matrix!(M_ts::AbstractMatrix)
-
-Normalizes *inplace* a given time series matrix `M_ts` by normalizing each of its columns (time series samples).
-
-Its `j`-th column (`mⱼ`) becomes:
-
-    ``\frac{ m_j - ⟨m_j⟩ }{ √{ ⟨m_j^2⟩ - ⟨m_j⟩^2 } }``
-
-# Arguments:
-- `M_ts::AbstractMatrix`: `N×M` Matrix whose each of its `M` columns corresponds to a sample of a time series `Xₜ` of length `N`.
-"""
-@inline function normalize_ts_matrix!(M_ts::AbstractMatrix)
-    for xⱼ ∈ eachcol(M_ts)
-        xⱼ_avg = mean(xⱼ)
-        xⱼ .= (xⱼ .- xⱼ_avg) ./ stdm(xⱼ, xⱼ_avg, corrected=true)
-    end
-end
-
-@doc raw"""
-    cross_correlation_matrix(M_ts::AbstractMatrix)
+    cross_correlation_matrix(M::AbstractMatrix)
 
 Cross correlation matrix `G` of a given time series matrix `M_ts`.
 
     ``G = \frac{1}{N_{samples}} M_{ts}^T M_{ts}``
 
 # Arguments:
-- `M_ts::AbstractMatrix`: `N×M` Matrix whose each of its `M` columns corresponds to a sample of a time series `Xₜ` of length `N`.
+- `M::AbstractMatrix`: `N×M` Matrix whose each of its `M` columns corresponds to a sample of a time series `Xₜ` of length `N`.
 """
-function cross_correlation_matrix(M_ts::AbstractMatrix)
-    # Number of steps = number of rows
-    n_steps = size(M_ts, 1)
-    return (1 / n_steps) .* Symmetric(transpose(M_ts) * M_ts)
-end
+@inline cross_correlation_matrix(M::AbstractMatrix) = Symmetric(M' * M) ./ size(M, 1)
 
 end
