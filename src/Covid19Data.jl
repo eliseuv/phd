@@ -130,6 +130,20 @@ function load_jhu_c19_time_series()
     return jhu_c19_join_time_series(df_dict)
 end
 
+"""
+    get_region_list(df_raw::DataFrame)
+
+Get a list with countries with data available.
+"""
+@inline get_region_list(df_raw::DataFrame) = unique(df_raw[!, :Region])
+
+"""
+    get_time_range(df_raw::DataFrame)
+
+Get the available time range.
+"""
+@inline get_time_range(df_raw::DataFrame) = Date.(names(df_raw)[5:end])
+
 
 """
     get_c19_region_time_series(df_raw::DataFrame, region::String)
