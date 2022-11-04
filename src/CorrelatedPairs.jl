@@ -30,21 +30,21 @@ struct CorrelatedPairSampler{T<:UnivariateDistribution} <: Sampleable{Multivaria
     cosθ::Real
 
     # Inner constructor
-    function CorrelatedPairSampler{T}(d::T, ρ::Real) where {T<:UnivariateDistribution}
+    function CorrelatedPairSampler{T}(ρ::Real, dist::T=Normal()) where {T<:UnivariateDistribution}
         θ = 0.5 * asin(ρ)
-        return new{T}(d, sin(θ), cos(θ))
+        return new{T}(dist, sin(θ), cos(θ))
     end
 
 end
 
-function CorrelatedPairSampler(d::T, ρ::Real; check_args::Bool=true) where {T<:UnivariateDistribution}
+function CorrelatedPairSampler(ρ::Real, dist::T=Normal(); check_args::Bool=true) where {T<:UnivariateDistribution}
     Distributions.@check_args(
         CorrelatedPairSampler,
         (ρ, -one(ρ) <= ρ <= one(ρ), "Correlation must be in the interval ρ ∈ [-1,1]."),
-        (mean(d) == zero(eltype(d)), "Base distribution must be centered."),
-        (var(d) == one(eltype(d)), "Base distribution must have unit variance."),
+        (mean(dist) == zero(eltype(dist)), "Base distribution must be centered."),
+        (var(dist) == one(eltype(dist)), "Base distribution must have unit variance."),
     )
-    return CorrelatedPairSampler{T}(d, ρ)
+    return CorrelatedPairSampler{T}(ρ, dist)
 end
 
 # function set_correlation!(corr_pair::CorrelatedPairSampler, ρ::Real)
@@ -86,15 +86,15 @@ struct CorrelatedTimeSeriesMatrixSampler <: Sampleable{Matrixvariate,Continuous}
 
     # Correlated pair generator
     corr_pair::CorrelatedPairSampler
-    # Number of time series pairs
-    n_pairs::Integer
     # Length of each time series
     t_max::Integer
+    # Number of time series pairs
+    n_pairs::Integer
 
 end
 
-CorrelatedTimeSeriesMatrixSampler(dist::UnivariateDistribution, ρ::Real, n_pairs::Integer, t_max::Integer) =
-    CorrelatedTimeSeriesMatrixSampler(CorrelatedPairSampler(dist, ρ), n_pairs, t_max)
+CorrelatedTimeSeriesMatrixSampler(ρ::Real, t_max::Integer, n_pairs::Integer, dist::UnivariateDistribution=Normal()) =
+    CorrelatedTimeSeriesMatrixSampler(CorrelatedPairSampler(ρ, dist), t_max, n_pairs)
 
 @inline Base.size(s::CorrelatedTimeSeriesMatrixSampler) = (s.t_max, 2 * s.n_pairs)
 
