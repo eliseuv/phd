@@ -8,28 +8,52 @@ using DrWatson
 @quickactivate "phd"
 
 # External libraries
-using Logging, Random, LinearAlgebra, CairoMakie
+using Logging, Random, LinearAlgebra, JLD2
 
 # Custom modules
 include("../../src/Thesis.jl")
 using .Thesis.CorrelatedPairs
 using .Thesis.RandomMatrices
+using .Thesis.DataIO
 
 # Fake command line arguments
-push!(ARGS, "1")
+# push!(ARGS, "1")
 
-const ρ = parse(Float64, ARGS[1])
-const t_max = 512
-const n_pairs = 256
-const n_samples = 512
+# Parameters to be run
+const parameters_combi::Dict{String} = Dict(
+    "rho" => parse(Float64, ARGS[1]),
+    "t_max" => 2 .^ (1:9),
+    "n_pairs" => 2 .^ (0:8),
+    "n_samples" => 8192
+)
 
-# Sampler
-spl = CorrelatedTimeSeriesMatrixSampler(ρ, t_max, n_pairs)
+# Output data path
+output_datadir = datadir("sims", "random_matrices", "corr_ts")
+mkpath(output_datadir)
 
-# Calculate eigenvalues
-λs = reduce(vcat,
-    map(eigvals ∘ cross_correlation_matrix ∘ normalize_ts_matrix!,
-        rand(spl, n_samples))) |> sort!
+# Loop on simulation parameters
+const parameters_list = dict_list(parameters_combi)
+@info "Running $(length(parameters_list)) simulations"
+for params in parameters_list
 
-hist(λs, bins=64, normalization=:pdf)
-current_figure()
+    @info params
+
+    # Fetch parameters
+    ρ = params["rho"]
+    t_max = params["t_max"]
+    n_pairs = params["n_pairs"]
+    n_samples = params["n_samples"]
+
+    # Sampler
+    spl = CorrelatedTimeSeriesMatrixSampler(ρ, t_max, n_pairs)
+
+    # Calculate eigenvalues
+    λs = reduce(vcat,
+        map(eigvals ∘ cross_correlation_matrix ∘ normalize_ts_matrix!,
+            rand(spl, n_samples))) |> sort!
+
+    # Output datafile
+    output_filepath = joinpath(output_datadir, filename("CorrTSEigvals", params))
+    save_object(output_filepath, λs)
+
+end

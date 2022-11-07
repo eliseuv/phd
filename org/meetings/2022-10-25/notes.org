@@ -14,7 +14,12 @@ Generated with given correlation:
 
 *** \(2 \times 2\) matrix
 
+*** \(N \times 2\) matrix
+
 A single peak centered at \(\lambda = 1\) for \(\rho \approx 0\), that separates into two peaks centered at \(\lambda_{\pm} = 1 \pm \rho\) as the correlation \(\rho\) increases.
+
+Mean field analysis may yield \(\lambda_{\pm} = 1 \pm \rho\).
+
 
 *** \(N \times N\) matrix
 
@@ -23,11 +28,6 @@ A single peak centered at \(\lambda = 1\) for \(\rho \approx 0\), that separates
 
 + \(\rho > 0\)
   Deviations from MP law
-
-*** \(N \times 2\) matrix
-
-Mean field analysis may yield \(\lambda_{\pm} = 1 \pm \rho\).
-
 
 ** Wishart-Laguerre distribution
 
