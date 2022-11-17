@@ -17,7 +17,7 @@ export
     # Regexes
     NUMBER_REGEXES,
     # Infer variable type from string
-    infer_type
+    infer_type, infer_type_sized
 
 @doc raw"""
     extract_val(::Val{X}) where {X}
@@ -207,6 +207,21 @@ function infer_type(value::AbstractString)::Type
     end
     # If no numerical type could be inferred, return `Any`
     return Any
+end
+
+function infer_type_sized(value::AbstractString)::Type
+    InferredType = infer_type(value)
+    if InferredType == Integer
+        return Int64
+    elseif InferredType == AbstractFloat
+        return Float64
+    elseif InferredType == Complex{Integer}
+        return Complex{Int64}
+    elseif InferredType == Complex{AbstractFloat}
+        return Complex{Float64}
+    else
+        return InferredType
+    end
 end
 
 end

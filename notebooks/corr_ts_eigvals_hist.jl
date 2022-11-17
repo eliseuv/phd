@@ -20,12 +20,24 @@ begin
 	import Pkg
 	Pkg.activate(Base.current_project())
 	# Libraries
-	using PlutoUI, Random, LinearAlgebra, CairoMakie
+	using PlutoUI, JLD2, CairoMakie
 	# Custom modules
 	include("/home/evf/.julia/pluto_notebooks/ingredients.jl")
 	Thesis = ingredients("../src/Thesis.jl").Thesis
-	import .Thesis.CorrelatedPairs
-	import .Thesis.RandomMatrices
+	import .Thesis.DataIO
+end
+
+# ╔═╡ 706cb414-a41b-4460-b62d-8183a5e472d6
+begin
+	datadir = "../data/sims/random_matrices/corr_ts"
+	filenames = DataIO.find_datafiles_with_params(datadir, "CorrTSEigvals")
+	params_sets = Dict{String,Set}()
+	for filename ∈ filenames
+		for (key, value) ∈ DataIO.parse_filename(filename)
+			
+		
+	end
+	datafiles = map(filename -> joinpath(datadir, filename), filenames)
 end
 
 # ╔═╡ 4674c299-ef79-4894-80f2-47e6967b9f73
@@ -62,6 +74,7 @@ hist(λs, bins=64, normalization=:pdf;
 
 # ╔═╡ Cell order:
 # ╠═60ac48d6-5bd4-11ed-3996-0deba86d5f1f
-# ╠═4674c299-ef79-4894-80f2-47e6967b9f73
+# ╠═706cb414-a41b-4460-b62d-8183a5e472d6
+# ╟─4674c299-ef79-4894-80f2-47e6967b9f73
 # ╠═2ed14f0b-be40-43f2-8c07-20a33d5d98fc
 # ╠═584546b9-15c0-49f6-91af-5aeb6eb17c79

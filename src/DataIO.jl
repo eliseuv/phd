@@ -6,7 +6,7 @@ Utilities for reading and writing to data files.
 module DataIO
 
 export
-    # Print in script as if in the REPL
+    # Print in script the same way as in the REPL
     script_show,
     # File extensions
     get_extension,
@@ -14,11 +14,11 @@ export
     # Filanames
     filename,
     parse_filename,
-    # Check parameters dicts
+    # Check parameters
     check_params,
     find_datafiles_with_params,
-    # Locks
-    filepath_lock, get_lock, remove_lock
+    # File locks
+    get_lock, remove_lock
 
 using Logging, SHA, JLD2
 
@@ -44,7 +44,7 @@ end
 Get the file extension from a given `filename`.
 """
 function get_extension(path::AbstractString)
-    ext = splitext(path)[2]
+    ext = splitext(path)[end]
     if ext != ""
         return ext
     else
@@ -58,7 +58,7 @@ end
 
 Keep only the files from `paths` with a given extension `ext`.
 """
-keep_extension(ext::AbstractString, paths::AbstractVector{AbstractString}) = filter(path -> (get_extension(path) == ext), paths)
+@inline keep_extension(ext::AbstractString, paths::AbstractVector{AbstractString}) = filter(path -> (get_extension(path) == ext), paths)
 
 @doc raw"""
     filename(prefix::AbstractString, params::Dict{String,Any}; sep::AbstractString = "_", ext::Union{AbstractString,Nothing} = "jld2")
@@ -113,9 +113,13 @@ Retuns a `Dict{Symbol,Any}` with keys being the names of the parameters as symbo
     ```
 """
 function parse_filename(path::AbstractString; sep::AbstractString="_")
-    filename = splitext(basename(path))[1]
+    # Discard directory path and extension
+    filename = splitext(basename(path))[begin]
+    # Split name into chunks
     namechunks = split(filename, sep)
+    # The first chunk is always the prefix
     prefix = popfirst!(namechunks)
+    # Dictionary to store parsed parameter values
     param_dict = Dict{String,Any}()
     while length(namechunks) != 0
         param = popfirst!(namechunks)
@@ -128,7 +132,7 @@ function parse_filename(path::AbstractString; sep::AbstractString="_")
             break
         end
         # Try to infer type
-        ParamType = infer_type(param_value)
+        ParamType = infer_type_sized(param_value)
         if ParamType != Any
             # Type could be inferred, parse it
             param_dict[string(param_name)] = parse(ParamType, param_value)
@@ -141,68 +145,46 @@ function parse_filename(path::AbstractString; sep::AbstractString="_")
 end
 
 @doc raw"""
-    check_params(params::Dict{String}, reqs::Dict{String})
-
-Checks if the parameters dictionary `params` satisfies the values defined in the parameters requirements dictionary `reqs`.
-"""
-function check_params(params::Dict{String}, reqs::Dict{String})
-    for (req_key, req_value) in reqs
-        if !haskey(params, req_key) || params[req_key] != req_value
-            return false
-        end
-    end
-    return true
-end
-
-@doc raw"""
     check_params(params::Dict{String}, req::Pair{String})
 
 Checks if the parameters dictionary `params` has the key-value pair specified by the pair `req`.
 """
-function check_params(params::Dict{String}, req::Pair{String})
-    (key, value) = req
-    return haskey(params, key) && params[key] == value
-end
+@inline check_params(params::Dict{String}, req::Pair{String}) =
+    let (key, value) = req
+        haskey(params, key) && params[key] == value
+    end
+
+@doc raw"""
+    check_params(params::Dict{String}, reqs::Dict{String})
+
+Checks if the parameters dictionary `params` satisfies the values defined in the parameters requirements dictionary `reqs`.
+"""
+@inline check_params(params::Dict{String}, reqs::Dict{String}) =
+    all(check_params(params, key => value) for (key, value) ∈ reqs)
 
 @doc raw"""
     check_params(params::Dict{String}, reqs...)
 
 Checks if the parameters dictionary `params` satisfies the values defined in the parameters dictionaries and pairs `reqs...`.
 """
-check_params(params::Dict{String}, reqs...) = all(x -> check_params(params, x), reqs)
+@inline check_params(params::Dict{String}, reqs...) = all(check_params(params, req) for req ∈ reqs)
 
 
 """
-    find_datafiles_with_params(datadirs::String, reqs...)
+    find_datafiles_with_params(datadir::String, reqs...)
 
-Find data files in the directory `datadirs` that have the satisfies the required parameters `reqs...`.
+Find data files in the directory `datadir` that have the satisfies the required parameters `reqs...`.
 """
-function find_datafiles_with_params(datadirs::String, prefix_req::String, reqs...)
-
-    # Selected data file paths
-    datafile_paths = String[]
-
-    # Loop on datafiles
-    for datafile_name in readdir(datadirs)
-
+@inline find_datafiles_with_params(path::AbstractString, prefix_req::String, reqs...) =
+    filter(readdir(path)) do datafile_name
         (filename_prefix, filename_params) = parse_filename(datafile_name)
-
-        # Ignore unrelated data files
-        if filename_prefix != prefix_req || !check_params(filename_params, reqs...)
-            continue
-        end
-
-        push!(datafile_paths, joinpath(datadirs, datafile_name))
+        return filename_prefix == prefix_req && check_params(filename_params, reqs...)
     end
 
-    return datafile_paths
-
-end
-
-@inline function filepath_lock(path::AbstractString)
-    path_hash = path |> sha256 |> bytes2hex
-    return "/tmp/$(path_hash).lock"
-end
+@inline filepath_lock(path::AbstractString) =
+    let path_hash = path |> sha256 |> bytes2hex
+        "/tmp/$(path_hash).lock"
+    end
 
 @inline function get_lock(path::AbstractString)
     lock_file = filepath_lock(path)
@@ -214,9 +196,9 @@ end
     touch(lock_file)
 end
 
-@inline function remove_lock(path::AbstractString)
-    lock_file = filepath_lock(path)
-    rm(lock_file, force=true)
-end
+@inline remove_lock(path::AbstractString) =
+    let lock_file = filepath_lock(path)
+        rm(lock_file, force=true)
+    end
 
 end
