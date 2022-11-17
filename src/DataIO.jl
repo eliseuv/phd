@@ -169,7 +169,6 @@ Checks if the parameters dictionary `params` satisfies the values defined in the
 """
 @inline check_params(params::Dict{String}, reqs...) = all(check_params(params, req) for req ∈ reqs)
 
-
 """
     find_datafiles_with_params(datadir::String, reqs...)
 
