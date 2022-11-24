@@ -5,15 +5,26 @@
 
 * Research
 
-**
+** Determiation coefficients
+
+  + Test more intervals for $z$ exponent Brass CA det coeff method
+    + [80-300]
+  + L = 256
+  + N_samples = 10_000
+  + p-r map
+    + Find curve of max goodness
+
+** Contact process
+
+*** TODO Implement model
+
+  + SIR
 
 * Home computer
 
 ** TODO Create precompiled julia command
 
 * IF-UFRGS computer
-
-** TODO Set up ssh daemon
 
 ** TODO Install xmonad
 

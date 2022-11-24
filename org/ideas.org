@@ -3,6 +3,12 @@
 
 #+startup: latexpreview
 
+* Generate set of time series with arbitrary correlation distribution
+
+** Using simulated annealing
+
+Possible distances to consider ([[https://www.ufrgs.br/wiki-r/index.php?title=C%C3%A1lculo_de_similaridade][Cálculo de similaridade - Cálculo de distâncias de similaridade ou dissimilaridade entre valores]])
+
 * Questions
 
 + Eigenvalue distribution for a pseudo-random matrix (chaos, logistic map)

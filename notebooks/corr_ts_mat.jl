@@ -26,10 +26,10 @@ begin
 	const ρ_dist = 2*Bernoulli(0.5) - 1
 	
 	# T ~ T_c
-	const ρ_dist = Uniform(-1, +1)
+	#const ρ_dist = Uniform(-1, +1)
 	
 	# T >> T_c
-	const ρ_dist = TruncatedNormal(0, 0.2, -1, +1)
+	#const ρ_dist = TruncatedNormal(0, 0.2, -1, +1)
 
 end
 
@@ -59,9 +59,9 @@ plot(x=λs,
 	Guide.Title("Histogram of eigenvalues"), Guide.xlabel("λ"))
 
 # ╔═╡ Cell order:
-# ╟─910c49c4-25cc-40ac-b62c-46ab7a1aefd0
+# ╠═910c49c4-25cc-40ac-b62c-46ab7a1aefd0
 # ╠═a90b8d5c-4601-4134-9871-5d952aebe5ec
 # ╠═3702c170-454a-4707-84d7-43d02befeabc
-# ╟─2daa63c8-f4ad-4fe4-9ea7-5fc31fd71708
-# ╟─9cc312b0-2534-4b31-a3bd-cb18c4e0c8c8
+# ╠═2daa63c8-f4ad-4fe4-9ea7-5fc31fd71708
+# ╠═9cc312b0-2534-4b31-a3bd-cb18c4e0c8c8
 # ╠═dcbb193e-875d-4a6a-a627-7a0293975794
