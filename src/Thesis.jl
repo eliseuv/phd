@@ -18,7 +18,7 @@ include("Covid19Data.jl")
 include("CorrelatedPairs.jl")
 
 # Random matrices utils
-include("RandomMatrices.jl")
+include("TimeSeries.jl")
 
 # Lattice geometry utils
 include("Lattices.jl")

@@ -5,7 +5,7 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ c8545b15-0456-4d24-9b50-7038a83d27ca
-using Random, Distributions, LinearAlgebra, Combinatorics, Statistics, StatsBase, Distances, Gadfly
+using Random, Distributions, LinearAlgebra, IterTools, StatsBase, Distances, Gadfly
 
 # ╔═╡ 3965f25a-451e-45ee-81f6-e99ded9d1bde
 md"""
@@ -19,20 +19,29 @@ Select parameters:
 begin
 	const n_series = 128
 	const t_max = 256
-	const n_samples = 32
+	const n_samples = 128
 end
+
+# ╔═╡ 103d471b-427f-4d6b-b2e5-418d7cf33cdd
+# ╠═╡ disabled = true
+#=╠═╡
+@inline function shift_start(M::AbstractMatrix)
+	@views for x ∈ eachcol(M)
+		x = x .- x[begin]
+	end
+	return M
+end
+  ╠═╡ =#
 
 # ╔═╡ ea9e04b5-62bf-48f5-8114-b592837f3312
 @inline function ts_correlations(M::AbstractMatrix{T}) where {T<:Number}
-    (t_max, n_series) = size(M)
-    n_vals = ((n_series - 1) * n_series) ÷ 2
-    corr_vec = Vector{T}(undef, n_vals)
-    @inbounds @views for (k, (i, j)) ∈ enumerate(combinations(1:n_series, 2))
-        x̄ᵢ = mean(M[:, i])
-        x̄ⱼ = mean(M[:, j])
-        corr_vec[k] = ((M[:, i] ⋅ M[:, j]) - (t_max * x̄ᵢ * x̄ⱼ)) / ((t_max-1)*sqrt(varm(M[:, i], x̄ᵢ) * varm(M[:, j], x̄ⱼ)))
-    end
-    return corr_vec
+	(n_rows, n_cols) = size(M)
+	n_vals = ((n_cols-1)*n_cols)÷2
+	corr_vec = Vector{T}(undef, n_vals)
+	@inbounds for (k, (i, j)) ∈ zip(1:n_vals, subsets(1:size(M, 2), Val{2}()))
+		@views corr_vec[k] = (M[:,i] ⋅ M[:,j]) / n_rows
+	end
+	return corr_vec
 end
 
 # ╔═╡ d0d6d574-667a-40c6-b05b-4936c4480bcd
@@ -94,7 +103,7 @@ function metropolis!(M_samples, β, n_iter)
 	cost_prev = cost(M_samples)
 	costs[1] = cost_prev
 	for it ∈ 1:n_iter
-		M_samples_new = map(M -> perturbate(M, 0.2), M_samples)
+		M_samples_new = map(M -> perturbate(M, 0.1), M_samples)
 		cost_new = cost(M_samples_new)
 		Δcost = cost_new - cost_prev
 		if Δcost <= 0 || exp(-β*Δcost) > rand()
@@ -106,21 +115,8 @@ function metropolis!(M_samples, β, n_iter)
 	return (M_samples, costs)
 end
 
-# ╔═╡ 9f6e4c03-cadb-46a4-b8fd-46d127f740fe
-function simulated_annealing!(M_samples, β₀, α, steps, n_iter)
-	costs = Vector{Float64}()
-	β = β₀
-	for _ ∈ 1:steps
-		M_samples, costs_new = metropolis!(M_samples, β, n_iter)
-		append!(costs, costs_new)
-		β *= α
-		println(var(mapreduce(ts_correlations, vcat, M_samples)))
-	end
-	return (M_samples, costs)
-end
-
 # ╔═╡ c58a958b-c4b1-4b64-9106-8f60c741e1b3
-M_samples_final, costs = simulated_annealing!(M_samples, 0.5, 1.1, 8, 128)
+M_samples_final, costs = metropolis!(M_samples, 2.0, 1024)
 
 # ╔═╡ c052fd78-3649-4790-856f-86c1daa46605
 plot(y=costs,
@@ -133,20 +129,19 @@ plot(x=mapreduce(ts_correlations, vcat,	M_samples_final),
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
-Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
 Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004"
+IterTools = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
-Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
-Combinatorics = "~1.0.2"
 Distances = "~0.10.7"
 Distributions = "~0.25.79"
 Gadfly = "~1.3.4"
+IterTools = "~1.4.0"
 StatsBase = "~0.33.21"
 """
 
@@ -156,7 +151,10 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.3"
 manifest_format = "2.0"
-project_hash = "ed95d60281fab8eb85d6dd4428f99b396c36eb3a"
+<<<<<<< HEAD
+project_hash = "4613e8f2991e9ee15d39d9166d6702f2ff6329f0"
+=======
+project_hash = "c71c229ad61a96d580f2455d46283fbc5998cb1b"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -169,6 +167,7 @@ deps = ["LinearAlgebra"]
 git-tree-sha1 = "195c5505521008abea5aee4f96930717958eac6f"
 uuid = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 version = "3.4.0"
+>>>>>>> ccaebbeed555e587429ab095d11166455dc6133f
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -222,16 +221,11 @@ git-tree-sha1 = "417b0ed7b8b838aa6ca0a87aadf1bb9eb111ce40"
 uuid = "5ae59095-9a9b-59fe-a467-6f913c188581"
 version = "0.12.8"
 
-[[deps.Combinatorics]]
-git-tree-sha1 = "08c8b6831dc00bfea825826be0bc8336fc369860"
-uuid = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
-version = "1.0.2"
-
 [[deps.Compat]]
 deps = ["Dates", "LinearAlgebra", "UUIDs"]
-git-tree-sha1 = "00a2cccc7f098ff3b66806862d275ca3db9e6e5a"
+git-tree-sha1 = "aaabba4ce1b7f8a9b34c015053d3b1edf60fa49c"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "4.5.0"
+version = "4.4.0"
 
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -669,9 +663,9 @@ version = "2.1.7"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "Random", "StaticArraysCore", "Statistics"]
-git-tree-sha1 = "ffc098086f35909741f71ce21d03dadf0d2bfa76"
+git-tree-sha1 = "4e051b85454b4e4f66e6a6b7bdc452ad9da3dcf6"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.5.11"
+version = "1.5.10"
 
 [[deps.StaticArraysCore]]
 git-tree-sha1 = "6b7ba252635a5eff6a0b0664a41ee140a1c9e72a"
@@ -696,9 +690,9 @@ version = "0.33.21"
 
 [[deps.StatsFuns]]
 deps = ["ChainRulesCore", "HypergeometricFunctions", "InverseFunctions", "IrrationalConstants", "LogExpFunctions", "Reexport", "Rmath", "SpecialFunctions"]
-git-tree-sha1 = "89a3bfe98f5400f4ff58bb5cd1a9e46f95d08352"
+git-tree-sha1 = "5783b877201a82fc0014cbf381e7e6eb130473a4"
 uuid = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
-version = "1.1.0"
+version = "1.0.1"
 
 [[deps.SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
@@ -756,7 +750,8 @@ version = "17.4.0+0"
 # ╠═c8545b15-0456-4d24-9b50-7038a83d27ca
 # ╟─3965f25a-451e-45ee-81f6-e99ded9d1bde
 # ╠═6e7fcfd0-f310-4213-99bc-d7f0738c9aa9
-# ╠═ea9e04b5-62bf-48f5-8114-b592837f3312
+# ╟─103d471b-427f-4d6b-b2e5-418d7cf33cdd
+# ╟─ea9e04b5-62bf-48f5-8114-b592837f3312
 # ╟─d0d6d574-667a-40c6-b05b-4936c4480bcd
 # ╠═d31749d7-278c-4be3-a4b6-836d9b194980
 # ╟─4a07dcb2-0f73-4f28-bf9b-e061fbed58f2
@@ -769,7 +764,6 @@ version = "17.4.0+0"
 # ╟─fa26b2fa-10d6-412d-a90a-6b03584828cd
 # ╠═de8be9ff-6776-4440-a9a5-7797143c75f8
 # ╠═8c7b0526-4072-4ae3-9941-819ab3eb2261
-# ╠═9f6e4c03-cadb-46a4-b8fd-46d127f740fe
 # ╠═c58a958b-c4b1-4b64-9106-8f60c741e1b3
 # ╠═c052fd78-3649-4790-856f-86c1daa46605
 # ╠═e7242a59-501d-4df4-8058-19f25a6ea9d6

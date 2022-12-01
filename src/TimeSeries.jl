@@ -1,38 +1,33 @@
 @doc raw"""
-    Random Matrices
+    Time Series
 
 
 """
-module RandomMatrices
+module TimeSeries
 
 export
-    normalize_ts_matrix!, normalize_ts_matrix,
+    normalize_ts, normalize_ts!,
+    normalize_ts_matrix, normalize_ts_matrix!,
     shuffle_cols!,
-    cross_correlation_matrix
+    cross_correlation_matrix, cross_correlation_values
 
-using Random, Statistics, Distributions, LinearAlgebra
-
-"""
-    shuffle_cols!([rng=GLOBAL_RNG,] M::AbstractMatrix)
-
-Shuffles the columns of a given matrix `M`.
-"""
-@inline shuffle_cols!(rng::AbstractRNG, M::AbstractMatrix) =
-    Base.permutecols!!(M, randperm(rng, size(M, 2)))
-
-@inline shuffle_cols!(M::AbstractMatrix) =
-    Base.permutecols!!(M, randperm(size(M, 2)))
+using Random, Combinatorics, Statistics, Distributions, LinearAlgebra
 
 # Normalize a given time series vector and store the result in another vector
-function _normalize_ts!(x::AbstractVector, x′::AbstractVector)
+@inline function _normalize_ts!(x′::AbstractVector, x::AbstractVector)
     x̄ = mean(x)
     x′ .= (x .- x̄) ./ stdm(x, x̄, corrected=true)
+    return x′
 end
 
+@inline normalize_ts(x::AbstractVector) = _normalize_ts!(similar(x), x)
+
+@inline normalize_ts!(x::AbstractVector) = _normalize_ts!(x, x)
+
 # Normalize each column of a time series matrix and store the result in another matrix
-@inline function _normalize_ts_matrix!(M::AbstractMatrix, M′::AbstractMatrix)
-    for (xⱼ, x′ⱼ) ∈ zip(eachcol(M), eachcol(M′))
-        _normalize_ts!(xⱼ, x′ⱼ)
+@inline function _normalize_ts_matrix!(M′::AbstractMatrix, M::AbstractMatrix)
+    for (x′ⱼ, xⱼ) ∈ zip(eachcol(M′), eachcol(M))
+        _normalize_ts!(x′ⱼ, xⱼ)
     end
     return M′
 end
@@ -63,7 +58,18 @@ Its `j`-th column (`mⱼ`) becomes:
 # Arguments:
 - `M::AbstractMatrix`: `N×M` Matrix whose each of its `M` columns corresponds to a sample of a time series `Xₜ` of length `N`.
 """
-normalize_ts_matrix(M::AbstractMatrix) = _normalize_ts_matrix!(M, similar(M))
+normalize_ts_matrix(M::AbstractMatrix) = _normalize_ts_matrix!(similar(M), M)
+
+"""
+    shuffle_cols!([rng=GLOBAL_RNG,] M::AbstractMatrix)
+
+Shuffles the columns of a given matrix `M`.
+"""
+@inline shuffle_cols!(rng::AbstractRNG, M::AbstractMatrix) =
+    Base.permutecols!!(M, randperm(rng, size(M, 2)))
+
+@inline shuffle_cols!(M::AbstractMatrix) =
+    Base.permutecols!!(M, randperm(size(M, 2)))
 
 @doc raw"""
     cross_correlation_matrix(M::AbstractMatrix)
@@ -76,5 +82,17 @@ Cross correlation matrix `G` of a given time series matrix `M_ts`.
 - `M::AbstractMatrix`: `N×M` Matrix whose each of its `M` columns corresponds to a sample of a time series `Xₜ` of length `N`.
 """
 @inline cross_correlation_matrix(M::AbstractMatrix) = Symmetric(M' * M) ./ size(M, 1)
+
+@inline function cross_correlation_values(M::AbstractMatrix{T}) where {T<:Number}
+    (t_max, n_series) = size(M)
+    n_vals = ((n_series - 1) * n_series) ÷ 2
+    corr_vec = Vector{T}(undef, n_vals)
+    @inbounds @views for (k, (i, j)) ∈ enumerate(combinations(1:n_series, 2))
+        x̄ᵢ = mean(M[:, i])
+        x̄ⱼ = mean(M[:, j])
+        corr_vec[k] = (M[:, i] ⋅ M[:, j] - t_max * x̄ᵢ * x̄ⱼ) / sqrt(varm(M[:, i], x̄ᵢ) * varm(M[:, j], x̄ⱼ))
+    end
+    return corr_vec
+end
 
 end
