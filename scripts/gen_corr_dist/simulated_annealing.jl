@@ -89,6 +89,7 @@ function simulated_annealing!(M_ts, β₀, α, n_steps, n_iter)
     costs = Vector{Float64}()
     β = β₀
     for sp ∈ 1:n_steps
+        @show sp
         (means_st, variances_st, costs_st) = metropolis!(M_ts, β, n_iter)
         append!(betas, fill(β, n_iter + 1))
         append!(means, means_st)
@@ -115,7 +116,8 @@ const n_iter = 1024
 # Generate time series matrix
 M_ts = rand(Normal(), t_max, n_series)
 
+println("Starting simulated annealing...")
 betas, means, variances, costs = simulated_annealing!(M_ts, β₀, α, n_steps, n_iter)
 
-CSV.write(datadir("test.csv"),
+CSV.write(datadir("gen_corr_dist_uniform_chisq_sa.csv"),
     DataFrame(betas=betas, means=means, variances=variances, costs=costs))
