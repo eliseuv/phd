@@ -108,6 +108,16 @@ function simulated_annealing!(M_ts::AbstractMatrix{<:Real}, β₀::Real, α::Rea
     return (betas, means, variances, costs)
 end
 
+macro funcname(func::Symbol)
+    func_str = string(eval(func))
+    return :($func_str)
+end
+
+macro strtofunc(funcname)
+    func = Symbol(eval(funcname))
+    return :($func)
+end
+
 # Target correlation distribution
 # const ρ_dist = Uniform(-1.0, 1.0)
 # Time series matrix
@@ -117,19 +127,14 @@ const t_max = 256
 const γ = 0.1
 const σ = 0.3
 const n_bins = 128
-const dist = chisq_dist
+const dist_str = ARGS[1]
+const dist = @strtofunc(dist_str)
 # Simulated annealing parameters
 const β₀ = 0.5
 const α = 1.1
 const β_F = 2.5
 const n_steps = ceil(Int64, log(β_F / β₀) / log(α))
 const n_iter = 1024
-
-macro funcname(func::Symbol)
-    func_str = string(eval(func))
-    return :($func_str)
-end
-const dist_str = @funcname dist
 
 # Generate time series matrix
 M_ts = rand(Normal(), t_max, n_series)
