@@ -14,75 +14,83 @@ include("../../src/Thesis.jl")
 using .Thesis.TimeSeries
 
 # Cost calculation
-@inline function cost(M_ts, ρ_dist::UnivariateDistribution)
-    hist = normalize(fit(Histogram, cross_correlation_values(M_ts), nbins=128), mode=:pdf)
-    x_target = map(x -> pdf(ρ_dist, x), hist.edges[begin][begin:end-1])
-    x_emp = hist.weights
-    chisq_dist(x_emp, x_target)
-end
+# @inline function cost(M_ts, ρ_dist::UnivariateDistribution)
+#     hist = normalize(fit(Histogram, cross_correlation_values(M_ts), nbins=128), mode=:pdf)
+#     x_target = map(x -> pdf(ρ_dist, x), hist.edges[begin][begin:end-1])
+#     x_emp = hist.weights
+#     chisq_dist(x_emp, x_target)
+# end
 
-@inline function cost_to_uniform(M_ts)
-    n_bins = 128
-    hist = normalize(fit(Histogram, cross_correlation_values(M_ts), nbins=n_bins), mode=:pdf)
+# @inline function cost_to_uniform(M_ts)
+#     n_bins = 128
+#     hist = normalize(fit(Histogram, cross_correlation_values(M_ts), nbins=n_bins), mode=:pdf)
+#     x_target = fill(0.5, n_bins)
+#     x_emp = hist.weights
+#     chisq_dist(x_emp, x_target)
+# end
+
+@inline function distance_to_uniform(values::AbstractVector{<:Real}, n_bins::Integer, dist::F) where {F<:Function}
+    hist = normalize(fit(Histogram, values, range(extrema(values)..., length=n_bins + 1)), mode=:pdf)
     x_target = fill(0.5, n_bins)
     x_emp = hist.weights
-    chisq_dist(x_emp, x_target)
+    return dist(x_emp, x_target)
 end
 
-@inline function stats_and_cost_to_uniform(M_ts, n_bins)
-    corr_vals = cross_correlation_values(M_ts)
-    μ = mean(corr_vals)
-    σ² = varm(corr_vals, μ)
-    hist = normalize(fit(Histogram, corr_vals, range(minimum(corr_vals), stop=maximum(corr_vals), length=n_bins + 1)), mode=:pdf)
-    x_target = fill(0.5, n_bins)
-    x_emp = hist.weights
-    cost = chisq_dist(x_emp, x_target)
-    return (μ, σ², cost)
-end
+# @inline function perturbate!(M_ts::AbstractMatrix{<:Real}, k::Integer, σ::Real)
+#     @views M_ts[:, k] = M_ts[:, k] + rand(Normal(0.0, σ), size(M_ts, 1))
+# end
 
-@inline function perturbate!(M_ts, k, σ)
-    @views M_ts[:, k] = M_ts[:, k] + rand(Normal(0.0, σ), size(M_ts, 1))
+@inline function perturbate!(M_ts′::AbstractMatrix{<:Real}, M_ts::AbstractMatrix{<:Real}, g::Integer, σ::Real)
+    t_max, n_series = size(M_ts′)
+    for j ∈ 1:n_series
+        for i ∈ sample(1:t_max, g, replace=false)
+            M_ts′[i, j] = M_ts + randn() * σ
+        end
+    end
 end
 
 # Metropolis sampling applied
-function metropolis!(M_ts, β, n_iter)
-    n_series = size(M_ts, 2)
-    n_bins = 128
-    M_ts′ = deepcopy(M_ts)
+function metropolis!(M_ts::AbstractMatrix{<:Real}, β::Real, n_iter::Integer;
+    γ::Real=0.1, σ::Real=0.3, n_bins::Integer=128, dist::F=chisq_dist) where {F<:Function}
+    t_max, n_series = size(M_ts)
+    g = ceil(Int64, γ * t_max)
     # Vector to store measurements at each iteration
     costs = Vector{Float64}(undef, n_iter + 1)
     means = Vector{Float64}(undef, n_iter + 1)
     variances = Vector{Float64}(undef, n_iter + 1)
-    # Calculate initial cost
-    μ, σ², cost = stats_and_cost_to_uniform(M_ts, n_bins)
-    costs[1] = cost
-    means[1] = μ
-    variances[1] = σ²
+    # Calculate initial distribution
+    corr_vals = cross_correlation_values(M_ts)
+    # Calculate initial values
+    costs[1] = distance_to_uniform(corr_vals, n_bins, dist)
+    means[1] = mean(corr_vals)
+    variances[1] = varm(corr_vals, means[1])
+    # Iterations loop
+    M_ts_prev = deepcopy(M_ts)
     for it ∈ 2:n_iter+1
-        for k ∈ rand(1:n_series, n_series)
-            perturbate!(M_ts′, k, 0.1)
-            μ, σ², cost = stats_and_cost_to_uniform(M_ts′, n_bins)
-            Δcost = cost - costs[it-1]
-            # Metropolis prescription
-            @views if Δcost <= 0 || exp(-β * Δcost) > rand()
-                # Accept
-                M_ts[:, k] .= M_ts′[:, k]
-                means[it] = μ
-                variances[it] = σ²
-                costs[it] = cost
-            else
-                # Reject
-                M_ts′[:, k] .= M_ts[:, k]
-                means[it] = means[it-1]
-                variances[it] = variances[it-1]
-                costs[it] = costs[it-1]
-            end
+        perturbate!(M_ts, M_ts_prev, g, σ)
+        corr_vals = cross_correlation_values(M_ts)
+        cost = distance_to_uniform(corr_vals, n_bins, dist)
+        Δcost = cost - costs[it-1]
+        # Metropolis prescription
+        @views if Δcost <= 0 || exp(-β * Δcost) > rand()
+            # Accept
+            copy!(M_ts_prev, M_ts)
+            means[it] = mean(corr_vals)
+            variances[it] = varm(corr_vals, means[it])
+            costs[it] = cost
+        else
+            # Reject
+            copy!(M_ts, M_ts_prev)
+            means[it] = means[it-1]
+            variances[it] = variances[it-1]
+            costs[it] = costs[it-1]
         end
     end
     return (means, variances, costs)
 end
 
-function simulated_annealing!(M_ts, β₀, α, n_steps, n_iter)
+function simulated_annealing!(M_ts::AbstractMatrix{<:Real}, β₀::Real, α::Real, n_steps::Integer, n_iter::Integer;
+    γ::Real=0.1, σ::Real=0.3, n_bins::Integer=128, dist::F=chisq_dist) where {F<:Function}
     betas = Vector{Float64}()
     means = Vector{Float64}()
     variances = Vector{Float64}()
@@ -90,7 +98,7 @@ function simulated_annealing!(M_ts, β₀, α, n_steps, n_iter)
     β = β₀
     for sp ∈ 1:n_steps
         @show sp
-        (means_st, variances_st, costs_st) = metropolis!(M_ts, β, n_iter)
+        (means_st, variances_st, costs_st) = metropolis!(M_ts, β, n_iter, γ=γ, σ=σ, n_bins=n_bins, dist=dist)
         append!(betas, fill(β, n_iter + 1))
         append!(means, means_st)
         append!(variances, variances_st)
@@ -100,12 +108,16 @@ function simulated_annealing!(M_ts, β₀, α, n_steps, n_iter)
     return (betas, means, variances, costs)
 end
 
-# Parameters
+# Target correlation distribution
+# const ρ_dist = Uniform(-1.0, 1.0)
 # Time series matrix
 const n_series = 128
 const t_max = 256
-# Target correlation distribution
-# const ρ_dist = Uniform(-1.0, 1.0)
+# Perturbation
+const γ = 0.1
+const σ = 0.3
+const n_bins = 128
+const dist = chisq_dist
 # Simulated annealing parameters
 const β₀ = 0.5
 const α = 1.1
@@ -113,11 +125,17 @@ const β_F = 2.5
 const n_steps = ceil(Int64, log(β_F / β₀) / log(α))
 const n_iter = 1024
 
+macro funcname(func::Symbol)
+    func_str = string(eval(func))
+    return :($func_str)
+end
+const dist_str = @funcname dist
+
 # Generate time series matrix
 M_ts = rand(Normal(), t_max, n_series)
 
 println("Starting simulated annealing...")
-betas, means, variances, costs = simulated_annealing!(M_ts, β₀, α, n_steps, n_iter)
+betas, means, variances, costs = simulated_annealing!(M_ts, β₀, α, n_steps, n_iter, γ=γ, σ=σ, n_bins=n_bins, dist=dist)
 
-CSV.write(datadir("gen_corr_dist_uniform_chisq_sa.csv"),
+CSV.write(datadir("GenUniformCorrDistSA_dist=" * dist_str * ".csv"),
     DataFrame(betas=betas, means=means, variances=variances, costs=costs))
