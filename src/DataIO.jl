@@ -11,7 +11,7 @@ export
     # File extensions
     get_extension,
     keep_extension,
-    # Filanames
+    # Filenames
     filename,
     parse_filename,
     # Check parameters
@@ -54,20 +54,25 @@ function get_extension(path::AbstractString)
 end
 
 """
-    keep_file_extension(ext::AbstractString, paths::AbstractVector{AbstractString})
+    keep_extension(ext::AbstractString, paths::AbstractVector{<:AbstractString})
 
 Keep only the files from `paths` with a given extension `ext`.
 """
-@inline keep_extension(ext::AbstractString, paths::AbstractVector{AbstractString}) = filter(path -> (get_extension(path) == ext), paths)
+@inline function keep_extension(ext::AbstractString, paths::AbstractVector{<:AbstractString})
+    if !startswith(ext, '.')
+        ext = '.' * ext
+    end
+    return filter(path -> (get_extension(path) == ext), paths)
+end
 
 @doc raw"""
     filename(prefix::AbstractString, params::Dict{String,Any}; sep::AbstractString = "_", ext::Union{AbstractString,Nothing} = "jld2")
 
-Generate a filname give an `prefix` a dictionary of parameters `params` and a file extension `ext`.
+Generate a filename give an `prefix` a dictionary of parameters `params` and a file extension `ext`.
 
 Each parameter is written as `param_name=param_value` and separated by a `sep` string.
 
-The dot `.` in the extension can be ommited: `ext=".csv"` and `ext="csv"` are equivalent.
+The dot `.` in the extension can be omitted: `ext=".csv"` and `ext="csv"` are equivalent.
 
 The default file extension is `.jld2`.
 To create a file without extension, use either `ext=nothing` or `ext=""`.
@@ -93,7 +98,7 @@ end
 @doc raw"""
     parse_filename(path::AbstractString; sep::AbstractString = "_")
 
-Attempts to parse paramenters in name of file given by `path` using `sep` as parameter separator.
+Attempts to parse parameters in name of file given by `path` using `sep` as parameter separator.
 
 It assumes the following pattern for the filename (using the default separator `"_"`):
     `SomePrefix_first_param=foo_second_param=42_third_param=3.14.ext`
