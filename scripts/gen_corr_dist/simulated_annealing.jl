@@ -130,11 +130,11 @@ const n_bins = 128
 const dist_str = ARGS[1]
 const dist = @strtofunc(dist_str)
 # Simulated annealing parameters
-const β₀ = 0.5
+const β₀ = 0.1
 const α = 1.1
-const β_F = 2.5
+const β_F = 10.0
 const n_steps = ceil(Int64, log(β_F / β₀) / log(α))
-const n_iter = 1024
+const n_iter = 8192
 
 # Generate time series matrix
 M_ts = rand(Normal(), t_max, n_series)
