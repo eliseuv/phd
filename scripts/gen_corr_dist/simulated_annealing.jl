@@ -29,7 +29,7 @@ using .Thesis.TimeSeries
 #     chisq_dist(x_emp, x_target)
 # end
 
-@inline function distance_to_uniform(values::AbstractVector{<:Real}, n_bins::Integer, dist::F) where {F<:Function}
+@inline function distance_to_uniform(values::AbstractVector{<:Real}, n_bins::Integer, dist::F) where {F}
     hist = normalize(fit(Histogram, values, range(extrema(values)..., length=n_bins + 1)), mode=:pdf)
     x_target = fill(0.5, n_bins)
     x_emp = hist.weights
@@ -44,14 +44,14 @@ end
     t_max, n_series = size(M_ts′)
     for j ∈ 1:n_series
         for i ∈ sample(1:t_max, g, replace=false)
-            M_ts′[i, j] = M_ts + randn() * σ
+            M_ts′[i, j] = M_ts[i, j] + randn() * σ
         end
     end
 end
 
 # Metropolis sampling applied
 function metropolis!(M_ts::AbstractMatrix{<:Real}, β::Real, n_iter::Integer;
-    γ::Real=0.1, σ::Real=0.3, n_bins::Integer=128, dist::F=chisq_dist) where {F<:Function}
+    γ::Real=0.1, σ::Real=0.3, n_bins::Integer=128, dist::F=chisq_dist) where {F}
     t_max, n_series = size(M_ts)
     g = ceil(Int64, γ * t_max)
     # Vector to store measurements at each iteration
@@ -90,7 +90,7 @@ function metropolis!(M_ts::AbstractMatrix{<:Real}, β::Real, n_iter::Integer;
 end
 
 function simulated_annealing!(M_ts::AbstractMatrix{<:Real}, β₀::Real, α::Real, n_steps::Integer, n_iter::Integer;
-    γ::Real=0.1, σ::Real=0.3, n_bins::Integer=128, dist::F=chisq_dist) where {F<:Function}
+    γ::Real=0.1, σ::Real=0.3, n_bins::Integer=128, dist::F=chisq_dist) where {F}
     betas = Vector{Float64}()
     means = Vector{Float64}()
     variances = Vector{Float64}()
