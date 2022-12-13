@@ -137,6 +137,7 @@ const n_steps = ceil(Int64, log(β_F / β₀) / log(α))
 const n_iter = 8192
 
 const output_datafile = "GenUniformCorrDistSA_gamma=$(γ)_sigma=$(σ)_dist=$(dist_str).csv"
+println(output_datafile)
 
 # Generate time series matrix
 M_ts = rand(Normal(), t_max, n_series)
