@@ -124,8 +124,8 @@ end
 const n_series = 128
 const t_max = 256
 # Perturbation
-const γ = ARGS[1]
-const σ = ARGS[2]
+const γ = parse(Float64, ARGS[1])
+const σ = parse(Float64, ARGS[2])
 const n_bins = 128
 const dist_str = ARGS[3]
 const dist = @strtofunc(dist_str)
