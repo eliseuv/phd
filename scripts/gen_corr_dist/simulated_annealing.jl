@@ -124,10 +124,10 @@ end
 const n_series = 128
 const t_max = 256
 # Perturbation
-const γ = 0.1
-const σ = 0.3
+const γ = ARGS[1]
+const σ = ARGS[2]
 const n_bins = 128
-const dist_str = ARGS[1]
+const dist_str = ARGS[3]
 const dist = @strtofunc(dist_str)
 # Simulated annealing parameters
 const β₀ = 0.1
@@ -136,11 +136,13 @@ const β_F = 10.0
 const n_steps = ceil(Int64, log(β_F / β₀) / log(α))
 const n_iter = 8192
 
+const output_datafile = "GenUniformCorrDistSA_gamma=$(γ)_sigma=$(σ)_dist=$(dist_str).csv"
+
 # Generate time series matrix
 M_ts = rand(Normal(), t_max, n_series)
 
 println("Starting simulated annealing...")
 betas, means, variances, costs = simulated_annealing!(M_ts, β₀, α, n_steps, n_iter, γ=γ, σ=σ, n_bins=n_bins, dist=dist)
 
-CSV.write(datadir("GenUniformCorrDistSA_dist=" * dist_str * ".csv"),
+CSV.write(datadir(output_datafile),
     DataFrame(betas=betas, means=means, variances=variances, costs=costs))
