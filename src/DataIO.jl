@@ -12,15 +12,13 @@ export
     get_extension,
     keep_extension,
     # Filenames
-    filename,
+    filename, filename_vars,
     parse_filename,
     # Check parameters
     check_params,
-    find_datafiles,
-    # File locks
-    get_lock, remove_lock
+    find_datafiles
 
-using Logging, SHA, JLD2
+using Logging
 
 using ..Metaprogramming
 
@@ -60,6 +58,22 @@ function filename(prefix::AbstractString, params...; sep::AbstractString="_", ex
     filename = prefix
     # Parameters
     filename *= sep * join(map(p -> params_str(p, sep=sep), [params...]), sep)
+    # Extension
+    if !isnothing(ext) && ext != ""
+        if ext[begin] == '.'
+            filename *= ext
+        else
+            filename *= '.' * ext
+        end
+    end
+    return filename
+end
+
+function filename_vars(prefix::AbstractString, vars...; sep::AbstractString="_", ext::AbstractString="jld2")
+    # Prefix
+    filename = prefix
+    # Parameters
+    # filename *= sep * join([name * "=" * value for (name, value) ∈ @varsdict(vars...)], sep)
     # Extension
     if !isnothing(ext) && ext != ""
         if ext[begin] == '.'
@@ -205,25 +219,5 @@ Find data files in the directory `datadir` that have the satisfies the required 
     fs -> keep_extension(ext, fs) |>
           fs -> map(f -> DataFile(f, sep=sep), fs) |>
                 dfs -> filter(df -> df.prefix == prefix && check_params(df.params, reqs...), dfs)
-
-@inline filepath_lock(path::AbstractString) =
-    let path_hash = path |> sha256 |> bytes2hex
-        "/tmp/$(path_hash).lock"
-    end
-
-@inline function get_lock(path::AbstractString)
-    lock_file = filepath_lock(path)
-    # Wait if file is already locked
-    while isfile(lock_file)
-        sleep(0.001)
-    end
-    # Once file unlock create lock
-    touch(lock_file)
-end
-
-@inline remove_lock(path::AbstractString) =
-    let lock_file = filepath_lock(path)
-        rm(lock_file, force=true)
-    end
 
 end

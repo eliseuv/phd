@@ -7,7 +7,7 @@ using DrWatson
 @quickactivate "phd"
 
 # External libraries
-using Logging, LinearAlgebra, Statistics, StatsBase, Distributions, Distances, DataFrames, CSV
+using Logging, LinearAlgebra, Statistics, StatsBase, Distributions, Distances, DataFrames, CSV, JLD2
 
 # Custom modules
 include("../../src/Thesis.jl")
@@ -187,7 +187,8 @@ const n_series = 128
 const t_max = 256
 # Perturbation
 # const γ = parse(Float64, ARGS[1])
-const σ = parse(Float64, ARGS[1])
+const run = parse(Int64, ARGS[1])
+const σ = 1.0
 const n_bins = 128
 const dist_str = ARGS[2]
 const dist = @strtofunc(dist_str)
@@ -198,7 +199,9 @@ const β_F = 100.0
 const n_steps = ceil(Int64, log(β_F / β₀) / log(α))
 const n_iter = 8192
 
-const output_datafile = filename("GenUniformCorrDistSA", "gamma" => 1, "sigma" => σ, "dist" => dist_str, ext="csv")
+const output_datafile = filename("GenUniformCorrDistSAFinalState",
+    "gamma" => 1, "sigma" => σ, "dist" => dist_str, "run" => run,
+    ext="jld2")
 println(output_datafile)
 
 # Generate time series matrix
@@ -207,5 +210,7 @@ M_ts = rand(Normal(), t_max, n_series)
 println("Starting simulated annealing...")
 betas, means, variances, costs = simulated_annealing_whole!(M_ts, β₀, α, n_steps, n_iter, σ=σ, n_bins=n_bins, dist=dist)
 
-CSV.write(datadir(output_datafile),
-    DataFrame(betas=betas, means=means, variances=variances, costs=costs))
+# CSV.write(datadir(output_datafile),
+#     DataFrame(betas=betas, means=means, variances=variances, costs=costs))
+
+jldsave(output_datafile, M_ts)

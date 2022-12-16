@@ -35,8 +35,9 @@ var_values = Vector()
 df = DataFrame()
 for datafile ∈ datafiles
 
-    if datafile.params["sigma"] % 1.0 != 0.0
+    if datafile.params["sigma"] % 1 != 0
         continue
+    end
 
     var_value = datafile.params[var_name]
     push!(var_values, var_value)

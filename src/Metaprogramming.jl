@@ -10,8 +10,8 @@ export
     extract_val,
     # Define variable
     @defvar,
-    # Print variables
-    @strvar, @strvars,
+    # Get dict of variables
+    @varsdict,
     # Special strings
     @dq_str, @sq_str, @p_str,
     # Regexes
@@ -71,64 +71,26 @@ macro defvar(name, value)
 end
 
 @doc raw"""
-    @strvar(var::Symbol)
+    @varsdict(vars::Symbol...)
 
-String representation of variable and its value.
+Returns a dictionary with variable names as keys and its values.
 
-# Example:
+# Example
     ```julia
-    julia> myvar = 3
-    julia> @strvar myvar
-    "myvar=3"
+    julia> foo=5; bar=2.3; baz="spam";
+    julia> @varsdict foo bar baz
+    Dict{String, Any} with 3 entries:
+      "bar" => 2.3
+      "baz" => "spam"
+      "foo" => 5
     ```
-
-# Arguments:
-    - `var::Symbol`: Variable with name `name` and value value`
-
-# Returns:
-    - String: `"name=value"`
-
-See also: [`@strvars`](@ref).
 """
-macro strvar(var::Symbol)
-    name_str = string(var)
-    value_str = string(eval(var))
-    return :($name_str * "=" * $value_str)
-end
-
-@doc raw"""
-    @strvars([sep::String="_"], vars::Symbol...)
-
-String representation of multiple variables.
-
-# Example:
-    ```julia
-    julia> myvar1 = "foo"
-    julia> myvar2 = 5
-    julia> @strvars "," myvar1 myvar2
-    "myvar1=foo,myvar2=5"
-    julia> @strvars myvar1 myvar2
-    "myvar1=foo_myvar2=5"
-    ```
-
-# Arguments:
-    - `sep::String`: Variable separator (default = "_")
-    - `vars::Symbol...`: Variables (names `variable1`, `variable2`, ..., `variableN` and values `value1`, `value2`, ..., `valueN`)
-
-# Retuns:
-    - String: `"variable1=value1'sep'variable2=value2'sep'...'sep'variableN=valueN"` for a given `sep='sep'`
-
-See also: [`@strvar`](@ref).
-"""
-macro strvars(sep::String, vars::Symbol...)
-    result = :(@strvar($(vars[1])))
-    for k in 2:length(vars)
-        result = :($result * $sep * @strvar($(vars[k])))
+macro varsdict(vars::Symbol...)
+    dict = Expr(:call, :Dict)
+    for var in vars
+        push!(dict.args, :($(string(var)) => $(esc(var))))
     end
-    return result
-end
-macro strvars(vars::Symbol...)
-    return :(@strvars("_", $(vars...)))
+    return dict
 end
 
 # Quote macros (Suggested by https://stackoverflow.com/a/20483464)
