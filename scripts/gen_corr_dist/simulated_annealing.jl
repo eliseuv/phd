@@ -51,7 +51,7 @@ end
 end
 
 @inline function perturbate_whole!(M_ts′::AbstractMatrix{<:Real}, M_ts::AbstractMatrix{<:Real}, σ::Real)
-    @views M_ts′ = M_ts + randn(size(M_ts)...) .* σ
+    M_ts′ .= M_ts + randn(size(M_ts′)...) .* σ
 end
 
 # Metropolis sampling applied

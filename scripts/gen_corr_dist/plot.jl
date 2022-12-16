@@ -13,7 +13,7 @@ using Logging, DataFrames, CSV, Gadfly, Cairo
 include("../../src/Thesis.jl")
 using .Thesis.DataIO
 
-const params_req = Dict("dist" => "nrmsd", "gamma" => 0.9)
+const params_req = Dict("dist" => "nrmsd", "gamma" => 1)
 
 # Get datafiles
 datafiles =
