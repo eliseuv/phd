@@ -16,7 +16,7 @@ export
     parse_filename,
     # Check parameters
     check_params,
-    find_datafiles_with_params,
+    find_datafiles,
     # File locks
     get_lock, remove_lock
 
@@ -38,37 +38,15 @@ end
 
 # Filenames
 
-"""
-    get_extension(path::AbstractString)
+@inline params_str(params::Dict{String,T}; sep::AbstractString="_") where {T} = join([string(name) * "=" * string(value) for (name, value) ∈ params], sep)
 
-Get the file extension from a given `filename`.
-"""
-function get_extension(path::AbstractString)
-    ext = splitext(path)[end]
-    if ext != ""
-        return ext
-    else
-        @info "File " * "\"$path\"" * " without extension"
-        return nothing
-    end
-end
+@inline params_str(param::Pair{String,T}; sep::AbstractString="_") where {T} = string(param.first) * "=" * string(param.second)
 
-"""
-    keep_extension(ext::AbstractString, paths::AbstractVector{<:AbstractString})
-
-Keep only the files from `paths` with a given extension `ext`.
-"""
-@inline function keep_extension(ext::AbstractString, paths::AbstractVector{<:AbstractString})
-    if !startswith(ext, '.')
-        ext = '.' * ext
-    end
-    return filter(path -> (get_extension(path) == ext), paths)
-end
 
 @doc raw"""
-    filename(prefix::AbstractString, params::Dict{String,Any}; sep::AbstractString = "_", ext::Union{AbstractString,Nothing} = "jld2")
+    filename(prefix::AbstractString, params...; sep::AbstractString="_", ext::AbstractString="jld2")
 
-Generate a filename give an `prefix` a dictionary of parameters `params` and a file extension `ext`.
+Generate a filename give an `prefix`, dictionaries of parameters, or pairs `params...` and a file extension `ext`.
 
 Each parameter is written as `param_name=param_value` and separated by a `sep` string.
 
@@ -77,19 +55,17 @@ The dot `.` in the extension can be omitted: `ext=".csv"` and `ext="csv"` are eq
 The default file extension is `.jld2`.
 To create a file without extension, use either `ext=nothing` or `ext=""`.
 """
-function filename(prefix::AbstractString, params::Dict{String}; sep::AbstractString="_", ext::Union{AbstractString,Nothing}="jld2")
+function filename(prefix::AbstractString, params...; sep::AbstractString="_", ext::AbstractString="jld2")
     # Prefix
     filename = prefix
-    # Parameters in alphabetical order
-    for (param_name, param_value) in sort(collect(params), by=x -> x.first)
-        filename = filename * sep * string(param_name) * '=' * string(param_value)
-    end
+    # Parameters
+    filename *= sep * join(map(p -> params_str(p, sep=sep), [params...]), sep)
     # Extension
     if !isnothing(ext) && ext != ""
         if ext[begin] == '.'
-            filename = filename * ext
+            filename *= ext
         else
-            filename = filename * '.' * ext
+            filename *= '.' * ext
         end
     end
     return filename
@@ -149,12 +125,52 @@ function parse_filename(path::AbstractString; sep::AbstractString="_")
     return (prefix, param_dict)
 end
 
+"""
+    get_extension(path::AbstractString)
+
+Get the file extension from a given `filename`.
+"""
+function get_extension(path::AbstractString)
+    ext = splitext(path)[end]
+    if ext != ""
+        return ext
+    else
+        @debug "File " * "\"$path\"" * " without extension"
+        return nothing
+    end
+end
+
 @doc raw"""
-    check_params(params::Dict{String}, req::Pair{String})
+    DataFile
+"""
+struct DataFile
+
+    path::AbstractString
+    ext::AbstractString
+    prefix::AbstractString
+    params::Dict{String,T} where {T}
+
+    DataFile(path::AbstractString; sep::AbstractString="_") = new(path, get_extension(path), parse_filename(path, sep=sep)...)
+end
+
+"""
+    keep_extension(ext::AbstractString, paths::AbstractVector{<:AbstractString})
+
+Keep only the files from `paths` with a given extension `ext`.
+"""
+@inline function keep_extension(ext::AbstractString, paths::AbstractVector{<:AbstractString})
+    if !startswith(ext, '.')
+        ext = '.' * ext
+    end
+    return filter(path -> (get_extension(path) == ext), paths)
+end
+
+@doc raw"""
+    check_params(params::Dict{String}, req::Pair{String,T}) where {T}
 
 Checks if the parameters dictionary `params` has the key-value pair specified by the pair `req`.
 """
-@inline check_params(params::Dict{String}, req::Pair{String}) =
+@inline check_params(params::Dict{String}, req::Pair{String,T}) where {T} =
     let (key, value) = req
         haskey(params, key) && params[key] == value
     end
@@ -164,7 +180,7 @@ Checks if the parameters dictionary `params` has the key-value pair specified by
 
 Checks if the parameters dictionary `params` satisfies the values defined in the parameters requirements dictionary `reqs`.
 """
-@inline check_params(params::Dict{String}, reqs::Dict{String}) =
+@inline check_params(params::Dict{String}, reqs::Dict{String,T}) where {T} =
     all(check_params(params, key => value) for (key, value) ∈ reqs)
 
 @doc raw"""
@@ -174,16 +190,21 @@ Checks if the parameters dictionary `params` satisfies the values defined in the
 """
 @inline check_params(params::Dict{String}, reqs...) = all(check_params(params, req) for req ∈ reqs)
 
+@doc raw"""
+    check_params(datafile::DataFile, reqs...)
 """
-    find_datafiles_with_params(datadir::String, reqs...)
+@inline check_params(datafile::DataFile, reqs...) = check_params(datafile.params, reqs...)
+
+"""
+    find_datafiles(path::AbstractString, prefix::AbstractString, reqs...; ext::AbstractString=".jld2", sep::AbstractString="_")
 
 Find data files in the directory `datadir` that have the satisfies the required parameters `reqs...`.
 """
-@inline find_datafiles_with_params(path::AbstractString, prefix_req::String, reqs...) =
-    filter(readdir(path)) do datafile_name
-        (filename_prefix, filename_params) = parse_filename(datafile_name)
-        return filename_prefix == prefix_req && check_params(filename_params, reqs...)
-    end
+@inline find_datafiles(path::AbstractString, prefix::AbstractString, reqs...; ext::AbstractString=".jld2", sep::AbstractString="_") =
+    readdir(path, join=true) |>
+    fs -> keep_extension(ext, fs) |>
+          fs -> map(f -> DataFile(f, sep=sep), fs) |>
+                dfs -> filter(df -> df.prefix == prefix && check_params(df.params, reqs...), dfs)
 
 @inline filepath_lock(path::AbstractString) =
     let path_hash = path |> sha256 |> bytes2hex

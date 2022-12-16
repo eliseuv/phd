@@ -1,4 +1,4 @@
-for (gamma, sigma, dist_str) in Iterators.product(0.1:0.1:0.9, [0.3], ["euclidean",
+distances_list = ["euclidean",
     "sqeuclidean",
     "cityblock",
     "chebyshev",
@@ -15,6 +15,7 @@ for (gamma, sigma, dist_str) in Iterators.product(0.1:0.1:0.9, [0.3], ["euclidea
     "meanad",
     "msd",
     "rmsd",
-    "nrmsd"])
-    println("$gamma $sigma $dist_str")
+    "nrmsd"]
+for (sigma, dist_str) in Iterators.product(0.1:0.1:3.0, "nrmsd")
+    println("$sigma $dist_str")
 end
