@@ -12,10 +12,8 @@ export
     @defvar,
     # Get dict of variables
     @varsdict,
-    # Special strings
+    # Quote strings
     @dq_str, @sq_str, @p_str,
-    # Regexes
-    NUMBER_REGEXES,
     # Infer variable type from string
     infer_type, infer_type_sized
 
@@ -26,10 +24,12 @@ Extracts the static value of a value type.
 """
 @inline @generated extract_val(::Val{X}) where {X} = X
 
+@macro strtofunc
+
 @doc raw"""
     @defvar(name, value)
 
-Define a variable with given name (stored `name`) and value (stored in `value`).
+Define a variable with given `name` and `value`.
 
 # Example:
     ```julia
@@ -159,11 +159,11 @@ Try to infer the type of the numerical value in the string `value`.
 
 If no type could be inferred, returns `Any`.
 """
-function infer_type(value::AbstractString)::Type
+function infer_type(value_str::AbstractString)::Type
     # Test numerical types in a given order
     for Type in (Integer, AbstractFloat, Complex{Integer}, Complex{AbstractFloat})
         re = Regex(p"^" * NUMBER_REGEXES[Type] * p"$")
-        if occursin(re, strip(value))
+        if occursin(re, strip(value_str))
             return Type
         end
     end
@@ -171,8 +171,8 @@ function infer_type(value::AbstractString)::Type
     return Any
 end
 
-function infer_type_sized(value::AbstractString)::Type
-    InferredType = infer_type(value)
+function infer_type_sized(value_str::AbstractString)::Type
+    InferredType = infer_type(value_str)
     if InferredType == Integer
         return Int64
     elseif InferredType == AbstractFloat
@@ -185,5 +185,8 @@ function infer_type_sized(value::AbstractString)::Type
         return InferredType
     end
 end
+
+@inline Base.parse(str::AbstractString) = parse(infer_type_sized(str), str)
+@inline Base.parse(str::AbstractString; base::Integer=10) = parse(infer_type_sized(str), str, base=base)
 
 end

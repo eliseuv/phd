@@ -170,16 +170,6 @@ function simulated_annealing_whole!(M_ts::AbstractMatrix{<:Real}, β₀::Real, �
     return (betas, means, variances, costs)
 end
 
-macro funcname(func::Symbol)
-    func_str = string(eval(func))
-    return :($func_str)
-end
-
-macro strtofunc(funcname)
-    func = Symbol(eval(funcname))
-    return :($func)
-end
-
 # Target correlation distribution
 # const ρ_dist = Uniform(-1.0, 1.0)
 # Time series matrix
@@ -191,7 +181,7 @@ const run = parse(Int64, ARGS[1])
 const σ = 1.0
 const n_bins = 128
 const dist_str = ARGS[2]
-const dist = @strtofunc(dist_str)
+const dist = eval(Meta.parse(dist_str))
 # Simulated annealing parameters
 const β₀ = 1.0
 const α = 1.1
