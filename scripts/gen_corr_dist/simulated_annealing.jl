@@ -199,9 +199,9 @@ const β_F = 100.0
 const n_steps = ceil(Int64, log(β_F / β₀) / log(α))
 const n_iter = 8192
 
-const output_datafile = filename("GenUniformCorrDistSAFinalState",
+const output_datafile = datadir(filename("GenUniformCorrDistSAFinalState",
     "gamma" => 1, "sigma" => σ, "dist" => dist_str, "run" => run,
-    ext="jld2")
+    ext="jld2"))
 println(output_datafile)
 
 # Generate time series matrix
@@ -210,7 +210,7 @@ M_ts = rand(Normal(), t_max, n_series)
 println("Starting simulated annealing...")
 betas, means, variances, costs = simulated_annealing_whole!(M_ts, β₀, α, n_steps, n_iter, σ=σ, n_bins=n_bins, dist=dist)
 
-# CSV.write(datadir(output_datafile),
+# CSV.write(output_datafile,
 #     DataFrame(betas=betas, means=means, variances=variances, costs=costs))
 
-jldsave(output_datafile, M_ts)
+@save output_datafile M_ts
