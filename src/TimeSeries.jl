@@ -7,7 +7,7 @@ module TimeSeries
 
 export
     normalize_ts, normalize_ts!,
-    normalize_ts_matrix, normalize_ts_matrix!,
+    _normalize_ts_matrix!, normalize_ts_matrix, normalize_ts_matrix!,
     shuffle_cols!,
     cross_correlation_matrix,
     cross_correlation_values, cross_correlation_values_norm
@@ -84,20 +84,19 @@ Cross correlation matrix `G` of a given time series matrix `M_ts`.
 """
 @inline cross_correlation_matrix(M::AbstractMatrix) = Symmetric(M' * M) ./ size(M, 1)
 
-@inline function cross_correlation_values(M::AbstractMatrix{T}) where {T<:Number}
+@inline function cross_correlation_values(M::AbstractMatrix{<:Number})
     (t_max, n_series) = size(M)
     n_vals = ((n_series - 1) * n_series) ÷ 2
     corr_vec = Vector{Float64}(undef, n_vals)
     @inbounds @views for (k, (i, j)) ∈ enumerate(combinations(1:n_series, 2))
         x̄ᵢ = mean(M[:, i])
         x̄ⱼ = mean(M[:, j])
-        # corr_vec[k] = (M[:, i] ⋅ M[:, j] - t_max * x̄ᵢ * x̄ⱼ) / sqrt(varm(M[:, i], x̄ᵢ) * varm(M[:, j], x̄ⱼ))
         corr_vec[k] = (((M[:, i] ⋅ M[:, j]) / t_max) - x̄ᵢ * x̄ⱼ) / sqrt(varm(M[:, i], x̄ᵢ) * varm(M[:, j], x̄ⱼ))
     end
     return corr_vec
 end
 
-@inline function cross_correlation_values_norm(M::AbstractMatrix{T}) where {T<:Number}
+@inline function cross_correlation_values_norm(M::AbstractMatrix{<:Number})
     (t_max, n_series) = size(M)
     n_vals = ((n_series - 1) * n_series) ÷ 2
     corr_vals = Vector{Float64}(undef, n_vals)
