@@ -204,6 +204,7 @@ betas, means, variances, costs = simulated_annealing_whole!(M_ts, β₀, α, n_s
 #     DataFrame(betas=betas, means=means, variances=variances, costs=costs))
 
 jldsave(output_datafile;
+    M_ts,
     df=DataFrame(betas=betas, means=means, variances=variances, costs=costs))
 
 # jldsave(output_datafile; M_ts)
