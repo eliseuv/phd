@@ -9,6 +9,13 @@
 
 Possible distances to consider ([[https://www.ufrgs.br/wiki-r/index.php?title=C%C3%A1lculo_de_similaridade][Cálculo de similaridade - Cálculo de distâncias de similaridade ou dissimilaridade entre valores]])
 
+*** Cross correlation calculation
+
+Wrong cross correlation calculation.
+
++ Use original definition and keep only the normalized time series
+
+
 * Questions
 
 + Eigenvalue distribution for a pseudo-random matrix (chaos, logistic map)

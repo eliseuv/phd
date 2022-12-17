@@ -24,8 +24,6 @@ Extracts the static value of a value type.
 """
 @inline @generated extract_val(::Val{X}) where {X} = X
 
-@macro strtofunc
-
 @doc raw"""
     @defvar(name, value)
 
