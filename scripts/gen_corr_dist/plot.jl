@@ -25,8 +25,6 @@ datafiles =
 
 @inline params_str(params::Dict{String,T}) where {T} = join([string(name) * " = " * string(value) for (name, value) ∈ params], ", ")
 
-@show datafiles
-
 # Cost or variance
 const measure = "cost"
 const var_name = "sigma"
@@ -34,6 +32,8 @@ const var_name = "sigma"
 var_values = Vector()
 df = DataFrame()
 for datafile ∈ datafiles
+
+    @show datafile
 
     var_value = datafile.params[var_name]
     push!(var_values, var_value)
@@ -55,7 +55,6 @@ plt = plot(stack(df, var_cols), x=:iter, y=:value, color=:variable,
     # Coord.cartesian(xmin=minimum(df[!, beta_col]), xmax=maximum(df[!, beta_col])),
     # Guide.xlabel("β"),
     # Scale.x_log10,
-    Scale.color_continuous(),
     Coord.cartesian(xmin=minimum(df[!, :iter]), xmax=maximum(df[!, :iter])),
     Guide.xlabel("iter"),
     Guide.ylabel("Normalized " * measure),

@@ -7,7 +7,7 @@ using DrWatson
 @quickactivate "phd"
 
 # External libraries
-using Logging, LinearAlgebra, Statistics, StatsBase, Distributions, Distances, DataFrames, CSV, JLD2
+using Logging, LinearAlgebra, Statistics, StatsBase, Distributions, Distances, DataFrames, JLD2
 
 # Custom modules
 include("../../src/Thesis.jl")
@@ -200,11 +200,6 @@ M_ts = rand(Normal(), t_max, n_series)
 println("Starting simulated annealing...")
 betas, means, variances, costs = simulated_annealing_whole!(M_ts, β₀, α, n_steps, n_iter, σ=σ, n_bins=n_bins, dist=dist)
 
-# CSV.write(output_datafile,
-#     DataFrame(betas=betas, means=means, variances=variances, costs=costs))
-
 jldsave(output_datafile;
     M_ts,
     df=DataFrame(betas=betas, means=means, variances=variances, costs=costs))
-
-# jldsave(output_datafile; M_ts)
