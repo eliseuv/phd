@@ -16,6 +16,6 @@ distances_list = ["Distances.euclidean",
     "Distances.msd",
     "Distances.rmsd",
     "Distances.nrmsd"]
-for (sigma, dist_str) in Iterators.product(0.1:0.1:2.0, distances_list)
+for (sigma, dist_str) in Iterators.product(0.01:0.01:0.09, distances_list)
     println("$sigma $dist_str")
 end
