@@ -24,11 +24,11 @@ end
 begin
 	# Required parameters
 	const params_req = Dict("gamma" => 1,
-							"sigma" => 0.02)
+							"dist" => "sqeuclidean")
 	# Measurement to plot (`costs` or `variance`)
 	const measure = "costs"
 	# Color key
-	const key_name = "dist"
+	const key_name = "sigma"
 
 	datafiles =
     	DataIO.find_datafiles(
@@ -36,6 +36,8 @@ begin
         			"GenUniformCorrDistSA",
         			params_req,
         			ext="jld2")
+	
+	sort!(datafiles, by= x -> x.params[key_name])
 end
 
 # ╔═╡ e858a553-4372-44c4-b999-5e50e6ea1566
@@ -73,15 +75,17 @@ begin
 		
 	  	df[!, "norm_"*measure] = df[!, measure] ./ df[!, measure][begin]
 
+		color = ColorSchemes.viridis[(k-1)/(length(key_values)-1)]
+
   		lines!(ax, df[!, "norm_"*measure],
 			   label=L"%$(key_value)",
-			   color=ColorSchemes.viridis[k/length(key_values)])
+			   color=(color, 0.7))
      	  	   #color=(get(ColorSchemes.viridis, normalize(key_value)), 0.5))
 
 		hist!(ax_dist, TimeSeries.cross_correlation_values_norm(M_ts),
 			  bins=128,
 			  normalization=:pdf,
-			   color=ColorSchemes.viridis[k/length(key_values)])
+			  color=(color, 0.7))
 		
 	end
 

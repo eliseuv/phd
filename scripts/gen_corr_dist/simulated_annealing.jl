@@ -183,9 +183,9 @@ const n_bins = 128
 const dist_str = ARGS[2]
 const dist = eval(Meta.parse(dist_str))
 # Simulated annealing parameters
-const β₀ = 0.01
+const β₀ = 1e-3
 const α = 1.1
-const β_F = 1000.0
+const β_F = 1e3
 const n_steps = ceil(Int64, log(β_F / β₀) / log(α))
 const n_iter = 8192
 
