@@ -98,7 +98,6 @@ function simulated_annealing!(M_ts::AbstractMatrix{<:Real}, β₀::Real, α::Rea
     costs = Vector{Float64}()
     β = β₀
     for sp ∈ 1:n_steps
-        @show sp
         (means_st, variances_st, costs_st) = metropolis!(M_ts, β, n_iter, γ=γ, σ=σ, n_bins=n_bins, dist=dist)
         append!(betas, fill(β, n_iter + 1))
         append!(means, means_st)
@@ -159,7 +158,6 @@ function simulated_annealing_whole!(M_ts::AbstractMatrix{<:Real},
     costs = Vector{Float64}()
     β = β₀
     for sp ∈ 1:n_steps
-        @show sp
         (means_st, variances_st, costs_st) = metropolis_whole!(M_ts, β, n_iter, σ=σ, n_bins=n_bins, dist=dist)
         append!(betas, fill(β, n_iter + 1))
         append!(means, means_st)
@@ -185,21 +183,22 @@ const dist = eval(Meta.parse(dist_str))
 # Simulated annealing parameters
 const β₀ = 1e-3
 const α = 1.1
-const β_F = 1e3
+const β_F = 1e4
 const n_steps = ceil(Int64, log(β_F / β₀) / log(α))
 const n_iter = 8192
+const n_runs = 64
 
 const output_datafile = datadir(filename("GenUniformCorrDistSA",
-    "gamma" => 1, "sigma" => σ, "dist" => dist_str,
+    "sigma" => σ, "dist" => dist_str,
     ext="jld2"))
 println(output_datafile)
 
-# Generate time series matrix
+# Single run
 M_ts = rand(Normal(), t_max, n_series)
-
-println("Starting simulated annealing...")
 betas, means, variances, costs = simulated_annealing_whole!(M_ts, β₀, α, n_steps, n_iter, σ=σ, n_bins=n_bins, dist=dist)
-
 jldsave(output_datafile;
     M_ts,
     df=DataFrame(betas=betas, means=means, variances=variances, costs=costs))
+
+# # Multiple runs
+# M_ts_runs =
