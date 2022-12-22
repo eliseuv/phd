@@ -186,19 +186,24 @@ const α = 1.1
 const β_F = 1e4
 const n_steps = ceil(Int64, log(β_F / β₀) / log(α))
 const n_iter = 8192
-const n_runs = 64
+const n_samples = 64
 
 const output_datafile = datadir(filename("GenUniformCorrDistSA",
-    "sigma" => σ, "dist" => dist_str,
+    "sigma" => σ, "dist" => dist_str, "n_samples" => n_samples,
     ext="jld2"))
 println(output_datafile)
 
-# Single run
-M_ts = rand(Normal(), t_max, n_series)
-betas, means, variances, costs = simulated_annealing_whole!(M_ts, β₀, α, n_steps, n_iter, σ=σ, n_bins=n_bins, dist=dist)
-jldsave(output_datafile;
-    M_ts,
-    df=DataFrame(betas=betas, means=means, variances=variances, costs=costs))
+# # Single sample
+# M_ts = rand(Normal(), t_max, n_series)
+# betas, means, variances, costs = simulated_annealing_whole!(M_ts, β₀, α, n_steps, n_iter, σ=σ, n_bins=n_bins, dist=dist)
+# jldsave(output_datafile;
+#     M_ts,
+#     df=DataFrame(betas=betas, means=means, variances=variances, costs=costs))
 
-# # Multiple runs
-# M_ts_runs =
+# Multiple samples
+M_ts_samples = [rand(Normal(), t_max, n_series) for _ ∈ 1:n_samples]
+foreach(M_ts_samples) do M_ts
+    simulated_annealing_whole!(M_ts, β₀, α, n_steps, n_iter, σ=σ, n_bins=n_bins, dist=dist)
+end
+jldsave(output_datafile;
+    M_ts_samples)
