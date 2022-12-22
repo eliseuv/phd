@@ -35,8 +35,7 @@ end
 # ╔═╡ 27a9e09a-6279-46f0-a78b-4ccbf4203dc2
 begin
 	# Required parameters
-	const params_req = Dict("gamma" => 1,
-							"dist" => "sqeuclidean")
+	const params_req = Dict("dist" => "sqeuclidean")
 	# Measurement to plot (`costs` or `variance`)
 	const measure = "costs"
 	# Color key
@@ -44,7 +43,7 @@ begin
 
 	datafiles =
     	DataIO.find_datafiles(
-        	datadir("gen_corr_dist/simulated_annealing/2022-12-19/sqeuclidean_longer"),
+        	datadir("gen_corr_dist/simulated_annealing/2022-12-22"),
         			"GenUniformCorrDistSA",
         			params_req,
         			ext="jld2")
@@ -83,8 +82,8 @@ begin
 	    			  xlabel=L"\lambda",
 					  yscale=Makie.pseudolog10)
 
-	df_final_vars = DataFrame(key_name => Float64[],
-						      "final_variance" => Float64[])
+	df_final_dist_std = DataFrame(key_name => Float64[],
+						      	  "std" => Float64[])
 
 	# Loop on datafiles
 	for (k, datafile) ∈ enumerate(datafiles)
@@ -98,27 +97,30 @@ begin
 		corr_vals = get_values(G)
 		λs = eigvals(G)
 
-		push!(df_final_vars, [key_value, var(corr_vals)])
-		
 		# Normalize measurement time series
 	  	df[!, "norm_"*measure] = df[!, measure] ./ df[!, measure][begin]
 
 		# Select color
 		color = ColorSchemes.viridis[(k-1)/(length(datafiles)-1)]
 
+		# Plot simulated annealing
   		lines!(ax, df[!, "norm_"*measure],
 			   label=L"%$(key_value)",
 			   color=(color, 0.7))
 
+		# Plot final distribution
 		hist!(ax_dist, corr_vals,
 			  bins=128,
 			  normalization=:pdf,
 			  color=(color, 0.7))
-
+		# Plot eigenvalues distribution
 		hist!(ax_eigvals, λs,
 			  bins=512,
 			  normalization=:pdf,
 			  color=(color, 0.7))
+
+		# Store final distribution
+		push!(df_final_dist_std, [key_value, std(corr_vals)])
 		
 	end
 
@@ -130,7 +132,9 @@ begin
 end
 
 # ╔═╡ 39a8f0aa-46f9-491f-b238-096c94508eab
-lines(df_final_vars[!,"sigma"], df_final_vars[!,"final_variance"])
+lines(df_final_dist_std[!,"sigma"], df_final_dist_std[!,"std"],
+	  axis=(; title="Final distribution standard deviation as a function of perturbation magnitude",
+	  		xlabel=L"$\sigma$ (perturabation)", ylabel=L"Final distribution  $\sigma$"))
 
 # ╔═╡ Cell order:
 # ╠═15e9d076-7fa5-11ed-2de4-27d5745b75fb
