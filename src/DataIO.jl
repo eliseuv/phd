@@ -36,10 +36,17 @@ end
 
 # Filenames
 
-@inline params_str(params::Dict{String,T}; sep::AbstractString="_") where {T} = join([string(name) * "=" * string(value) for (name, value) ∈ params], sep)
+@inline function params_str(param::Pair{String,T}, other_params...; params_base::Dict{String}=Dict{String,Any}(), sep::AbstractString="_") where {T}
+    params_base[param.first] = param.second
+    return params_str(other_params..., params_base=params_base, sep=sep)
+end
 
-@inline params_str(param::Pair{String,T}; sep::AbstractString="_") where {T} = string(param.first) * "=" * string(param.second)
+@inline params_str(params::Dict{String,T}, other_params...; params_base::Dict{String}=Dict{String,Any}(), sep::AbstractString="_") where {T} =
+    params_str(other_params...,
+        params_base=merge(params_base, params), sep=sep)
 
+@inline params_str(; params_base::Dict{String}=Dict{String,Any}(), sep::AbstractString="_") =
+    join([string(name) * "=" * string(value) for (name, value) ∈ sort(collect(params_base), by=x -> x[1])], sep)
 
 @doc raw"""
     filename(prefix::AbstractString, params...; sep::AbstractString="_", ext::AbstractString="jld2")
@@ -54,10 +61,8 @@ The default file extension is `.jld2`.
 To create a file without extension, use either `ext=nothing` or `ext=""`.
 """
 function filename(prefix::AbstractString, params...; sep::AbstractString="_", ext::AbstractString="jld2")
-    # Prefix
-    filename = prefix
-    # Parameters
-    filename *= sep * join(map(p -> params_str(p, sep=sep), [params...]), sep)
+    # Prefix and parameters
+    filename = prefix * sep * params_str(params..., sep=sep)
     # Extension
     if !isnothing(ext) && ext != ""
         if ext[begin] == '.'

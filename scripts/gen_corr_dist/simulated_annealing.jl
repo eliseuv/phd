@@ -37,6 +37,12 @@ using .Thesis.TimeSeries
     return dist(x_emp, x_target)
 end
 
+@inline function hist_distance(values::AbstractVector{<:Real}, hist_target::Vector{<:Real}, dist::F) where {F}
+    n_vals = length(hist_target)
+    hist_fit = normalize(fit(Histogram, values, range(-1, +1, length=n_vals)), mode=:pdf).weights
+    return dist(hist_fit, hist_target)
+end
+
 # @inline function perturbate!(M_ts::AbstractMatrix{<:Real}, k::Integer, σ::Real)
 #     @views M_ts[:, k] = M_ts[:, k] + rand(Normal(0.0, σ), size(M_ts, 1))
 # end
