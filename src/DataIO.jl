@@ -36,17 +36,11 @@ end
 
 # Filenames
 
-@inline function params_str(param::Pair{String,T}, other_params...; params_base::Dict{String}=Dict{String,Any}(), sep::AbstractString="_") where {T}
-    params_base[param.first] = param.second
-    return params_str(other_params..., params_base=params_base, sep=sep)
-end
+@inline params_str(params::Union{Dict{String},Pair{String}}...; sep::AbstractString="_") =
+    params_str(merge(map(Dict, params)...), sep=sep)
 
-@inline params_str(params::Dict{String,T}, other_params...; params_base::Dict{String}=Dict{String,Any}(), sep::AbstractString="_") where {T} =
-    params_str(other_params...,
-        params_base=merge(params_base, params), sep=sep)
-
-@inline params_str(; params_base::Dict{String}=Dict{String,Any}(), sep::AbstractString="_") =
-    join([string(name) * "=" * string(value) for (name, value) ∈ sort(collect(params_base), by=x -> x[1])], sep)
+@inline params_str(params::Dict{String}; sep::AbstractString="_") =
+    join([name * "=" * string(value) for (name, value) ∈ sort(collect(params), by=x -> x[1])], sep)
 
 @doc raw"""
     filename(prefix::AbstractString, params...; sep::AbstractString="_", ext::AbstractString="jld2")
