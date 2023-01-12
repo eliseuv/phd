@@ -77,19 +77,19 @@ const t_max = 256
 # const run = parse(Int64, ARGS[1])
 const σ = parse(Float64, ARGS[1])
 const n_bins = parse(Int64, ARGS[2])
-const hist_target = hist_V(n_bins)
+const hist_target = hist_ramp(n_bins)
 const distance_str = ARGS[3]
 const distance = eval(Meta.parse(distance_str))
 # Simulated annealing parameters
-const β₀ = 1e-3
+const β₀ = 1e-5
 const α = 1.1
-const β_F = 1e4
+const β_F = 1e5
 const n_steps = ceil(Int64, log(β_F / β₀) / log(α))
 const n_iter = 8192
 const n_samples = 64
 
 const output_datafile = datadir(filename("GenCorrDistSA",
-    "hist_target" => "V", "n_bins" => n_bins, "sigma" => σ, "distance" => distance_str, "n_samples" => n_samples,
+    "hist_target" => "ramp", "n_bins" => n_bins, "sigma" => σ, "distance" => distance_str, "n_samples" => n_samples,
     ext="jld2"))
 println(output_datafile)
 
