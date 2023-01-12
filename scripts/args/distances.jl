@@ -16,6 +16,6 @@ distances_list = ["Distances.euclidean",
     "Distances.msd",
     "Distances.rmsd",
     "Distances.nrmsd"]
-for (sigma, n_bins, dist_str) in Iterators.product(0.01:0.01:0.4, [64, 128, 256], distances_list)
+for (sigma, n_bins, dist_str) in Iterators.product(0.01:0.01:0.3, [64, 128, 256], distances_list)
     println("$sigma $n_bins $dist_str")
 end
