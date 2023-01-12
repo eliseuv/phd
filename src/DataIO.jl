@@ -68,22 +68,6 @@ function filename(prefix::AbstractString, params...; sep::AbstractString="_", ex
     return filename
 end
 
-function filename_vars(prefix::AbstractString, vars...; sep::AbstractString="_", ext::AbstractString="jld2")
-    # Prefix
-    filename = prefix
-    # Parameters
-    # filename *= sep * join([name * "=" * value for (name, value) ∈ @varsdict(vars...)], sep)
-    # Extension
-    if !isnothing(ext) && ext != ""
-        if ext[begin] == '.'
-            filename *= ext
-        else
-            filename *= '.' * ext
-        end
-    end
-    return filename
-end
-
 @doc raw"""
     parse_filename(path::AbstractString; sep::AbstractString = "_")
 

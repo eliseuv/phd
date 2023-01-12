@@ -6,7 +6,7 @@ Macros and quote macros for manipulating variables and regular expressions.
 module Metaprogramming
 
 export
-    # Extract from ::Val
+    # Extract runtime value from ::Val type
     extract_val,
     # Define variable
     @defvar,
