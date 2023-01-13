@@ -34,8 +34,12 @@ end
 
 # ╔═╡ 27a9e09a-6279-46f0-a78b-4ccbf4203dc2
 begin
+	const data_path = datadir("gen_corr_dist/simulated_annealing/2023-01-12")
+	const data_prefix = "GenCorrDistSA"
 	# Required parameters
-	const params_req = Dict("dist" => "sqeuclidean")
+	const params_req = Dict("hist_target" => "ramp",
+		"n_bins" => 128,
+		"distance" => "Distances.sqeuclidean")
 	# Measurement to plot (`costs` or `variance`)
 	const measure = "costs"
 	# Color key
@@ -43,10 +47,10 @@ begin
 
 	datafiles =
     	DataIO.find_datafiles(
-        	datadir("gen_corr_dist/simulated_annealing/2022-12-22"),
-        			"GenUniformCorrDistSA",
-        			params_req,
-        			ext="jld2")
+			data_path,
+        	data_prefix,
+        	params_req,
+        	ext="jld2")
 	
 	sort!(datafiles, by= x -> x.params[key_name])
 
@@ -67,9 +71,10 @@ begin
 	# Simulated annealing axis
 	ax = Axis(fig[1,1],
     	      title="Simulated Annealing ",
-	    	  xlabel="iter",
+	    	  xlabel=L"\beta",
     		  ylabel="Normalied cost",
-			  yscale=log10)
+			  xscale=log10,
+			  yscale=Makie.pseudolog10)
 	
 	# Final distribution axis
 	ax_dist = Axis(fig[2,1],
@@ -104,7 +109,7 @@ begin
 		color = ColorSchemes.viridis[(k-1)/(length(datafiles)-1)]
 
 		# Plot simulated annealing
-  		lines!(ax, df[!, "norm_"*measure],
+  		lines!(ax, df[!, "betas"], df[!, "norm_"*measure],
 			   label=L"%$(key_value)",
 			   color=(color, 0.7))
 

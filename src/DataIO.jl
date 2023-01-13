@@ -12,7 +12,7 @@ export
     get_extension,
     keep_extension,
     # Filenames
-    filename, filename_vars,
+    filename,
     parse_filename,
     # Check parameters
     check_params,
