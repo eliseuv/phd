@@ -3,10 +3,14 @@ using DrWatson
 
 using DataFrames, Dates
 
-include("../src/Covid19Data.jl")
-using .Covid19Data
+include("../../src/Thesis.jl")
+using .Thesis.Covid19Data
 
-df = fetch_covid19_time_series()
-gdf = groupby(df, [:Region, :Category])
+# Fetch data
+fetch_jhu_c19_time_series()
 
-ts = covid19_time_series(gdf, "Brazil", confirmed)
+# Load local files
+df_raw = load_jhu_c19_time_series()
+
+# Get time series for a specific country
+df_brazil = get_c19_region_time_series(df_raw, "Brazil")

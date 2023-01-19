@@ -32,7 +32,7 @@ end
 
 # Canonical filepath for raw time series data
 @inline jhu_c19_raw_time_series_path(cat::Covid19TimeSeriesCategory) =
-    datadir("exp_raw", "jhu_covid19", "JHU_Covid19_raw_" * string(cat) * ".csv")
+    datadir("jhu_covid19", "JHU_Covid19_raw_" * string(cat) * ".csv")
 
 """
     fetch_jhu_c19_raw_time_series([cat::Covid19TimeSeriesCategory])
