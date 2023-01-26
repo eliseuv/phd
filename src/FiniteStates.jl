@@ -38,7 +38,8 @@ using ..Lattices
 """
     AbstractSiteState
 
-Supertype for single site state.
+Supertype for single site finite state.
+
 For now it is assumed to be an `Enum`.
 """
 AbstractSiteState = Enum
@@ -107,6 +108,10 @@ we represent the state of the system simply by total number of sites in each sta
 
 The `counts` member is therefore of type `MVector{N,Integer}`,
 storing for each state instance the total number of sites in this state.
+
+    counts = (N₁, N₂, ⋯, Nₘ)
+
+The parameter `z::Integer` specifies the number of neighbors for each site.
 
 An `AbstractVector` interface for the `MeanFieldFiniteState` type can be implemented
 if we assume that the all site states are stored in a sorted vector.

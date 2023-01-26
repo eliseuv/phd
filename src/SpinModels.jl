@@ -53,6 +53,10 @@ using ..FiniteStates
     SpinHalfState::Int8 <: SingleSpinState
 
 Enumeration of possible spin `1/2` values.
+
+# Attention:
+
+    The numerical value associated with down (up) spin value is -1 (+1) and not -1/2 (+1/2).
 """
 @enumx SpinHalfState::Int8 begin
     down = -1
@@ -63,8 +67,8 @@ end
     other_spin(σ::SpinHalfState.T)
 
 Returns the complementary of the spin-`1/2` state `σ`:
-    - up    => down
-    - down  => up
+    - up   => down
+    - down => up
 """
 @inline other_spin(σ::SpinHalfState.T) = SpinHalfState.T(-Integer(σ))
 
@@ -74,7 +78,7 @@ Returns the complementary of the spin-`1/2` state `σ`:
 Flips the `i`-th spin in the spin-`1/2` state `fs`.
 """
 @inline function flip!(fs::AbstractFiniteState{SpinHalfState.T}, i)
-    @inbounds fs[i] = SpinHalfState.T(-Integer(fs[i]))
+    @inbounds fs[i] = other_spin(fs[i])
 end
 
 @doc raw"""
@@ -134,8 +138,17 @@ Always try to promote the `SingleSpinState` to whatever the other type is.
 """
 @inline Base.promote_rule(T::Type, ::Type{SingleSpinState}) = T
 
-# Arithmetic with numbers and spin states
-for op in (:*, :/, :+, :-)
+"""
+    Arithmetic of spin states
+
+First promote to whatever the other numerical type is, and then perform arithmetical operation.
+
+# Example:
+
+    SpinHalf.up + 1 =
+
+"""
+for op in (:+, :-, :*, :/)
     @eval begin
         @inline Base.$op(x::Number, σ::SingleSpinState) = $op(promote(x, σ)...)
         @inline Base.$op(σ::SingleSpinState, y::Number) = $op(promote(σ, y)...)
