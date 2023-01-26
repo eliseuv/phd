@@ -61,12 +61,13 @@ function simulated_annealing!(M_ts::AbstractMatrix{<:Real},
     hist_target::AbstractVector{<:Real},
     β₀::Real, α::Real, n_steps::Integer, n_iter::Integer;
     σ::Real=1.0, distance::F=Distances.sqeuclidean) where {F}
-    betas = Vector{Float64}(undef, n_steps + 1)
-    costs = Vector{Float64}(undef, n_steps + 1)
-    betas[1] = β₀
+    betas = Vector{Float64}(undef, n_steps)
+    costs = Vector{Float64}(undef, n_steps)
+    β = β₀
     for step ∈ 1:n_steps
+        betas[step] = β
         costs[step] = metropolis!(M_ts, hist_target, betas[step], n_iter, σ=σ, distance=distance)
-        betas[step+1] = α * betas[step]
+        β *= α
     end
     return betas, costs
 end
@@ -76,24 +77,24 @@ const n_series = 128
 const t_max = 256
 # const run = parse(Int64, ARGS[1])
 const σ = parse(Float64, ARGS[1])
-const n_bins = parse(Int64, ARGS[2])
-const hist_target = hist_V(n_bins)
-const distance_str = ARGS[3]
+const n_bins = 128
+const hist_target = hist_ramp(n_bins)
+const distance_str = ARGS[2]
+>>>>>>> 8549ac33fec7512d1afc8197d9c2406a3c2c7b8f
 const distance = eval(Meta.parse(distance_str))
 # Simulated annealing parameters
-const β₀ = 1e-5
+const β₀ = 1e1
 const α = 1.1
-const β_F = 1e5
+const β_F = 1e7
 const n_steps = ceil(Int64, log(β_F / β₀) / log(α))
 const n_iter = 8192
-const n_samples = 64
-
-const output_datafile = datadir(filename("GenCorrDistSA",
-    "hist_target" => "V", "n_bins" => n_bins, "sigma" => σ, "distance" => distance_str, "n_samples" => n_samples,
-    ext="jld2"))
-println(output_datafile)
+# const n_samples = 64
 
 # Single sample
+const output_datafile = datadir(filename("GenCorrDistSA",
+    "hist_target" => "ramp", "n_bins" => n_bins, "sigma" => σ, "distance" => distance_str,
+    ext="jld2"))
+println(output_datafile)
 M_ts = rand(Normal(), t_max, n_series)
 betas, costs = simulated_annealing!(M_ts, hist_target, β₀, α, n_steps, n_iter, σ=σ, distance=distance)
 jldsave(output_datafile;
@@ -101,6 +102,10 @@ jldsave(output_datafile;
     df=DataFrame(betas=betas, costs=costs))
 
 # # Multiple samples
+# const output_datafile = datadir(filename("GenCorrDistSA",
+#     "hist_target" => "ramp", "n_bins" => n_bins, "sigma" => σ, "distance" => distance_str, "n_samples" => n_samples,
+#     ext="jld2"))
+# println(output_datafile)
 # M_ts_samples = [rand(Normal(), t_max, n_series) for _ ∈ 1:n_samples]
 # foreach(M_ts_samples) do M_ts
 #     simulated_annealing!(M_ts, hist_target, β₀, α, n_steps, n_iter, σ=σ, distance=distance)

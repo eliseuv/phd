@@ -12,7 +12,7 @@ export
     get_extension,
     keep_extension,
     # Filenames
-    filename, filename_vars,
+    filename,
     parse_filename,
     # Check parameters
     check_params,
@@ -57,22 +57,6 @@ To create a file without extension, use either `ext=nothing` or `ext=""`.
 function filename(prefix::AbstractString, params...; sep::AbstractString="_", ext::AbstractString="jld2")
     # Prefix and parameters
     filename = prefix * sep * params_str(params..., sep=sep)
-    # Extension
-    if !isnothing(ext) && ext != ""
-        if ext[begin] == '.'
-            filename *= ext
-        else
-            filename *= '.' * ext
-        end
-    end
-    return filename
-end
-
-function filename_vars(prefix::AbstractString, vars...; sep::AbstractString="_", ext::AbstractString="jld2")
-    # Prefix
-    filename = prefix
-    # Parameters
-    # filename *= sep * join([name * "=" * value for (name, value) ∈ @varsdict(vars...)], sep)
     # Extension
     if !isnothing(ext) && ext != ""
         if ext[begin] == '.'
