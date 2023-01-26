@@ -10,12 +10,12 @@ export
     AbstractSiteState, instance_count,
     # Abstract finite state
     AbstractFiniteState,
-    name,
     state_count, state_concentration,
     set_state!, randomize_state!,
     nearest_neighbors, nearest_neighbors_sum,
     # Mean field finite state
-    MeanFieldFiniteState, split_indices, site_counts_from_split_indices,
+    MeanFieldFiniteState,
+    cumcounts, site_counts_from_cummulative_counts,
     # Concrete finite state
     ConcreteFiniteState,
     container, similar_container,
@@ -106,12 +106,18 @@ Every site interacts equally with every other site.
 Since in the mean field model there is no concept of space and locality,
 we represent the state of the system simply by total number of sites in each state.
 
-The `counts` member is therefore of type `MVector{N,Integer}`,
+The `counts` member is therefore of type `MVector{m,Integer}`,
+where `m` is the number of possible state instances,
 storing for each state instance the total number of sites in this state.
 
     counts = (N₁, N₂, ⋯, Nₘ)
 
+With the total number of sites `N` being:
+
+    N = ∑ⱼ Nⱼ
+
 The parameter `z::Integer` specifies the number of neighbors for each site.
+Needless to say `z <= N-1`.
 
 An `AbstractVector` interface for the `MeanFieldFiniteState` type can be implemented
 if we assume that the all site states are stored in a sorted vector.
@@ -123,9 +129,11 @@ Assume the possible site states are `σ₁`, `σ₂`, etc.
             |----- N₁ ----||----- N₂ ----|
             |---------------- N ----------------|
 
-The values `kᵢ` are the indices of the last 'site' with state `σᵢ` and can be calculated as the cummulative sum of the `Nᵢ`:
+The values `kᵢ` are the cumulative counts up to state `σᵢ`,
+or, alternetively, the index of the last "site" with state `σᵢ`
+and can be calculated as the cumulative sum of the `Nᵢ`:
 
-``kᵢ = ∑_{j≤i} Nⱼ ∀ i = 1, 2, …, m``
+    kᵢ = ∑_{j≤i} Nⱼ ∀ i = 1, 2, …, m
 
 Note that we always have `kₘ = N`.
 
@@ -160,40 +168,39 @@ mutable struct MeanFieldFiniteState{T} <: AbstractFiniteState{T,1}
     Construct an spin state with mean field interaction with `N` spins in a random initial state.
     """
     function MeanFieldFiniteState{T}(N::Integer, z::Integer, ::Val{:rand}) where {T<:AbstractSiteState}
-        split_indices = (sort(rand(0:N, instance_count(T) - 1))..., N)
-        counts = site_counts_from_split_indices(split_indices)
+        cumcounts = (sort(rand(0:N, instance_count(T) - 1))..., N)
+        counts = site_counts_from_cumcounts(cumcounts)
         return new{T}(counts, z)
     end
 
 end
 
-@inline name(::MeanFieldFiniteState) = "MeanField"
+"""
+    cumcounts(fs::MeanFieldFiniteState)
+
+Get a tuple with the values of the cumulative counts `kⱼ` for the mean field finite state `fs`.
+"""
+@inline cumcounts(fs::MeanFieldFiniteState) = @inbounds cumsum(fs.counts)
 
 """
-    split_indices(fs::MeanFieldFiniteState)
-
-Get a tuple with the values of the split indices `kⱼ` for the mean field finite state `fs`.
-"""
-@inline split_indices(fs::MeanFieldFiniteState) = @inbounds cumsum(fs.counts)
-
-"""
-    site_counts_from_split_indices(split_indices::AbstractVector{Integer})
+    site_counts_from_cumcounts(split_indices::AbstractVector{Integer})
 
 Get the number of spins in each state given the split indices `split_indices`.
 """
-@inline site_counts_from_split_indices(split_indices::AbstractVector{Integer}) = MVector(split_indices[begin], diff(split_indices)...)
+@inline site_counts_from_cumcounts(cumcounts::AbstractVector{Integer}) =
+    MVector(cumcounts[begin], diff(cumcounts)...)
 
 @doc raw"""
     length(fs::MeanFieldFiniteState)
 
-Get the total number of sites `N` in an mean field finite state `fs`.
+Get the total number of sites `N` in a mean field finite state `fs`.
 """
 @inline Base.length(fs::MeanFieldFiniteState) = @inbounds sum(fs.counts)
 
 @doc raw"""
     size(fs::MeanFieldFiniteState)
 
-Get the total number of sites `N` in an mean field finite state `fs`.
+Get the total number of sites `N` in a mean field finite state `fs`.
 """
 @inline Base.size(fs::MeanFieldFiniteState) = (length(fs),)
 
@@ -221,19 +228,20 @@ Index of the last site in the `AbstractVector{AbstractSiteState}` interface of `
 @doc raw"""
     getindex(fs::MeanFieldFiniteState{T}, i::Integer) where {T}
 
-Get the index of the state of the `i`-th site in the mean field finite state `fs`.
+Get the state of the `i`-th site in the mean field finite state `fs`.
 """
-@inline Base.getindex(fs::MeanFieldFiniteState, i::Integer)::Integer = @inbounds searchsortedfirst(split_indices(fs), i)
+@inline Base.getindex(fs::MeanFieldFiniteState{T}, i::Integer) where {T} = @inbounds instances(T)[searchsortedfirst(cumcounts(fs), i)]
 
 """
     setindex!(fs::MeanFieldFiniteState{T}, k′::Integer, i::Integer) where {T}
 
 Set the state of the `i`-th site to the state with index `k′` in the mean field finite state `fs`.
 """
-@inline function Base.setindex!(fs::MeanFieldFiniteState{T}, k′::Integer, i::Integer) where {T}
-    k = fs[i]
-    fs[k] -= 1
-    fs[k′] += 1
+@inline function Base.setindex!(fs::MeanFieldFiniteState{T}, σ′::T, i::Integer) where {T}
+    k = searchsortedfirst(cumcounts(fs), i)
+    k′ = searchsortedfirst(Integer.(instances(T)), Integer(σ′))
+    fs.counts[k] -= 1
+    fs.counts[k′] += 1
 end
 
 """
@@ -276,7 +284,7 @@ Randomize the state of a mean field finite state `fs`.
 function randomize_state!(fs::MeanFieldFiniteState{T}) where {T}
     N = length(fs)
     split_indices = (sort(rand(0:N, instance_count(T) - 1))..., N)
-    fs.counts = site_counts_from_split_indices(split_indices)
+    fs.counts = site_counts_from_cumcounts(split_indices)
 end
 
 @doc raw"""
@@ -481,8 +489,6 @@ mutable struct SquareLatticeFiniteState{T,N} <: ConcreteFiniteState{T,N}
 
 end
 
-@inline name(::SquareLatticeFiniteState{T,N}) where {T,N} = "SquareLattice" * string(N) * "D"
-
 """
     dim(::SquareLatticeFiniteState)
 
@@ -546,8 +552,6 @@ mutable struct SimpleGraphFiniteState{T} <: ConcreteFiniteState{T,1}
     SimpleGraphFiniteState(graph::SimpleGraph, ::Type{T}, ::Val{:rand}) where {T} = new{T}(graph, rand(instances(T), nv(graph)))
 
 end
-
-@inline name(::SimpleGraphFiniteState) = "SimpleGraph"
 
 """
     nearest_neighbors(fs::SimpleGraphFiniteState)

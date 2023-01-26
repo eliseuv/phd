@@ -54,9 +54,7 @@ using ..FiniteStates
 
 Enumeration of possible spin `1/2` values.
 
-# Attention:
-
-    The numerical value associated with down (up) spin value is -1 (+1) and not -1/2 (+1/2).
+Attention: The numerical value associated with down (up) spin value is -1 (+1) and not -1/2 (+1/2).
 """
 @enumx SpinHalfState::Int8 begin
     down = -1
@@ -138,16 +136,7 @@ Always try to promote the `SingleSpinState` to whatever the other type is.
 """
 @inline Base.promote_rule(T::Type, ::Type{SingleSpinState}) = T
 
-"""
-    Arithmetic of spin states
-
-First promote to whatever the other numerical type is, and then perform arithmetical operation.
-
-# Example:
-
-    SpinHalf.up + 1 =
-
-"""
+# Arithmetic of spin states
 for op in (:+, :-, :*, :/)
     @eval begin
         @inline Base.$op(x::Number, σ::SingleSpinState) = $op(promote(x, σ)...)

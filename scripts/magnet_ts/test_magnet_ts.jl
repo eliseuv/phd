@@ -15,7 +15,8 @@ using .Thesis.DataIO
 using .Thesis.FiniteStates
 using .Thesis.SpinModels
 using .Thesis.CellularAutomata
-using .Thesis.Names
+
+using .Thesis.SpinModels.SpinHalfState
 
 # Magnetization time series matrix
 @inline magnet_ts_matrix!(ising::AbstractIsingModel, β::Real, n_steps::Integer, n_samples::Integer)::Matrix{Float64} = hcat(map(1:n_samples) do _
@@ -25,23 +26,25 @@ end...)
 
 # Parameters
 const N = 10000
-const z = 4
+const z = 6
 const β = 1 / 4
 const n_steps = 128
 const n_runs = 16
 
 @info "Constructing system..."
-system = IsingModel(MeanFieldFiniteState(N, z, SpinHalfState.up))
+fs = MeanFieldFiniteState(N, z, SpinHalfState.up)
+# fs[1] = SpinHalfState.down
+script_show(fs)
 
-@info "Calculating time series..."
-m_ts = vec(mean(magnet_ts_matrix!(system, β, n_steps, n_runs), dims=2))
+# @info "Calculating time series..."
+# m_ts = vec(mean(magnet_ts_matrix!(system, β, n_steps, n_runs), dims=2))
 
-script_show(m_ts)
+# script_show(m_ts)
 
-@info "Plotting time series..."
-time = 0:n_steps
-plt = plot(x=time[begin+1:end], y=m_ts[begin+1:end],
-    Geom.point,
-    Scale.x_log10, Scale.y_log10)
+# @info "Plotting time series..."
+# time = 0:n_steps
+# plt = plot(x=time[begin+1:end], y=m_ts[begin+1:end],
+#     Geom.point, Geom.line,
+#     Scale.x_log10, Scale.y_log10)
 
-draw(SVG(plotsdir("test_magnet_ts.svg"), 15cm, 10cm), plt)
+# draw(SVG(plotsdir("test_magnet_ts.svg"), 30cm, 20cm), plt)
