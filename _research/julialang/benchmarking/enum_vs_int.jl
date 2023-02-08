@@ -1,3 +1,7 @@
+@doc raw"""
+    Benchmarking operations on arrays of integers vs. arrays of enums.
+
+"""
 using BenchmarkTools
 
 BenchmarkTools.DEFAULT_PARAMETERS.overhead = BenchmarkTools.estimate_overhead()
@@ -39,16 +43,16 @@ function flip_if!(arr::Array{SpinState,N}, idx::CartesianIndex{N}) where {N}
     end
 end
 
-# println("\nSpin flip\n")
+println("\nSpin flip\n")
 
-# println("Flip array of int")
-# @btime flip!($arr_int, $idx)
+println("Flip array of int")
+@btime flip!($arr_int, $idx)
 
-# println("Flip array of enum")
-# @btime flip!($arr_enum, $idx)
+println("Flip array of enum")
+@btime flip!($arr_enum, $idx)
 
-# println("Flip array of enum using if statement")
-# @btime flip_if!($arr_enum, $idx)
+println("Flip array of enum using if statement")
+@btime flip_if!($arr_enum, $idx)
 
 # Sum whole array
 
@@ -59,19 +63,19 @@ sum_dot(arr::Array{SpinState}) = sum(Integer.(arr))
 
 sum_f_itr(arr::Array{SpinState}) = sum(Integer, arr)
 
-# println("\nSum whole array\n")
+println("\nSum whole array\n")
 
-# @show sum(arr_int)
-# @btime sum($arr_int)
+@show sum(arr_int)
+@btime sum($arr_int)
 
-# @show sum(arr_enum)
-# @btime sum($arr_enum)
+@show sum(arr_enum)
+@btime sum($arr_enum)
 
-# @show sum_dot(arr_enum)
-# @btime sum_dot($arr_enum)
+@show sum_dot(arr_enum)
+@btime sum_dot($arr_enum)
 
-# @show sum_f_itr(arr_enum)
-# @btime sum_f_itr($arr_enum)
+@show sum_f_itr(arr_enum)
+@btime sum_f_itr($arr_enum)
 
 # Sum certain indices
 
@@ -88,19 +92,19 @@ function sum_iterate_over_collection(arr::Array{SpinState}, indices)
     return sum(Integer, arr[i] for i ∈ indices)
 end
 
-# println("\nSum certain indices\n")
+println("\nSum certain indices\n")
 
-# @show sum_iterate_over_collection(arr_int, idx_tuple)
-# @btime sum_iterate_over_collection($arr_int, $idx_tuple)
+@show sum_iterate_over_collection(arr_int, idx_tuple)
+@btime sum_iterate_over_collection($arr_int, $idx_tuple)
 
-# @show sum_iterate_over_collection(arr_enum, idx_tuple)
-# @btime sum_iterate_over_collection($arr_enum, $idx_tuple)
+@show sum_iterate_over_collection(arr_enum, idx_tuple)
+@btime sum_iterate_over_collection($arr_enum, $idx_tuple)
 
-# @show sum_iterate_over_collection(arr_int, idx_arr)
-# @btime sum_iterate_over_collection($arr_int, $idx_arr)
+@show sum_iterate_over_collection(arr_int, idx_arr)
+@btime sum_iterate_over_collection($arr_int, $idx_arr)
 
-# @show sum_iterate_over_collection(arr_enum, idx_arr)
-# @btime sum_iterate_over_collection($arr_enum, $idx_arr)
+@show sum_iterate_over_collection(arr_enum, idx_arr)
+@btime sum_iterate_over_collection($arr_enum, $idx_arr)
 
 # Sum of product
 

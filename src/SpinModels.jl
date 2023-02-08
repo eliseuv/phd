@@ -37,7 +37,7 @@ export
     # Blume-Capel models
     AbstractBlumeCapelModel,
     # Implementations of Blume-Capel models
-    BlumeCapelModel
+    BlumeCapelIsotropicModel, BlumeCapelModel
 
 using Random, EnumX, Combinatorics, StatsBase, Distributions, Graphs
 
@@ -241,17 +241,17 @@ Interaction energy for a `N`-dimensional square lattice spin model `fs`.
 ``H_{int} = - \sum_⟨i,j⟩ σᵢ σⱼ``
 """
 function energy_interaction(fs::SquareLatticeFiniteState{T,N}) where {T,N}
-    # Varaible to accumulate
+    # Variable to accumulate
     H = zero(Int64)
     # Loop on dimensions
     @inbounds for d ∈ 1:N
         # Bulk
-        front_bulk = selectdim(state(fs), d, 1:(size(fs, d)-1))
-        back_bulk = selectdim(state(fs), d, 2:size(fs, d))
+        front_bulk = selectdim(container(fs), d, 1:(size(fs, d)-1))
+        back_bulk = selectdim(container(fs), d, 2:size(fs, d))
         H -= sum(Integer, front_bulk .* back_bulk)
         # Periodic boundaries
-        last_slice = selectdim(state(fs), d, size(fs, d))
-        first_slice = selectdim(state(fs), d, 1)
+        last_slice = selectdim(container(fs), d, size(fs, d))
+        first_slice = selectdim(container(fs), d, 1)
         H -= sum(Integer, last_slice .* first_slice)
     end
     return H
@@ -857,6 +857,79 @@ Super type for all Blume-Capel models.
 abstract type AbstractBlumeCapelModel{T} <: AbstractSpinModel{T} end
 
 """
+################################
+    Blume-Capel Isotropic Model
+################################
+"""
+
+@doc raw"""
+    BlumeCapelIsotropicModel{T} <: AbstractBlumeCapelModel{T}
+
+Blume-Capel model without external magnetic field and without the single spin anisotropy parameter.
+
+``H = - ∑_⟨i,j⟩ sᵢsⱼ``
+
+where `⟨i,j⟩` means that `i` and `j` are nearest neighbors.
+"""
+struct BlumeCapelIsotropicModel{T} <: AbstractBlumeCapelModel{T}
+
+    "State of the spin system"
+    state::T
+
+
+    """
+        BlumeCapelIsotropicModel(state::T, D::Real) where {T}
+
+    Construct an Blume-Capel system without external magnetic field and with given initial spins state `spins`.
+    """
+    BlumeCapelIsotropicModel(state::T) where {T<:AbstractFiniteState{SpinOneState.T}} = new{T}(state)
+
+end
+
+@doc raw"""
+    energy(blumecapel::BlumeCapelIsotropicModel)
+
+Total energy of an isotropic Blume-Capel system `blumecapel` which is simply the spin interaction energy.
+
+``H = - ∑_⟨i,j⟩ sᵢsⱼ``
+
+where `⟨i,j⟩` means that `i` and `j` are nearest neighbors.
+"""
+@inline energy(blumecapel::BlumeCapelIsotropicModel) = energy_interaction(blumecapel.state)
+
+@doc raw"""
+    minus_energy_local(blumecapel::BlumeCapelIsotropicModel{<:AbstractFiniteState{T}}, i, sᵢ::T=blumecapel[i]) where {T}
+
+*Minus* the value of the local energy of the `i`-th site assuming its state is `sᵢ` in the isotropic Blume-Capel system `blumecapel`.
+
+If no state `sᵢ` is provided, it assumes the current site state `blumecapel[i]`.
+
+``-hᵢ(sᵢ) = sᵢ ∑ⱼ sⱼ``
+
+where the sum is over the nearest neighbors `j` of `i`.
+"""
+@inline minus_energy_local(blumecapel::BlumeCapelIsotropicModel{<:AbstractFiniteState{T}}, i, sᵢ::T=blumecapel[i]) where {T} =
+    Integer(sᵢ) * nearest_neighbors_sum(blumecapel.state, i)
+
+@doc raw"""
+    minus_energy_diff(blumecapel::BlumeCapelIsotropicModel, i, sᵢ′)
+
+Calculate *minus* the energy difference for an isotropic Blume-Capel system `blumecapel` if the `i`-th spin were to be changed to `sᵢ′`.
+
+``-ΔHᵢ = (sᵢ′ - sᵢ) ∑ⱼ sⱼ``
+
+where the sum is over the nearest neighbors `j` of `i`.
+"""
+@inline minus_energy_diff(blumecapel::BlumeCapelIsotropicModel{<:AbstractFiniteState{T}}, i, sᵢ′::T) where {T} =
+    if sᵢ′ == blumecapel[i]
+        0
+    else
+        let sᵢ = Integer(blumecapel[i]), sᵢ′ = Integer(sᵢ′)
+            (sᵢ′ - sᵢ) * nearest_neighbors_sum(blumecapel, i)
+        end
+    end
+
+"""
 ######################
     Blume-Capel Model
 ######################
@@ -865,7 +938,7 @@ abstract type AbstractBlumeCapelModel{T} <: AbstractSpinModel{T} end
 @doc raw"""
     BlumeCapelModel{T} <: AbstractBlumeCapelModel{T}
 
-Blume-Capel model without external mangnetic field.
+Blume-Capel model without external magnetic field.
 
 ``H = - ∑_⟨i,j⟩ sᵢsⱼ + D ∑ᵢ sᵢ²``
 """
@@ -874,13 +947,13 @@ struct BlumeCapelModel{T} <: AbstractBlumeCapelModel{T}
     "State of the spins"
     state::T
 
-    "Parameter"
+    "Anisotropy parameter"
     D::Real
 
     """
         BlumeCapelModel(state::T, D::Real) where {T}
 
-    Construct an Blume-Capel system without external magnetic field and with given initial spins state `spins` and parameter `D`.
+    Construct an Blume-Capel system without external magnetic field and with given initial spins state `spins` and anisotropy parameter `D`.
     """
     BlumeCapelModel(state::T, D::Real) where {T} = new{T}(state, D)
 
@@ -897,7 +970,7 @@ Given by the Hamiltonian:
 
 where `⟨i,j⟩` means that `i` and `j` are nearest neighbors.
 """
-@inline energy(blumecapel::BlumeCapelModel) = energy_interaction(blumecapel) + blumecapel.D * sum(sᵢ -> sᵢ^2, blumecapel.state)
+@inline energy(blumecapel::BlumeCapelModel) = energy_interaction(blumecapel.state) + blumecapel.D * sum(sᵢ -> sᵢ^2, blumecapel.state)
 
 @doc raw"""
     minus_energy_local(blumecapel::BlumeCapelModel{<:AbstractFiniteState{T}}, i, sᵢ::T=blumecapel[i]) where {T}
@@ -924,12 +997,12 @@ Calculate *minus* the energy difference for an Blume-Capel system `blumecapel` i
 
 where the sum is over the nearest neighbors `j` of `i`.
 """
-@inline minus_energy_diff(blumecapel::BlumeCapelModel, i, sᵢ′) =
-    let sᵢ = Integer(blumecapel[i]), sᵢ′ = Integer(sᵢ′)
-        if sᵢ′ == sᵢ
-            0
-        else
-            (sᵢ′ - sᵢ) * nearest_neighbors_sum(blumecapel, i) + blumecapel.D * (sᵢ^2 - sᵢ′^2)
+@inline minus_energy_diff(blumecapel::BlumeCapelModel{<:AbstractFiniteState{T}}, i, sᵢ′::T) where {T} =
+    if sᵢ′ == blumecapel[i]
+        0
+    else
+        let sᵢ = Integer(blumecapel[i]), sᵢ′ = Integer(sᵢ′)
+            (sᵢ′ - sᵢ) * nearest_neighbors_sum(blumecapel.state, i) + blumecapel.D * (sᵢ^2 - sᵢ′^2)
         end
     end
 
