@@ -36,9 +36,40 @@ end
 
 # Filenames
 
-@inline params_str(params::Union{Dict{String},Pair{String}}...; sep::AbstractString="_") =
-    params_str(merge(map(Dict, params)...), sep=sep)
+@doc raw"""
+    params_str(params::Union{Dict{String},Pair{String}}...; sep::AbstractString="_")
 
+
+Generate a string containing the 'name=value' of the parameters specified by the arguments `params`
+(name-value pairs or dictionaries) sorted alphabetically and separated by the string `sep`.
+
+# Example:
+    ```julia
+    julia> params_str(Dict("foo" => 0.5), "bar" => "baz")
+    "bar=baz_foo=0.5"
+    julia> params_str("foo" => 0.5, "bar" => "baz", sep=";")
+    "bar=baz;foo=0.5"
+    ```
+
+"""
+@inline params_str(params::Union{Dict{String},Pair{String}}...; sep::AbstractString="_") =
+    params_str(foldl(merge, [map(Dict, params)...]; init=Dict{String,Any}()), sep=sep)
+
+@doc raw"""
+    params_str(params::Dict{String}; sep::AbstractString="_")
+
+Generate a string containing the 'name=value' of the parameters specified by the dictionary `params`
+sorted alphabetically and separated by the string `sep`.
+
+# Example:
+    ```julia
+    julia> params = Dict("foo" => 0.5, "bar" => "baz")
+    julia> params_str(params)
+    "bar=baz_foo=0.5"
+    julia> params_str(params, sep=";")
+    "bar=baz;foo=0.5"
+    ```
+"""
 @inline params_str(params::Dict{String}; sep::AbstractString="_") =
     join([name * "=" * string(value) for (name, value) ∈ sort(collect(params), by=x -> x[1])], sep)
 

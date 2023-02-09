@@ -9,18 +9,30 @@ export
     normalize_ts, normalize_ts!,
     _normalize_ts_matrix!, normalize_ts_matrix, normalize_ts_matrix!,
     shuffle_cols!,
+    triu_values,
     cross_correlation_matrix,
     cross_correlation_values, cross_correlation_values_norm
 
 using Random, Combinatorics, Statistics, Distributions, LinearAlgebra
 
-# Normalize a given time series vector and store the result in another vector
+@doc raw"""
+    _normalize_ts!(x′::AbstractVector, x::AbstractVector)
+
+Normalize a given time series vector `x` and store the result in another vector `x′`.
+
+    ``xᵢ′ = (xᵢ - x̄) / sₓ``
+"""
 @inline function _normalize_ts!(x′::AbstractVector, x::AbstractVector)
     x̄ = mean(x)
     x′ .= (x .- x̄) ./ stdm(x, x̄, corrected=true)
     return x′
 end
 
+@doc raw"""
+    normalize_ts(x::AbstractVector)
+
+Returns the normalized version of a given time series vector `x`.
+"""
 @inline normalize_ts(x::AbstractVector) = _normalize_ts!(similar(x), x)
 
 @inline normalize_ts!(x::AbstractVector) = _normalize_ts!(x, x)
@@ -83,6 +95,20 @@ Cross correlation matrix `G` of a given time series matrix `M_ts`.
 - `M::AbstractMatrix`: `N×M` Matrix whose each of its `M` columns corresponds to a sample of a time series `Xₜ` of length `N`.
 """
 @inline cross_correlation_matrix(M::AbstractMatrix) = Symmetric(M' * M) ./ size(M, 1)
+
+@inline function triu_values(M::AbstractMatrix)
+    @assert size(M, 1) == size(M, 2) "Error: Matrix must be square!"
+    n = size(M, 1)
+    values = similar(M, ((n + 1) * n) ÷ 2)
+    start_idx = 1
+    for k ∈ 1:n
+        @views column = M[begin:k, k]
+        last_idx = start_idx - 1 + length(column)
+        @views values[start_idx:last_idx] = column[:]
+        start_idx = last_idx + 1
+    end
+    return values
+end
 
 @inline function cross_correlation_values(M::AbstractMatrix{<:Number})
     (t_max, n_series) = size(M)

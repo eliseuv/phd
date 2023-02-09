@@ -11,6 +11,7 @@ using Logging, LinearAlgebra, JLD2
 
 # Custom modules
 include("../../src/Thesis.jl")
+using .Thesis.Metaprogramming
 using .Thesis.DataIO
 using .Thesis.FiniteStates
 using .Thesis.SpinModels
@@ -28,10 +29,10 @@ const dim = 2
 const L = parse(UInt64, ARGS[1])
 
 # Simulation parameters
-const β = parse(Float64, ARGS[2])
-const n_samples = 512
-const n_steps = 128
-const n_runs = 16
+const beta = parse(Float64, ARGS[2])
+const n_samples = 128
+const n_steps = 512
+const n_runs = 1024
 
 # Output data directory
 output_dir = datadir("sims", "blume-capel", "square_lattice")
@@ -42,18 +43,25 @@ mkpath(output_dir)
 @info "Constructing system..."
 system = BlumeCapelIsotropicModel(SquareLatticeFiniteState(Val(dim), L, SpinOneState.up))
 
-# Construct magnetization time series
-@info "Calculating normalized magnetization time series correlation matrix eigenvalues..."
-λs = sort(vcat(
-    map(eigvals ∘ cross_correlation_matrix ∘ normalize_ts_matrix!,
-        magnet_ts_matrix!(system, β, n_steps, n_samples) for _ ∈ 1:n_runs)...))
+# Calculate correlation matrices
+@info "Calculating cross correlation matrices..."
+Gs = map(cross_correlation_matrix ∘ normalize_ts_matrix!,
+    magnet_ts_matrix!(system, beta, n_steps, n_samples) for _ ∈ 1:n_runs)
 
-output_path = joinpath(output_dir,
-    filename("BlumeCapelSqLatticeCorrMatEigvals",
-        "dim" => dim, "L" => L, "D" => 0,
-        "beta" => β,
-        "n_samples" => n_samples, "n_steps" => n_steps, "n_runs" => n_runs))
+# Get correlation values
+corr_vals = sort(vcat(map(triu_values, Gs)...))
+
+# Get eigenvalues
+@info "Calculating eigenvalues..."
+λs = sort(vcat(map(eigvals, Gs)...))
+
+params_dict =
+    output_path = joinpath(output_dir,
+        filename("BlumeCapelSqLatticeCorrMatEigvals",
+            "D" => 0,
+            @varsdict(dim, L, beta, n_samples, n_steps, n_runs)))
+@show output_path
 
 # Save result
 @info "Saving result to disk..."
-save_object(output_path, λs)
+jldsave(output_path; corr_vals, eigvals=λs)
