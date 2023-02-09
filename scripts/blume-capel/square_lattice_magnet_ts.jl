@@ -7,13 +7,14 @@ using DrWatson
 @quickactivate "phd"
 
 # External libraries
-using Logging, CSV, DataFrames
+using Logging, LinearAlgebra, JLD2
 
 # Custom modules
 include("../../src/Thesis.jl")
 using .Thesis.DataIO
 using .Thesis.FiniteStates
 using .Thesis.SpinModels
+using .Thesis.TimeSeries
 
 # Magnetization time series matrix
 @inline magnet_ts_matrix!(spinmodel::AbstractSpinModel{<:AbstractFiniteState{SpinOneState.T}}, β::Real, n_steps::Integer, n_samples::Integer)::Matrix{Float64} =
@@ -24,17 +25,35 @@ using .Thesis.SpinModels
 
 # System parameters
 const dim = 2
-const L = 512
+const L = parse(UInt64, ARGS[1])
 
-blumecapel = BlumeCapelIsotropicModel(SquareLatticeFiniteState(Val(dim), L, SpinOneState.up))
-
-
-# Load temperatures table
-const df = DataFrame(CSV.File("tables/butera_and_pernici_2018/blume-capel_square_lattice.csv"))
-const df_row = df[only(findall(==(0), df.anisotropy_field)), :]
-script_show(df_row)
-
-const betas = []
-
+# Simulation parameters
+const β = parse(Float64, ARGS[2])
+const n_samples = 512
 const n_steps = 128
 const n_runs = 16
+
+# Output data directory
+output_dir = datadir("sims", "blume-capel", "square_lattice")
+mkpath(output_dir)
+@show output_dir
+
+# Construct system
+@info "Constructing system..."
+system = BlumeCapelIsotropicModel(SquareLatticeFiniteState(Val(dim), L, SpinOneState.up))
+
+# Construct magnetization time series
+@info "Calculating normalized magnetization time series correlation matrix eigenvalues..."
+λs = sort(vcat(
+    map(eigvals ∘ cross_correlation_matrix ∘ normalize_ts_matrix!,
+        magnet_ts_matrix!(system, β, n_steps, n_samples) for _ ∈ 1:n_runs)...))
+
+output_path = joinpath(output_dir,
+    filename("BlumeCapelSqLatticeCorrMatEigvals",
+        "dim" => dim, "L" => L, "D" => 0,
+        "beta" => β,
+        "n_samples" => n_samples, "n_steps" => n_steps, "n_runs" => n_runs))
+
+# Save result
+@info "Saving result to disk..."
+save_object(output_path, λs)

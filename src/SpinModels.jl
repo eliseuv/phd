@@ -925,7 +925,7 @@ where the sum is over the nearest neighbors `j` of `i`.
         0
     else
         let sᵢ = Integer(blumecapel[i]), sᵢ′ = Integer(sᵢ′)
-            (sᵢ′ - sᵢ) * nearest_neighbors_sum(blumecapel, i)
+            (sᵢ′ - sᵢ) * nearest_neighbors_sum(blumecapel.state, i)
         end
     end
 
