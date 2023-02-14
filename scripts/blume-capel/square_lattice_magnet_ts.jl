@@ -20,7 +20,8 @@ using .Thesis.TimeSeries
 # Magnetization time series matrix
 @inline magnet_ts_matrix!(spinmodel::AbstractSpinModel{<:AbstractFiniteState{SpinOneState.T}}, β::Real, n_steps::Integer, n_samples::Integer)::Matrix{Float64} =
     hcat(map(1:n_samples) do _
-        set_state!(spinmodel.state, SpinOneState.up)
+        # set_state!(spinmodel.state, SpinOneState.up)
+        randomize_state!(spinmodel.state)
         return metropolis_measure!(SpinModels.magnet, spinmodel, β, n_steps)
     end...)
 
@@ -35,7 +36,7 @@ const n_steps = 512
 const n_runs = 1024
 
 # Output data directory
-output_dir = datadir("sims", "blume-capel", "square_lattice")
+output_dir = datadir("sims", "blume-capel", "square_lattice", "rand_start")
 mkpath(output_dir)
 @show output_dir
 
