@@ -26,7 +26,7 @@ using .Thesis.TimeSeries
 
 # System parameters
 const dim = 2
-const L = parse(UInt64, ARGS[1])
+const L = parse(Int64, ARGS[1])
 
 # Simulation parameters
 const beta = parse(Float64, ARGS[2])
