@@ -15,7 +15,7 @@ export
     nearest_neighbors, nearest_neighbors_sum,
     # Mean field finite state
     MeanFieldFiniteState,
-    cumcounts, site_counts_from_cummulative_counts,
+    cumcounts, site_counts_from_cumcounts,
     # Concrete finite state
     ConcreteFiniteState,
     container, similar_container,
@@ -385,7 +385,7 @@ Get the index of the last site in the concrete finite state `fs`.
 
 Return a new uninitialized instance of the the container used by the concrete finite state `fs`.
 """
-@inline similar_container(fs::ConcreteFiniteState{T,N}) where {T,N} = similar(Array{T,N}, axes(fs.container))
+@inline similar_container(fs::ConcreteFiniteState{T,N}) where {T,N} = similar(Array{T,N}, axes(container(fs)))
 
 """
     state_count(fs::ConcreteFiniteState)
