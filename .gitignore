@@ -19,7 +19,7 @@ plots
 *.jld2
 *.ld2
 
-# Allow tables dir
+# Allow CSV tables in `tables` dir
 !tables/**
 
 ################################################################################
