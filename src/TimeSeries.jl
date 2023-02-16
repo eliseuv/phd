@@ -33,7 +33,7 @@ end
 
 Returns the normalized version of a given time series vector `x`.
 """
-@inline normalize_ts(x::AbstractVector) = _normalize_ts!(similar(x), x)
+@inline normalize_ts(x::AbstractVector{T}) where {T} = _normalize_ts!(similar(x, promote_type(T, Float64)), x)
 
 @inline normalize_ts!(x::AbstractVector) = _normalize_ts!(x, x)
 

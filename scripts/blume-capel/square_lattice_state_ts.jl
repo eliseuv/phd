@@ -19,7 +19,7 @@ using .Thesis.TimeSeries
 
 # State time series matrix
 @inline function vinayak_ts_matrix!(spinmodel::AbstractSpinModel{<:AbstractFiniteState{SpinOneState.T}}, β::Real, n_steps::Integer)
-    set_state!(spinmodel.state, SpinOneState.up)
+    randomize_state!(state(spinmodel))
     return map(Integer, hcat(metropolis_measure!(copy ∘ vec ∘ container ∘ state, spinmodel, β, n_steps)...)) |> transpose |> copy
 end
 
