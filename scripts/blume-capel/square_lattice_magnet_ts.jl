@@ -20,7 +20,7 @@ using .Thesis.TimeSeries
 # Magnetization time series matrix
 @inline magnet_ts_matrix!(spinmodel::AbstractSpinModel{<:AbstractFiniteState{SpinOneState.T}}, β::Real, n_steps::Integer, n_samples::Integer)::Matrix{Float64} =
     hcat(map(1:n_samples) do _
-        set_state!(spinmodel.state, SpinOneState.up)
+        randomize_state!(state(spinmodel))
         return metropolis_measure!(SpinModels.magnet, spinmodel, β, n_steps)
     end...)
 
@@ -49,11 +49,11 @@ Gs = map(cross_correlation_matrix ∘ normalize_ts_matrix!,
     magnet_ts_matrix!(system, beta, n_steps, n_samples) for _ ∈ 1:n_runs)
 
 # Get correlation values
-corr_vals = sort(vcat(map(triu_values, Gs)...))
+corr_vals = map(triu_values, Gs)
 
 # Get eigenvalues
 @info "Calculating eigenvalues..."
-λs = sort(vcat(map(eigvals, Gs)...))
+λs = map(eigvals, Gs)
 
 params_dict =
     output_path = joinpath(output_dir,
