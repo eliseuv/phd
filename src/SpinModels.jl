@@ -421,7 +421,7 @@ function metropolis!(spinmodel::AbstractSpinModel{<:AbstractFiniteState{SpinHalf
         # Get energy difference
         minus_ΔH = minus_energy_diff(spinmodel, i)
         # Metropolis prescription
-        if minus_ΔH > 0 || exp(β * minus_ΔH) > rand()
+        if minus_ΔH >= 0 || exp(β * minus_ΔH) > rand()
             # Flip spin
             flip!(spinmodel, i)
         end
@@ -447,7 +447,7 @@ function metropolis!(spinmodel::AbstractSpinModel{MeanFieldFiniteState{SpinHalfS
         # Get energy difference
         minus_ΔH = minus_energy_diff(spinmodel, σ)
         # Metropolis prescription
-        if minus_ΔH > 0 || exp(β * minus_ΔH) > rand()
+        if minus_ΔH >= 0 || exp(β * minus_ΔH) > rand()
             # Flip spin
             flip_state_index!(spinmodel, k)
         end
@@ -505,7 +505,7 @@ function metropolis_measure_energy!(spinmodel::T, β::Real, n_steps::Integer) wh
             # Get energy difference
             minus_ΔH = minus_energy_diff(spinmodel, i, sᵢ′)
             # Metropolis prescription
-            if minus_ΔH > 0 || exp(β * minus_ΔH) > rand()
+            if minus_ΔH >= 0 || exp(β * minus_ΔH) > rand()
                 # Change spin
                 spinmodel[i] = sᵢ′
                 # Add energy difference
@@ -543,7 +543,7 @@ function metropolis_measure_energy!(spinmodel::T, β::Real, n_steps::Integer) wh
             # Get energy difference
             minus_ΔH = minus_energy_diff(spinmodel, i)
             # Metropolis prescription
-            if minus_ΔH > 0 || exp(β * minus_ΔH) > rand()
+            if minus_ΔH >= 0 || exp(β * minus_ΔH) > rand()
                 # Change spin
                 flip!(spinmodel, i)
                 # Add energy difference

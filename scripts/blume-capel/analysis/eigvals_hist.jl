@@ -6,7 +6,7 @@ using DrWatson
 @quickactivate "phd"
 
 # External libraries
-using Logging, JLD2, StatsBase, UnicodePlots
+using Logging, JLD2, StatsBase, CairoMakie
 
 # Custom modules
 include("../../../src/Thesis.jl")
@@ -27,14 +27,20 @@ const β_c = 1.69378
 
 for datafile in find_datafiles(data_dirpath, prefix, params_req)
 
-    # @info datafile
+    @info datafile.params
 
     # Load data from file
     (corr_vals, eigvals) = load(datafile.path, "corr_vals", "eigvals")
 
-    tau = datafile.params["beta"] / β_c
-    println("tau = $tau")
+    tau = β_c / datafile.params["beta"]
 
-    show(histogram(eigvals, nbins=32, closed=:left))
+    plt = hist(eigvals, bins=64, normalization=:pdf;
+        axis=(; title=L"Eigenvalues distribution $\tau = %$(tau)$"))
+
+    plot_path = plotsdir("blume-capel", filename("BlumeCapelSquareLatticeEigvalsHist", params_req, "tau" => tau, ext="svg"))
+    mkpath(dirname(plot_path))
+    @info plot_path
+
+    save(plot_path, plt)
 
 end
