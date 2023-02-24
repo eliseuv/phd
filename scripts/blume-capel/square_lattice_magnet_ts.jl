@@ -27,6 +27,7 @@ using .Thesis.TimeSeries
 # System parameters
 const dim = 2
 const L = parse(Int64, ARGS[1])
+const D = 0.5
 
 # Simulation parameters
 const beta = parse(Float64, ARGS[2])
@@ -41,7 +42,7 @@ mkpath(output_dir)
 
 # Construct system
 @info "Constructing system..."
-system = BlumeCapelIsotropicModel(SquareLatticeFiniteState(Val(dim), L, SpinOneState.up))
+system = BlumeCapelModel(SquareLatticeFiniteState(Val(dim), L, SpinOneState.up), D)
 
 # Calculate correlation matrices
 @info "Calculating cross correlation matrices..."
@@ -58,7 +59,7 @@ corr_vals = map(triu_values, Gs)
 params_dict =
     output_path = joinpath(output_dir,
         filename("BlumeCapelSqLatticeCorrMatEigvals",
-            "D" => 0,
+            "D" => D,
             @varsdict(dim, L, beta, n_samples, n_steps, n_runs)))
 @show output_path
 

@@ -23,7 +23,7 @@ const params_req = Dict(
     "n_steps" => 512
 )
 
-const β_c = 1.69378
+const T_c = 1.69378
 
 for datafile in find_datafiles(data_dirpath, prefix, params_req)
 
@@ -32,10 +32,12 @@ for datafile in find_datafiles(data_dirpath, prefix, params_req)
     # Load data from file
     (corr_vals, eigvals) = load(datafile.path, "corr_vals", "eigvals")
 
-    tau = β_c / datafile.params["beta"]
+    tau = 1.0 / (T_c * datafile.params["beta"])
+    @info tau
 
-    plt = hist(eigvals, bins=64, normalization=:pdf;
-        axis=(; title=L"Eigenvalues distribution $\tau = %$(tau)$"))
+    plt = hist(vcat(eigvals...), bins=128;
+        axis=(; title=L"Eigenvalues distribution $\tau = %$(tau)$",
+            yscale=Makie.pseudolog10))
 
     plot_path = plotsdir("blume-capel", filename("BlumeCapelSquareLatticeEigvalsHist", params_req, "tau" => tau, ext="svg"))
     mkpath(dirname(plot_path))
