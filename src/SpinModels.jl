@@ -876,7 +876,6 @@ struct BlumeCapelIsotropicModel{T} <: AbstractBlumeCapelModel{T}
     "State of the spin system"
     state::T
 
-
     """
         BlumeCapelIsotropicModel(state::T, D::Real) where {T}
 
@@ -957,7 +956,21 @@ struct BlumeCapelModel{T} <: AbstractBlumeCapelModel{T}
     """
     BlumeCapelModel(state::T, D::Real) where {T} = new{T}(state, D)
 
+    """
+        BlumeCapelModel(state::T, ::Val{D}) where {T,D}
+
+    Construct an Blume-Capel system without external magnetic field and with given initial spins state `spins` and anisotropy parameter `D` known at compile time.
+    """
+    BlumeCapelModel(state::T, ::Val{D}) where {T,D} = new{T}(state, D)
+
 end
+
+"""
+    BlumeCapelModel(state::T, ::Val(0)) where {T}
+
+If the anisotropy parameter is zero, use isotropic model.
+"""
+@inline BlumeCapelModel(state::T, ::Union{Val{0},Val{0.0}}) where {T} = BlumeCapelIsotropicModel(state)
 
 @doc raw"""
     energy(blumecapel::BlumeCapelModel)

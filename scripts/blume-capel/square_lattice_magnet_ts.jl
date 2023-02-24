@@ -35,6 +35,8 @@ const n_samples = 128
 const n_steps = 512
 const n_runs = 1024
 
+@show dim L D beta n_samples n_steps n_runs
+
 # Output data directory
 output_dir = datadir("sims", "blume-capel", "square_lattice")
 mkpath(output_dir)
@@ -42,7 +44,8 @@ mkpath(output_dir)
 
 # Construct system
 @info "Constructing system..."
-system = BlumeCapelModel(SquareLatticeFiniteState(Val(dim), L, SpinOneState.up), D)
+system = BlumeCapelModel(SquareLatticeFiniteState(Val(dim), L, SpinOneState.up), Val(D))
+@show typeof(system)
 
 # Calculate correlation matrices
 @info "Calculating cross correlation matrices..."
