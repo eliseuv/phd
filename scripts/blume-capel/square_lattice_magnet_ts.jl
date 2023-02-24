@@ -27,10 +27,10 @@ using .Thesis.TimeSeries
 # System parameters
 const dim = 2
 const L = parse(Int64, ARGS[1])
-const D = 0.5
+const D = parse(Float64, ARGS[2])
 
 # Simulation parameters
-const beta = parse(Float64, ARGS[2])
+const beta = parse(Float64, ARGS[3])
 const n_samples = 128
 const n_steps = 512
 const n_runs = 1024
