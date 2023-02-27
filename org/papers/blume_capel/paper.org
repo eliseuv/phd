@@ -1,0 +1,14 @@
+#+title: Blume-Capel
+#+author: Eliseu Venites Filho and Roberto da Silva
+
+* The Blume-Capel model
+
+
+** Tri-critical point
+
+
+* Random matrices
+
+\begin{equation*}
+\frac{\pi}{2}
+\end{equation*}

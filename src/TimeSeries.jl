@@ -46,7 +46,7 @@ Returns the normalized version of a given time series vector `x`.
 end
 
 @doc raw"""
-    normalize_ts_matrix!(M::AbstractMatrix)
+    normalize_ts_matrix!(M::AbstractMatrix{<:AbstractFloat})
 
 Normalizes *inplace* a given time series matrix `M` by normalizing each of its columns (time series samples).
 
@@ -54,10 +54,13 @@ Its `j`-th column (`xⱼ`) becomes:
 
     ``\frac{ x_j - ⟨x_j⟩ }{ √{ ⟨x_j^2⟩ - ⟨x_j⟩^2 } }``
 
+Attention: This can only be done if the matrix `M` has floating point numbers as its entries.
+Additionally, since the calculation is done in-place, the resulting matrix will have the same precision.
+
 # Arguments:
-- `M::AbstractMatrix`: `N×M` Matrix whose each of its `M` columns corresponds to a sample of a time series `Xₜ` of length `N`.
+- `M::AbstractMatrix{<:AbstractFloat}`: `N×M` Matrix whose each of its `M` columns corresponds to a sample of a time series `Xₜ` of length `N`.
 """
-normalize_ts_matrix!(M::AbstractMatrix) = _normalize_ts_matrix!(M, M)
+normalize_ts_matrix!(M::AbstractMatrix{<:AbstractFloat}) = _normalize_ts_matrix!(M, M)
 
 @doc raw"""
     normalize_ts_matrix(M::AbstractMatrix)
@@ -71,7 +74,7 @@ Its `j`-th column (`mⱼ`) becomes:
 # Arguments:
 - `M::AbstractMatrix`: `N×M` Matrix whose each of its `M` columns corresponds to a sample of a time series `Xₜ` of length `N`.
 """
-normalize_ts_matrix(M::AbstractMatrix) = _normalize_ts_matrix!(similar(M), M)
+normalize_ts_matrix(M::AbstractMatrix) = _normalize_ts_matrix!(similar(M, Float64), M)
 
 """
     shuffle_cols!([rng=GLOBAL_RNG,] M::AbstractMatrix)
