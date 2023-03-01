@@ -1,14 +1,57 @@
 #+title: Blume-Capel
 #+author: Eliseu Venites Filho and Roberto da Silva
 
-* The Blume-Capel model
+#+latex_class: article
+#+latex_class_options: [a4paper, 11pt]
+
+#+latex_header: \usepackage{graphicx}
+#+latex_header: \usepackage{svg}
+
+#+startup: latexpreview
+
+* Introduction
+
+** The Blume-Capel model
+
+The Blume-Capel model was first proposed in the 60's in the context of
+
+The dynamics of the short-range spin-$1$ Blume-Capel model is described by the following Hamiltonian:
+
+\[ H = - J \sum_{\langle i, j \rangle} s_i s_j + D \sum_i s_i^2 \]
+
+where $\langle i, j \rangle$ indicates that the summation is over the nearest neighbor pair of sites $i$ and $j$.
+
+Despite its simplicity and resemblance to the classic short-range Ising model, the short-range Blume-Capel possess a much richer phase diagram comprised of a second order line
+
+A feature of the Blume-Capel model
 
 
-** Tri-critical point
+** Method
+
+The use of random matrices for the investigation of critical phenomena in spin systems has been previously explored
 
 
-* Random matrices
 
-\begin{equation*}
-\frac{\pi}{2}
-\end{equation*}
+* Results
+
+** Second order:
+
+*** Isotropic model
+
+
+#+begin_center
+#+attr_latex: :width 0.9\textwidth :center
+[[file:~/programs/phd/plots/blume-capel/BlumeCapelSquareLatticeEigvalsHist_D=0_L=64_dim=2_n_runs=1024_n_samples=128_n_steps=512_tau=1.0.svg]]
+#+end_center
+
+
+*** Anisotropic model
+
+
+** Tricritical point
+
+
+
+* References
+
+#+print_bibliography:
