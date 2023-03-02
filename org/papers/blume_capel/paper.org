@@ -31,6 +31,7 @@ A feature of the Blume-Capel model
 
 ** Method
 
+The method proposed consists in
 The use of random matrices for the investigation of critical phenomena in spin systems has been previously explored
 
 
