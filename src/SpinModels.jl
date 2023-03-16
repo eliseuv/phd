@@ -185,6 +185,8 @@ Returns the complementary of the single spin state `σ`.
 """
 @inline rand_new_spin(σ::SpinHalfState.T) = other_spin(σ)
 
+#@inline rand_new_spin(σ::SpinHalfState.T)
+
 """
 ###################################
     Magnetization of Finite States
