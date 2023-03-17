@@ -22,9 +22,14 @@ Normalize a given time series vector `x` and store the result in another vector 
 
     ``xᵢ′ = (xᵢ - x̄) / sₓ``
 """
-@inline function _normalize_ts!(x′::AbstractVector, x::AbstractVector)
+@inline function _normalize_ts!(x′::AbstractVector{Float64}, x::AbstractVector{<:Real})
     x̄ = mean(x)
-    x′ .= (x .- x̄) ./ stdm(x, x̄, corrected=true)
+    sₓ = stdm(x, x̄, corrected=true)
+    if sₓ != 0
+        map!(xᵢ -> (xᵢ - x̄) / sₓ, x′, x)
+    else
+        map!(_ -> zero(Float64), x′, x)
+    end
     return x′
 end
 

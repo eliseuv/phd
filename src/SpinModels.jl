@@ -8,7 +8,7 @@ export
     # Single spin states
     SingleSpinState, SpinHalfState, SpinOneState,
     # Properties of single spin states
-    rand_new_spin,
+    new_rand_spin,
     # Measurements in spin states
     magnet_total, magnet,
     # Measurements on spins states that depend on locality
@@ -98,7 +98,7 @@ end
 """
     SpinOneState::Int8 <: SingleSpinState
 
-Enumeration of possible spin `1` values.
+Enumeration of possible spin-`1` values.
 """
 @enumx SpinOneState::Int8 begin
     down = -1
@@ -167,25 +167,30 @@ end
 Text representation of `SpinOneState`.
 """
 function Base.show(io::IO, ::MIME"text/plain", σ::SpinOneState.T)
-    spin_char = σ == up ? '↑' : σ == down ? '↓' : '-'
+    spin_char = σ == SpinOneState.up ? '↑' : σ == SpinOneState.down ? '↓' : '-'
     print(io, spin_char)
 end
 
 """
-    rand_new_spin(σ::T) where {T<:SingleSpinState}
+    new_rand_spin(σ::T) where {T<:SingleSpinState}
 
 Select a new random single spin state `σ′ ∈ SingleSpinState` different from `σ`.
 """
-@inline rand_new_spin(σ::T) where {T<:SingleSpinState} = rand(filter(!=(σ), instances(T)))
+@inline new_rand_spin(σ::T) where {T<:SingleSpinState} = rand(filter(!=(σ), instances(T)))
 
 """
-    rand_new_spin(σ::SpinHalfState.T)
+    new_rand_spin(σ::SpinHalfState.T)
 
-Returns the complementary of the single spin state `σ`.
+Returns the complementary of the single spin-`1/2` state `σ`.
 """
-@inline rand_new_spin(σ::SpinHalfState.T) = other_spin(σ)
+@inline new_rand_spin(σ::SpinHalfState.T) = other_spin(σ)
 
-#@inline rand_new_spin(σ::SpinHalfState.T)
+"""
+    new_rand_spin(σ::SpinOneState.T)
+
+Returns a new random single spin-`1` state different from `σ`.
+"""
+@inline new_rand_spin(σ::SpinOneState.T)::SpinOneState.T = SpinOneState.T(mod(Int(σ) + rand(1:2), -1:1))
 
 """
 ###################################
@@ -401,7 +406,7 @@ function metropolis!(spinmodel::AbstractSpinModel, β::Real, n_steps::Integer)
     # Loop on random sites
     @inbounds for i ∈ rand(eachindex(state(spinmodel)), n_steps)
         # Select random new state
-        sᵢ′ = rand_new_spin(spinmodel[i])
+        sᵢ′ = new_rand_spin(spinmodel[i])
         # Get energy difference
         minus_ΔH = minus_energy_diff(spinmodel, i, sᵢ′)
         # Metropolis prescription
@@ -503,7 +508,7 @@ function metropolis_measure_energy!(spinmodel::T, β::Real, n_steps::Integer) wh
         # Site loop
         @inbounds for i ∈ rand(eachindex(state(spinmodel)), length(spinmodel))
             # Select random new state
-            sᵢ′ = rand_new_spin(spinmodel[i])
+            sᵢ′ = new_rand_spin(spinmodel[i])
             # Get energy difference
             minus_ΔH = minus_energy_diff(spinmodel, i, sᵢ′)
             # Metropolis prescription

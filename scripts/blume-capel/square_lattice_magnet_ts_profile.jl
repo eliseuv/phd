@@ -33,7 +33,7 @@ const D = 0
 
 # Simulation parameters
 const beta = 1.0
-const n_samples = 100
+const n_samples = 1000
 const n_steps = 300
 const n_runs = 4
 

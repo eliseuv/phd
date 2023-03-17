@@ -30,11 +30,10 @@ const D = parse(Float64, ARGS[2])
 
 # Simulation parameters
 const beta = parse(Float64, ARGS[3])
-const n_samples = 128
-const n_steps = 512
-const n_runs = 1024
+const n_steps = 128
+const n_runs = 4
 
-@show dim L D beta n_samples n_steps n_runs
+@show dim L D beta n_steps n_runs
 
 # Output data directory
 output_dir = datadir("sims", "blume-capel", "square_lattice", "vinayak")
@@ -50,8 +49,6 @@ system = BlumeCapelModel(SquareLatticeFiniteState(Val(dim), L, SpinOneState.up),
 @info "Calculating cross correlation matrices..."
 Gs = map(cross_correlation_matrix ∘ normalize_ts_matrix,
     vinayak_ts_matrix!(system, beta, n_steps) for _ ∈ 1:n_runs)
-script_show(Gs)
-exit(0)
 
 # Get correlation values
 corr_vals = map(triu_values, Gs)
@@ -63,8 +60,7 @@ corr_vals = map(triu_values, Gs)
 params_dict =
     output_path = joinpath(output_dir,
         filename("BlumeCapelSqLatticeCorrMatEigvals",
-            "D" => D,
-            @varsdict(dim, L, beta, n_samples, n_steps, n_runs)))
+            @varsdict(dim, L, D, beta, n_steps, n_runs)))
 @show output_path
 
 # Save result

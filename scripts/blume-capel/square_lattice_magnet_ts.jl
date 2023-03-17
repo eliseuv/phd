@@ -62,8 +62,7 @@ corr_vals = map(triu_values, Gs)
 params_dict =
     output_path = joinpath(output_dir,
         filename("BlumeCapelSqLatticeCorrMatEigvals",
-            "D" => D,
-            @varsdict(dim, L, beta, n_samples, n_steps, n_runs)))
+            @varsdict(dim, L, D, beta, n_samples, n_steps, n_runs)))
 @show output_path
 
 # Save result
