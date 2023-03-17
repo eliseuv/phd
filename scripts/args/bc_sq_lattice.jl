@@ -8,7 +8,7 @@ df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_20
 
 const τ_vals = 2.0 .^ (-0.2:0.05:0.2)
 
-for (D, L) ∈ Iterators.product([0, 0.5, 1, 1.5, 1.75, 1.9658149], 2^7)
+for (D, L) ∈ Iterators.product([0, 0.5, 1, 1.5, 1.75, 1.9658149], 100)
 
     # Find critical temperature in table
     df_crit_row = df_temperatures[only(findall(==(D), df_temperatures.anisotropy_field)), 2:end]

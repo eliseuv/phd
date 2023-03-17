@@ -31,9 +31,9 @@ const D = parse(Float64, ARGS[2])
 
 # Simulation parameters
 const beta = parse(Float64, ARGS[3])
-const n_samples = 128
-const n_steps = 512
-const n_runs = 1024
+const n_samples = 10
+const n_steps = 30
+const n_runs = 100
 
 @show dim L D beta n_samples n_steps n_runs
 
