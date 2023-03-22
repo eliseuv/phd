@@ -21,7 +21,7 @@ using .Thesis.TimeSeries
 @inline magnet_ts_matrix!(spinmodel::AbstractSpinModel{<:AbstractFiniteState{SpinOneState.T}}, β::Real, n_steps::Integer, n_samples::Integer)::Matrix{Float64} =
     hcat(map(1:n_samples) do _
         randomize_state!(state(spinmodel))
-        return metropolis_measure!(SpinModels.magnet, spinmodel, β, n_steps)
+        return heatbath_measure!(SpinModels.magnet, spinmodel, β, n_steps)
     end...)
 
 # System parameters

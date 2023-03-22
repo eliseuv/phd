@@ -24,7 +24,7 @@ export
     metropolis_measure!,
     metropolis_measure_energy!,
     # Heatbath sampling
-    heatbath_weights,
+    heatbath!,
     heatbath_measure!,
     # Energy measurements
     energy,
@@ -569,30 +569,54 @@ end
 ######################
 """
 
-@doc raw"""
-    heatbath_weights(spinmodel::AbstractSpinModel, i, β::Real)
+"""
+    heatbath!(spinmodel::AbstractSpinModel, β::Real, n_steps::Integer)
 
-Calculate the weights required by the heatbath sampling algorithm for the spin model `spinmodel` for the `i`-th site and at temperature `β`.
+Sample the spin model `spinmodel` using the heatbath algorithm at temperature `β` for `n_steps` steps.
 
-The weight associated with the single spin state `σ` at the `i`-th site at temperature `β` is:
+The weight associated with the candidate single spin state `σ` at the `i`-th site at temperature `β` is:
 
 ``w(σ, i, β) = exp(-β hᵢ(σ))``
 
 where `hᵢ(σ)` is the local energy associated with `i`-th site assuming that its state is `σ`.
 """
-@inline heatbath_weights(spinmodel::AbstractSpinModel{<:AbstractFiniteState{T}}, i, β::Real) where {T} =
-    map(σ -> exp(β * minus_energy_local(spinmodel, i, σ)), [instances(T)...]) |> ProbabilityWeights
-
-"""
-    heatbath!(spinmodel::AbstractSpinModel, β::Real, n_steps::Integer)
-
-Sample the spin model `spinmodel` using the heatbath algorithm at temperature `β` for `n_steps` steps.
-"""
-function heatbath!(spinmodel::AbstractSpinModel{AbstractFiniteState{T}}, β::Real, n_steps::Integer) where {T}
+function heatbath!(spinmodel::AbstractSpinModel{<:AbstractFiniteState{T}}, β::Real, n_steps::Integer) where {T}
+    # Allocate arrays
+    spin_inst = [instances(T)...]
+    weights = Vector{Float64}(undef, length(spin_inst))
     # Site loop
     @inbounds for i ∈ rand(eachindex(state(spinmodel)), n_steps)
-        weights = heatbath_weights(spinmodel, i, β)
-        spinmodel[i] = sample([instances(T)...], weights)
+        map!(σ -> exp(β * minus_energy_local(spinmodel, i, σ)), weights, spin_inst)
+        spinmodel[i] = sample(spin_inst, ProbabilityWeights(weights))
+    end
+end
+
+function heatbath!(spinmodel::AbstractSpinModel{<:AbstractFiniteState{SpinOneState.T}}, β::Real, n_steps::Integer)
+    @inbounds for i ∈ rand(eachindex(state(spinmodel)), n_steps)
+        # Calculate weights
+        W_down = exp(β * minus_energy_local(spinmodel, i, SpinOneState.down))
+        # W_zero = exp(-β * 0.0) =  1.0
+        W_up = exp(β * minus_energy_local(spinmodel, i, SpinOneState.up))
+        W_total = W_down + 1.0 + W_up
+        # Calculate probabilities
+        # Threshold(↓) = P(↓) = W(↓) / Wₜ
+        thr_down = W_down / W_total
+        # Threshold(0) = P(↓) + P(0) = (W(↓) + W(0))/Wₜ = (W(↓) + 1.0)/Wₜ
+        thr_zero = (W_down + 1.0) / W_total
+
+        # Heatbath prescription
+        # 0               < rand() < P_down                     => (↓)
+        # P_down          < rand() < P_down + P_zero            => (0)
+        # P_down + P_zero < rand() < P_down + P_zero + P_up = 1 => (↑)
+        rnd = rand()
+        spinmodel[i] = if rnd < thr_down
+            SpinOneState.down
+        elseif rnd < thr_zero
+            SpinOneState.zero
+        else
+            SpinOneState.up
+        end
+
     end
 end
 
@@ -646,7 +670,7 @@ function heatbath_measure_energy!(spinmodel::T, β::Real, n_steps::Integer) wher
         @inbounds for i ∈ rand(eachindex(state(spinmodel)), length(spinmodel))
             # Store current state
             σᵢ = spinmodel[i]
-            # Calcualte minus energy local
+            # Calculate minus energy local
             minus_H_local = Dict(σ => minus_energy_local(spinmodel, i, σ) for σ ∈ instances(S))
             # Calculate weights
             weights = ProbabilityWeights([exp(β * minus_h) for minus_h ∈ values(minus_H_local)])
@@ -832,11 +856,7 @@ where the sum is over the nearest neighbors `j` of `i`.
 """
 @inline minus_energy_diff(ising::IsingModelExtField{<:AbstractFiniteState{T}}, i, sᵢ′::T) where {T} =
     let sᵢ = ising[i]
-        if sᵢ′ == sᵢ
-            0
-        else
-            (Integer(sᵢ′) - Integer(sᵢ)) * (nearest_neighbors_sum(ising, i) + ising.h)
-        end
+        (Integer(sᵢ′) - Integer(sᵢ)) * (nearest_neighbors_sum(ising, i) + ising.h)
     end
 
 @doc raw"""
@@ -918,7 +938,7 @@ where the sum is over the nearest neighbors `j` of `i`.
     Integer(sᵢ) * nearest_neighbors_sum(blumecapel.state, i)
 
 @doc raw"""
-    minus_energy_diff(blumecapel::BlumeCapelIsotropicModel, i, sᵢ′)
+    minus_energy_diff(blumecapel::BlumeCapelIsotropicModel{<:AbstractFiniteState{T}}, i, sᵢ′::T) where {T}
 
 Calculate *minus* the energy difference for an isotropic Blume-Capel system `blumecapel` if the `i`-th spin were to be changed to `sᵢ′`.
 
@@ -927,12 +947,8 @@ Calculate *minus* the energy difference for an isotropic Blume-Capel system `blu
 where the sum is over the nearest neighbors `j` of `i`.
 """
 @inline minus_energy_diff(blumecapel::BlumeCapelIsotropicModel{<:AbstractFiniteState{T}}, i, sᵢ′::T) where {T} =
-    if sᵢ′ == blumecapel[i]
-        0
-    else
-        let sᵢ = Integer(blumecapel[i]), sᵢ′ = Integer(sᵢ′)
-            (sᵢ′ - sᵢ) * nearest_neighbors_sum(blumecapel.state, i)
-        end
+    let sᵢ = Integer(blumecapel[i]), sᵢ′ = Integer(sᵢ′)
+        (sᵢ′ - sᵢ) * nearest_neighbors_sum(blumecapel.state, i)
     end
 
 """
@@ -1009,7 +1025,7 @@ where the sum is over the nearest neighbors `j` of `i`.
     end
 
 @doc raw"""
-    minus_energy_diff(blumecapel::BlumeCapelModel, i, sᵢ′)
+    minus_energy_diff(blumecapel::BlumeCapelModel{<:AbstractFiniteState{T}}, i, sᵢ′::T) where {T}
 
 Calculate *minus* the energy difference for an Blume-Capel system `blumecapel` if the `i`-th spin were to be changed to `sᵢ′`.
 
@@ -1018,12 +1034,8 @@ Calculate *minus* the energy difference for an Blume-Capel system `blumecapel` i
 where the sum is over the nearest neighbors `j` of `i`.
 """
 @inline minus_energy_diff(blumecapel::BlumeCapelModel{<:AbstractFiniteState{T}}, i, sᵢ′::T) where {T} =
-    if sᵢ′ == blumecapel[i]
-        0
-    else
-        let sᵢ = Integer(blumecapel[i]), sᵢ′ = Integer(sᵢ′)
-            (sᵢ′ - sᵢ) * nearest_neighbors_sum(blumecapel.state, i) + blumecapel.D * (sᵢ^2 - sᵢ′^2)
-        end
+    let sᵢ = Integer(blumecapel[i]), sᵢ′ = Integer(sᵢ′)
+        (sᵢ′ - sᵢ) * nearest_neighbors_sum(blumecapel.state, i) + blumecapel.D * (sᵢ^2 - sᵢ′^2)
     end
 
 end
