@@ -6,7 +6,7 @@ using CSV, DataFrames
 # Load critical temperatures dataframes
 df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_square_lattice.csv")))
 
-const τ_vals = 2.0 .^ (-0.2:0.05:0.2)
+const τ_vals = [0.5, 0.8, 0.9, 1.0, 1.1, 1.2, 1.5, 2.0]
 
 for (D, L) ∈ Iterators.product([0, 0.5, 1], 100)
 
@@ -17,9 +17,7 @@ for (D, L) ∈ Iterators.product([0, 0.5, 1], 100)
 
     for T ∈ τ_vals .* T_c
 
-        beta = 1.0 / T
-
-        println("$L $D $beta")
+        println("$L $D $T")
 
     end
 

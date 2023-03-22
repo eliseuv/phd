@@ -30,12 +30,14 @@ const L = parse(Int64, ARGS[1])
 const D = parse(Float64, ARGS[2])
 
 # Simulation parameters
-const beta = parse(Float64, ARGS[3])
+const T = parse(Float64, ARGS[3])
 const n_samples = 100
 const n_steps = 300
 const n_runs = 1000
 
-@show dim L D beta n_samples n_steps n_runs
+const beta = 1.0 / T
+
+@show dim L D T beta n_samples n_steps n_runs
 
 # Output data directory
 output_dir = datadir("sims", "blume-capel", "square_lattice")
@@ -62,7 +64,7 @@ corr_vals = map(triu_values, Gs)
 params_dict =
     output_path = joinpath(output_dir,
         filename("BlumeCapelSqLatticeCorrMatEigvals",
-            @varsdict(dim, L, D, beta, n_samples, n_steps, n_runs)))
+            @varsdict(dim, L, D, T, n_samples, n_steps, n_runs)))
 @show output_path
 
 # Save result
