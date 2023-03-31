@@ -1,4 +1,4 @@
-#+title: Blume-Capel
+#+title: Investigation Blume-Capel model
 #+author: Eliseu Venites Filho and Roberto da Silva
 
 #+latex_class: article
@@ -10,33 +10,86 @@
 #+latex_header: \usepackage{svg}
 #+latex_header: \usepackage{float}
 
+#+latex_header_extra: \newcommand{\mean}[1]{\left\langle#1\right\rangle}
+#+latex_header_extra: \newcommand{\var}[1]{\mean{#1^{2}} - \mean{#1}^{2}}
+
+#+cite_export: csl american-physics-society.csl
+
 #+startup: latexpreview
 
 * Introduction
 
+One way to investigate the critical behavior of a thermodynamic system is to consider its relaxation when placed at a given temperature from an infinite initial temperature.
+
+The investigation carried out here consists in analyzing the spectral properties of the correlation matrix of a relevant time series associated with the systems out of equilibrium evolution.
+
+
 ** The Blume-Capel model
 
-The Blume-Capel model was first proposed in the 60's in the context of
+The Blume-Capel model was first proposed in the 60's arising from the study of magnetic materials [cite:@blumeTheoryFirstOrderMagnetic1966;@capelPossibilityFirstorderPhase1966].
 
 The dynamics of the short-range spin-$1$ Blume-Capel model is described by the following Hamiltonian:
 
-\[ H = - J \sum_{\langle i, j \rangle} s_i s_j + D \sum_i s_i^2 \]
+\[ H = - J \sum_{\langle i, j \rangle} s_i s_j + D \sum_i s_i^2 - H \sum_i s_i \]
 
-where $\langle i, j \rangle$ indicates that the summation is over the nearest neighbor pair of sites $i$ and $j$.
+where each spins can hold the values $s_i \in \left\{ -1, 0 , +1 \right\}$.
 
-Despite its simplicity and resemblance to the classic short-range Ising model, the short-range Blume-Capel possess a much richer phase diagram comprised of a second order line
+The first term models the local interaction between the spins, with $J$ representing the interaction strength and $\langle i, j \rangle$ indicating that the interaction manifests over the nearest neighbors pair of sites $i$ and $j$.
 
-A feature of the Blume-Capel model
+The parameter $D$ is called the anisotropy field and is responsible for /zero-field splitting/ resulting in an energy increasing for $s_i = \pm1$ states even in the absence of an external magnetic field.
+
+Finally the third term models the interaction of the system with an external magnetic field of intensity $H$ which we will assume to not be present.
+
+Despite its simplicity and resemblance to the classic short-range Ising model, the short-range Blume-Capel possess a much richer phase diagram comprised of a critical line that becomes a first-order transition line at the tri-critical point.
 
 
-** Method
+* Method
 
-The method proposed consists in
-The use of random matrices for the investigation of critical phenomena in spin systems has been previously explored
+The use of random matrices for the investigation of critical phenomena in spin systems has been previously explored was first proposed in [cite:@dasilvaRandomMatricesTheory2022] for magnetization time series of Ising systems and more recently in [].
 
+In the present work, we construct $n_{samples}$ time series samples $\left\{x_j\right\}_{j=1}^{n_{samples}}$ each with length $n_{steps}$ obtained from a spin-$1$ Blume-Capel system.
+The time dynamics of the system is simulated using the heatbath algorithm.
+We then populate the columns of a matrix $X$ with these time series resulting in a matrix with $n_{steps}$ rows and $n_{samples}$ columns.
+
+For each time series matrix $X$, we define the normalized time series matrix $X^{*}$ whose elements are:
+
+\begin{equation}
+x^{*}_{ij} = \frac{x_{ij} - \mean{x_{j}}}{\sqrt{\var{x_{j}}}}
+\end{equation}
+
+where $\mean{x_j^k}$ is the $k$ -th moment of the $j$ -th time series:
+
+\begin{equation}
+\mean{x_j^k} = \frac{1}{N_{steps}} \sum_{i=1}^{N_{steps}} x_{ij}^k
+\end{equation}
+
+In order to investigate the correlational properties of the system that manifest near criticality, we consider the correlation matrix $G$:
+
+\begin{equation}
+G = \frac{1}{N_{steps}} X^{*}^{T} X^{*}
+\end{equation}
+
+\begin{equation}
+\begin{split}
+G &= \frac{1}{N_{steps}} \sum_{k=1}^{N_{steps}} \frac{x_{ki} - \mean{x_{i}}}{\sqrt{\var{x_i}}} \frac{x_{kj} - \mean{x_{j}}}{\sqrt{\var{x_j}}} \\
+  &= \frac{\mean{x_i x_j}-\mean{x_i}\mean{x_j}}{\sqrt{\left(\var{x_i}\right)\left(\var{x_j}\right)}}
+\end{split}
+\end{equation}
+
+The main subket of our investigation is the eigenvalue spectrum $\rho(\lambda)$ of the correlation matrix $G$.
 
 
 * Results
+
+We consider here the spin-$1$ Blume-Capel system on a two-dimensional square lattice with $N = L^2 = 100 \times 100$ sites with /Von Neumann/
+
++ Eigenvalues density
++ Eigenvalues gap distribution
++ Eigenvalues fluctuations
++ Minimum/maximum eigenvalue statistics
+
+The values for the critical temperatures and tri-critical point are provided by [cite:@buteraBlumeCapelModel2018].
+
 
 ** Second order:
 
@@ -78,7 +131,15 @@ We also consider the eigenvalues gap distribution under the same conditions
 ** Tricritical point
 
 
+** Spectral analysis of the state correlation matrix
+
+An alternative method of spectral analysis is to consider time series matrices not from
+
+[cite:@vinayakSpectralAnalysisFinitetime2014]
+
 
 * References
 
 #+print_bibliography:
+
+#  LocalWords:  Blume Capel Eliseu Venites Filho da tri Anisotropic
