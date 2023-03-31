@@ -76,12 +76,15 @@ G &= \frac{1}{N_{steps}} \sum_{k=1}^{N_{steps}} \frac{x_{ki} - \mean{x_{i}}}{\sq
 \end{split}
 \end{equation}
 
-The main subket of our investigation is the eigenvalue spectrum $\rho(\lambda)$ of the correlation matrix $G$.
+The main subject of our investigation is the eigenvalue spectrum $\rho(\lambda)$ of the correlation matrix $G$.
 
 
 * Results
 
-We consider here the spin-$1$ Blume-Capel system on a two-dimensional square lattice with $N = L^2 = 100 \times 100$ sites with /Von Neumann/
+We consider here the spin-$1$ Blume-Capel system on a two-dimensional square lattice with $N = L^2 = 100 \times 100$ sites with /Von Neumann/ neighborhood.
+
+The anal
+
 
 + Eigenvalues density
 + Eigenvalues gap distribution
@@ -142,4 +145,5 @@ An alternative method of spectral analysis is to consider time series matrices n
 
 #+print_bibliography:
 
-#  LocalWords:  Blume Capel Eliseu Venites Filho da tri Anisotropic
+#  LocalWords:  Blume Capel Eliseu Venites Filho da tri Anisotropic anisotropy
+#  LocalWords:  heatbath
