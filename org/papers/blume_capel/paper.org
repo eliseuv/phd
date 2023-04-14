@@ -1,4 +1,4 @@
-#+title: Investigation Blume-Capel model
+#+title: Investigation Blume    -Capel model
 #+author: Eliseu Venites Filho and Roberto da Silva
 
 #+latex_class: article
@@ -81,57 +81,72 @@ The main subject of our investigation is the eigenvalue spectrum $\rho(\lambda)$
 
 * Results
 
-We consider here the spin-$1$ Blume-Capel system on a two-dimensional square lattice with $N = L^2 = 100 \times 100$ sites with /Von Neumann/ neighborhood.
+We analyze the Wishart ensemble spectrum associated with the magnetization time series at the vicinity of the critical temperatures of the spin-$1$ Blume-Capel system on a two-dimensional square lattice with $N = L^2 = 100 \times 100$ sites with /Von Neumann/ neighbors. The values for the critical temperature for several values anisotropy parameter $D$ are provided by [cite:@buteraBlumeCapelModel2018] and can be visualized in figures [[fig:phase-space]] and [[fig:phase-space-detail]].
 
-The anal
-
-
++ Eigenvalues fluctuations as a function of temperature
+  + Mean eigenvalue
+  + Variance of eigenvalues
 + Eigenvalues density
 + Eigenvalues gap distribution
-+ Eigenvalues fluctuations
-+ Minimum/maximum eigenvalue statistics
++ Minimum/maximum eigenvalue distributions
 
-The values for the critical temperatures and tri-critical point are provided by [cite:@buteraBlumeCapelModel2018].
+#+name: fig:phase-space
+#+caption: Blume-Capel phase space
+#+attr_latex: :placement [H] :width 0.9\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/phase_space.svg]]
+
+
+#+caption: Blume-Capel phase space detail
+#+name: fig:phase-space-detail
+#+attr_latex: :placement [H] :width 0.9\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/phase_space_detail.svg]]
 
 
 ** Second order:
 
 *** Isotropic model
 
-
-We first analyze the Wishart ensemble spectrum associated with the magnetization time series of the isotropic BC model at the vicinity of the critical temperature.
-
-#+caption: Isotropic Blume-Capel model just below its critical temperature.
+#+caption: Eigenvalues distribution for the Blume-Capel 2D isotropic model.
+#+name: fig:eigvals-dist-D=0
 #+attr_latex: :placement [H] :width 0.9\textwidth :options \centering
-[[file:~/programs/phd/plots/blume-capel/BlumeCapelSquareLatticeEigvalsHist_D=0_L=64_dim=2_n_runs=1024_n_samples=128_n_steps=512_tau=0.96594.svg]]
+[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0/BlumeCapelSq2DEigvalsDistribution_D=0.0.svg]]
 
-#+caption: Isotropic Blume-Capel model at its critical temperature.
+#+caption: Eigenvalues distribution mean for the Blume-Capel 2D isotropic model.
+#+name: fig:eigvals-mean-D=0
 #+attr_latex: :placement [H] :width 0.9\textwidth :options \centering
-[[file:~/programs/phd/plots/blume-capel/BlumeCapelSquareLatticeEigvalsHist_D=0_L=64_dim=2_n_runs=1024_n_samples=128_n_steps=512_tau=1.0.svg]]
+[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0/BlumeCapelSq2DEigvalsMean_D=0.0.svg]]
 
-#+caption: Isotropic Blume-Capel model just above its critical temperature.
+#+caption: Eigenvalues distribution variance for the Blume-Capel 2D isotropic model.
+#+name: fig:eigvals-var-D=0
 #+attr_latex: :placement [H] :width 0.9\textwidth :options \centering
-[[file:~/programs/phd/plots/blume-capel/BlumeCapelSquareLatticeEigvalsHist_D=0_L=64_dim=2_n_runs=1024_n_samples=128_n_steps=512_tau=1.03526.svg]]
+[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0/BlumeCapelSq2DEigvalsVar_D=0.0.svg]]
 
-We also consider the eigenvalues gap distribution under the same conditions
-
-#+caption: Isotropic Blume-Capel model just below its critical temperature.
+#+caption: Eigenvalue spacing distribution for the Blume-Capel 2D isotropic model.
+#+name: fig:eigvals-spacing-dist-D=0
 #+attr_latex: :placement [H] :width 0.9\textwidth :options \centering
-[[file:~/programs/phd/plots/blume-capel/BlumeCapelSquareLatticeEigvalsGapHist_D=0_L=64_dim=2_n_runs=1024_n_samples=128_n_steps=512_tau=0.96594.svg]]
+[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0/BlumeCapelSq2DEigvalsGaps_D=0.0.svg]]
 
-#+caption: Isotropic Blume-Capel model at its critical temperature.
+#+caption: Mean value for the eigenvalues spacing for the Blume-Capel 2D isotropic model.
+#+name: fig:eigvals-spacing-mean-D=0
 #+attr_latex: :placement [H] :width 0.9\textwidth :options \centering
-[[file:~/programs/phd/plots/blume-capel/BlumeCapelSquareLatticeEigvalsGapHist_D=0_L=64_dim=2_n_runs=1024_n_samples=128_n_steps=512_tau=1.0.svg]]
+[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0/BlumeCapelSq2DEigvalGapsMean_D=0.0.svg]]
 
-#+caption: Isotropic Blume-Capel model just above its critical temperature.
-#+attr_latex: :placement [H] :width 0.9\textwidth :options \centering
-[[file:~/programs/phd/plots/blume-capel/BlumeCapelSquareLatticeEigvalsGapHist_D=0_L=64_dim=2_n_runs=1024_n_samples=128_n_steps=512_tau=1.03526.svg]]
+#+caption: Variance for the eigenvalues spacing for the Blume-Capel 2D isotropic model.
+#+name: fig:eigvals-spacing-var-D=0
+#+attr_latex: :placement [H] :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0/BlumeCapelSq2DEigvalGapsVar_D=0.0.svg]]
+
 
 
 *** Anisotropic model
 
 
 ** Tricritical point
+
+
+** First order
+
+
 
 
 ** Spectral analysis of the state correlation matrix
@@ -144,6 +159,3 @@ An alternative method of spectral analysis is to consider time series matrices n
 * References
 
 #+print_bibliography:
-
-#  LocalWords:  Blume Capel Eliseu Venites Filho da tri Anisotropic anisotropy
-#  LocalWords:  heatbath
