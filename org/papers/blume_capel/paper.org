@@ -192,27 +192,35 @@ We now consider the mean value of the maximum eigenvalue spacing over all $n_{ru
 
 ** Tricritical point
 
+The same analysis is carried out for the tricritical point using the anisotropy value $D=196582$ and critical temperature $T_c = 0.60858$ provided by [cite:@jungFirstorderTransitionsThermodynamic2017].
 
-#+caption: Eigenvalues distribution at different temperatures for the Blume-Capel 2D with $D=1.9658149$.
-#+name: fig:eigvals-hists-D=1.9658149
-#+attr_latex: :placement [H] :width 1\textwidth :options \centering
-[[file:~/programs/phd/plots/blume_capel_pickles/D=1.9658149(tcp)/BlumeCapelSq2DEigvalsHist_D=1.9658149.svg]]
+The situation here is rather different.
 
 #+caption: Eigenvalues distribution at different temperatures for the Blume-Capel 2D with $D=1.96582$.
 #+name: fig:eigvals-hists-D=1.96582
 #+attr_latex: :placement [H] :width 1\textwidth :options \centering
 [[file:~/programs/phd/plots/blume_capel_pickles/D=1.96582(tcp)/BlumeCapelSq2DEigvalsHist_D=1.96582.svg]]
 
-#+caption: Eigenvalues distribution at different temperatures for the Blume-Capel 2D with $D=1.96604$.
-#+name: fig:eigvals-hists-D=1.96604
-#+attr_latex: :placement [H] :width 1\textwidth :options \centering
-[[file:~/programs/phd/plots/blume_capel_pickles/D=1.96604(tcp)/BlumeCapelSq2DEigvalsHist_D=1.96604.svg]]
 
 
-#+caption: Mean value of the largest eigenvalue spacing for the Blume-Capel 2D isotropic model.
-#+name: fig:eigvals-mean-max-spacing-D=0
+#+caption: Mean eigenvalue for the Blume-Capel 2D on the vicinity of the tricritical point.
+#+name: fig:eigvals-hist-mean-D=1.96582
 #+attr_latex: :placement [H] :width 1\textwidth :options \centering
-[[file:~/programs/phd/plots/blume_capel_pickles/BlumeCapelSq2DEigvalsMeans_order=tcp.svg]]
+[[file:~/programs/phd/plots/blume_capel_pickles/D=1.96582(tcp)/BlumeCapelSq2DEigvalsMean_D=1.96582.svg]]
+
+#+caption: Mean eigenvalue for the Blume-Capel 2D on the vicinity of the tricritical point.
+#+name: fig:eigvals-hist-mean-D=1.96582
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/D=1.96582(tcp)/BlumeCapelSq2DEigvalsVar_D=1.96582.svg]]
+
+
+[[file:~/programs/phd/plots/blume_capel_pickles/D=1.96582(tcp)/BlumeCapelSq2DEigvalsSpacingMean_D=1.96582.svg]]
+
+#+caption: Mean eigenvalue for the Blume-Capel 2D on the vicinity of the tricritical point.
+#+name: fig:eigvals-hist-mean-D=1.96582
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/D=1.96582(tcp)/BlumeCapelSq2DEigvalsMaxSpacingMean_D=1.96582.svg]]
+
 
 
 
