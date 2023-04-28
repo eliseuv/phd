@@ -1,4 +1,4 @@
-#+title: Investigation Blume    -Capel model
+#+title: Statistics and extremal statistics of Wishart-like matrices in critical, tricritical, and first order points
 #+author: Eliseu Venites Filho and Roberto da Silva
 
 #+latex_class: article
@@ -45,7 +45,7 @@ Despite its simplicity and resemblance to the classic short-range Ising model, t
 
 * Method
 
-The use of random matrices for the investigation of critical phenomena in spin systems has been previously explored was first proposed in [cite:@dasilvaRandomMatricesTheory2022] for magnetization time series of Ising systems and more recently in [].
+The use of random matrices for the investigation of critical phenomena in spin systems has been previously explored was first proposed in [cite:@dasilvaRandomMatricesTheory2022] for magnetization time series of Ising systems.
 
 In the present work, we construct $n_{samples}$ time series samples $\left\{x_j\right\}_{j=1}^{n_{samples}}$ each with length $n_{steps}$ obtained from a spin-$1$ Blume-Capel system.
 The time dynamics of the system is simulated using the heatbath algorithm.
@@ -81,79 +81,140 @@ The main subject of our investigation is the eigenvalue spectrum $\rho(\lambda)$
 
 * Results
 
-We analyze the Wishart ensemble spectrum associated with the magnetization time series at the vicinity of the critical temperatures of the spin-$1$ Blume-Capel system on a two-dimensional square lattice with $N = L^2 = 100 \times 100$ sites with /Von Neumann/ neighbors. The values for the critical temperature for several values anisotropy parameter $D$ are provided by [cite:@buteraBlumeCapelModel2018] and can be visualized in figures [[fig:phase-space]] and [[fig:phase-space-detail]].
+We analyze the Wishart ensemble spectrum associated with the magnetization time series at the vicinity of the critical temperatures of the spin-$1$ Blume-Capel system on a two-dimensional square lattice with $N = L^2 = 100 \times 100$ sites with /Von Neumann/ neighbors.
 
-+ Eigenvalues fluctuations as a function of temperature
-  + Mean eigenvalue
-  + Variance of eigenvalues
-+ Eigenvalues density
-+ Eigenvalues gap distribution
-+ Minimum/maximum eigenvalue distributions
+$n_{runs} = 1000$ correlation matrices are calculated, each from $n_{samples} = 100$ time series of length $n_{steps} = 300$.
+
+The values for the critical temperature for several values anisotropy parameter $D$ are provided by [cite:@buteraBlumeCapelModel2018] and can be visualized in figures [[fig:phase-space]] and [[fig:phase-space-detail]].
 
 #+name: fig:phase-space
-#+caption: Blume-Capel phase space
+#+caption: Blume-Capel phase space.
 #+attr_latex: :placement [H] :width 0.9\textwidth :options \centering
 [[file:~/programs/phd/plots/blume_capel_pickles/phase_space.svg]]
 
 
-#+caption: Blume-Capel phase space detail
+#+caption: Blume-Capel phase space diagram detailing the position of the tricritical point (TCP) and the first order transition line.
 #+name: fig:phase-space-detail
 #+attr_latex: :placement [H] :width 0.9\textwidth :options \centering
 [[file:~/programs/phd/plots/blume_capel_pickles/phase_space_detail.svg]]
 
 
-** Second order:
+** Second order
 
-*** Isotropic model
+We begin our investigation by considering the isotropic model ($D=0$). The critcal temperature for this system is calculated to be $T_c = 1.69378$ according to [cite:@buteraBlumeCapelModel2018]
 
-#+caption: Eigenvalues distribution for the Blume-Capel 2D isotropic model.
-#+name: fig:eigvals-dist-D=0
-#+attr_latex: :placement [H] :width 0.9\textwidth :options \centering
-[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0/BlumeCapelSq2DEigvalsDistribution_D=0.0.svg]]
+#+caption: Eigenvalues distribution at different temperatures for the Blume-Capel 2D isotropic model.
+#+name: fig:eigvals-hists-D=0
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0(second)/BlumeCapelSq2DEigvalsHist_D=0.0.svg]]
 
-#+caption: Eigenvalues distribution mean for the Blume-Capel 2D isotropic model.
-#+name: fig:eigvals-mean-D=0
-#+attr_latex: :placement [H] :width 0.9\textwidth :options \centering
-[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0/BlumeCapelSq2DEigvalsMean_D=0.0.svg]]
+We can notice that at low temperatures the eigenvalues of the correlation matrix group themselves in two portions with a visible gap between them. This gap gap begins to close around the critcal temperature and the spectrum approaches a Marcenko-Pastur distribution at high temperatures as expected.
 
-#+caption: Eigenvalues distribution variance for the Blume-Capel 2D isotropic model.
-#+name: fig:eigvals-var-D=0
-#+attr_latex: :placement [H] :width 0.9\textwidth :options \centering
-[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0/BlumeCapelSq2DEigvalsVar_D=0.0.svg]]
+Continuing down the critical transition line, the closing of this gap
 
-#+caption: Eigenvalue spacing distribution for the Blume-Capel 2D isotropic model.
-#+name: fig:eigvals-spacing-dist-D=0
-#+attr_latex: :placement [H] :width 0.9\textwidth :options \centering
-[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0/BlumeCapelSq2DEigvalsGaps_D=0.0.svg]]
+#+caption: Eigenvalues distribution at different temperatures for the Blume-Capel 2D with $D=0.5$.
+#+name: fig:eigvals-hists-D=0.5
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/D=0.5(second)/BlumeCapelSq2DEigvalsHist_D=0.5.svg]]
 
-#+caption: Mean value for the eigenvalues spacing for the Blume-Capel 2D isotropic model.
+#+caption: Eigenvalues distribution at different temperatures for the Blume-Capel 2D with $D=1$.
+#+name: fig:eigvals-hists-D=1
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/D=1.0(second)/BlumeCapelSq2DEigvalsHist_D=1.0.svg]]
+
+#+caption: Eigenvalues distribution at different temperatures for the Blume-Capel 2D with $D=1.5$.
+#+name: fig:eigvals-hists-D=1.5
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/D=1.5(second)/BlumeCapelSq2DEigvalsHist_D=1.5.svg]]
+
+
+We can integrate the previous histograms to obtain the fluctuations of the eigenvalues for different temperatures
+
+For the isotropic model ($D=0$)
+
+#+caption: Mean eigenvalue of the correlation matrix for the Blume-Capel 2D isotropic model.
+#+name: fig:eigvals-hist-mean-D=0
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0(second)/BlumeCapelSq2DEigvalsMean_D=0.0.svg]]
+
+#+caption: Mean eigenvalue of the correlation matrix for the Blume-Capel 2D isotropic model.
+#+name: fig:eigvals-hist-mean-D=0
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/BlumeCapelSq2DEigvalsMeans_order=second.svg]]
+
+This behavior can be observed along the critical line
+
+#+caption: Mean eigenvalue of the correlation matrix.
+#+name: fig:eigvals-mean-second-order
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/D=1.9501(second)/BlumeCapelSq2DEigvalsMean_D=1.9501.svg]]
+
+#+caption: Mean eigenvalue of the correlation matrix.
+#+name: fig:eigvals-mean-second-order
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/D=1.9501(second)/BlumeCapelSq2DEigvalsHist_D=1.9501.svg]]
+
+
+#+caption: Mean eigenvalue of the correlation matrix.
+#+name: fig:eigvals-mean-second-order
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/BlumeCapelSq2DEigvalsVars_order=second.svg]]
+
+In problems concerning random matrices it is valuable to consider the spacing between the eigenvalues.
+
+#+caption: Mean value of the eigenvalue spacings for the Blume-Capel 2D isotropic model.
 #+name: fig:eigvals-spacing-mean-D=0
-#+attr_latex: :placement [H] :width 0.9\textwidth :options \centering
-[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0/BlumeCapelSq2DEigvalGapsMean_D=0.0.svg]]
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0(second)/BlumeCapelSq2DEigvalsSpacingMean_D=0.0.svg]]
 
-#+caption: Variance for the eigenvalues spacing for the Blume-Capel 2D isotropic model.
+#+caption: Variance of the eigenvalue spacings for the Blume-Capel 2D isotropic model.
 #+name: fig:eigvals-spacing-var-D=0
-#+attr_latex: :placement [H] :options \centering
-[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0/BlumeCapelSq2DEigvalGapsVar_D=0.0.svg]]
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0(second)/BlumeCapelSq2DEigvalsSpacingVar_D=0.0.svg]]
 
 
 
-*** Anisotropic model
+We now consider the mean value of the maximum eigenvalue spacing over all $n_{runs}$ matrices.
+
+
+#+caption: Mean value of the largest eigenvalue spacing for the Blume-Capel 2D isotropic model.
+#+name: fig:eigvals-mean-max-spacing-D=0
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/D=0.0(second)/BlumeCapelSq2DEigvalsMaxSpacingMean_D=0.0.svg]]
+
+#+caption: Mean value of the largest eigenvalue spacing for the Blume-Capel 2D with $D=0.5$.
+#+name: fig:eigvals-mean-max-spacing-D=0.5
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/BlumeCapelSq2DEigvalMaxSpacingMeans_order=second.svg]]
+
+
 
 
 ** Tricritical point
 
 
-** First order
+#+caption: Eigenvalues distribution at different temperatures for the Blume-Capel 2D with $D=1.9658149$.
+#+name: fig:eigvals-hists-D=1.9658149
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/D=1.9658149(tcp)/BlumeCapelSq2DEigvalsHist_D=1.9658149.svg]]
+
+#+caption: Eigenvalues distribution at different temperatures for the Blume-Capel 2D with $D=1.96582$.
+#+name: fig:eigvals-hists-D=1.96582
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/D=1.96582(tcp)/BlumeCapelSq2DEigvalsHist_D=1.96582.svg]]
+
+#+caption: Eigenvalues distribution at different temperatures for the Blume-Capel 2D with $D=1.96604$.
+#+name: fig:eigvals-hists-D=1.96604
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/D=1.96604(tcp)/BlumeCapelSq2DEigvalsHist_D=1.96604.svg]]
 
 
+#+caption: Mean value of the largest eigenvalue spacing for the Blume-Capel 2D isotropic model.
+#+name: fig:eigvals-mean-max-spacing-D=0
+#+attr_latex: :placement [H] :width 1\textwidth :options \centering
+[[file:~/programs/phd/plots/blume_capel_pickles/BlumeCapelSq2DEigvalsMeans_order=tcp.svg]]
 
 
-** Spectral analysis of the state correlation matrix
-
-An alternative method of spectral analysis is to consider time series matrices not from
-
-[cite:@vinayakSpectralAnalysisFinitetime2014]
 
 
 * References

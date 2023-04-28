@@ -24,7 +24,7 @@ using ..Metaprogramming
 
 # Script preview
 
-"""
+@doc raw"""
     script_show(x...)
 
 Print the entities `x...` to standard output while in a script in the same way it prints in a REPL session.
@@ -196,7 +196,7 @@ end
 @doc raw"""
     check_params(params::Dict{String}, req::Pair{String,T}) where {T}
 
-Checks if the parameters dictionary `params` has the key-value pair specified by the pair `req`.
+Checks if the prameters dictionary `params` has the key-value pair specified by the pair `req`.
 """
 @inline check_params(params::Dict{String}, req::Pair{String,T}) where {T} =
     let (key, value) = req

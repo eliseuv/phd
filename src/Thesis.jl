@@ -14,8 +14,8 @@ include("DataIO.jl")
 # JHU Covid-19 data
 include("Covid19Data.jl")
 
-# Correlated random variables pair
-include("CorrelatedPairs.jl")
+# Statistics utils
+include("Stats.jl")
 
 # Random matrices utils
 include("TimeSeries.jl")

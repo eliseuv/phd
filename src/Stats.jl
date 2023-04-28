@@ -1,14 +1,56 @@
 @doc raw"""
-    Correlated Pair Distribution
+    Statistics utils
 
 """
-module CorrelatedPairs
+module Stats
 
 export
+    Histogram,
     CorrelatedPairSampler,
     CorrelatedTimeSeriesMatrixSampler
 
-using Random, Distributions, LinearAlgebra
+using Statistics, Random, Distributions, LinearAlgebra
+
+struct Histogram{T<:Real}
+    edges::AbstractRange{T}
+    freqs::AbstractVector{UInt64}
+end
+
+@inline function Histogram(values::AbstractVector{T}, nbins::Integer) where {T<:Real}
+    low, high = extrema(values)
+
+    edges = range(low, high, length=nbins + 1)
+
+    freqs = zeros(UInt64, nbins)
+    bin_width = (high - low) / nbins
+    for x ∈ values
+        idx = min(floor(UInt64, (x - low) / bin_width) + 1, nbins)
+        freqs[idx] += 1
+    end
+
+    Histogram{T}(edges, freqs)
+
+end
+
+@inline Statistics.mean(hist::Histogram) =
+    let n = sum(hist.freqs)
+        sum(e * (f / n) for (e, f) ∈ zip(hist.edges, hist.freqs))
+    end
+
+
+@inline function Statistics.var(hist::Histogram; corrected::Bool=true, mean=nothing)
+    mean_used = if mean === nothing
+        Statistics.mean(hist)
+    elseif isa(mean, Real)
+        mean
+    else
+        throw(ArgumentError("invalid value of mean, $(mean)::$(typeof(mean))"))
+    end
+
+    n = sum(hist.freqs)
+    return sum(abs2(e - mean_used) * (f / (n - Int(corrected))) for (e, f) ∈ zip(hist.edges, hist.freqs))
+
+end
 
 @doc raw"""
     CorrelatedPairSampler{T<:UnivariateDistribution} <: Sampleable{Multivariate,Continuous}
