@@ -5,7 +5,8 @@
 module Stats
 
 export
-    Histogram,
+    Histogram, HistogramLog,
+    hist_coords,
     CorrelatedPairSampler,
     CorrelatedTimeSeriesMatrixSampler
 
@@ -51,6 +52,31 @@ end
     return sum(abs2(e - mean_used) * (f / (n - Int(corrected))) for (e, f) ∈ zip(hist.edges, hist.freqs))
 
 end
+
+@inline hist_coords(hist::Histogram) = (hist.edges[begin:end-1] .+ diff(hist.edges), hist.freqs)
+
+struct HistogramLog{T<:Real}
+    edges::AbstractVector{T}
+    freqs::AbstractVector{UInt64}
+end
+
+@inline function HistogramLog(values::AbstractVector{T}, nbins::Integer) where {T<:Real}
+
+    low, high = extrema(values)
+
+    edges = exp10.(range(log10(low), log10(high), length=nbins + 1))
+
+    freqs = zeros(UInt64, nbins)
+    for x ∈ values
+        idx = findfirst(>=(x), edges) - 1
+        freqs[idx] += 1
+    end
+
+    HistogramLog{T}(edges, freqs)
+
+end
+
+@inline hist_coords(hist::HistogramLog) = (exp10.(log10.(hist.edges[begin:end-1]) .+ log10.(diff(hist.edges))), hist.freqs)
 
 @doc raw"""
     CorrelatedPairSampler{T<:UnivariateDistribution} <: Sampleable{Multivariate,Continuous}
