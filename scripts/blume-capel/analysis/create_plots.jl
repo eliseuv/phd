@@ -354,6 +354,7 @@ for (ax_mean, ax_var, D) ∈ zip(axs_mean, axs_var, D_vals_second)
     scatterlines!(ax_mean, tau_vec, mean_vec)
     scatterlines!(ax_var, tau_vec, var_vec)
 end
+
 Label(fig_mean[0, :], text="Mean maximum eigenvalue spacing (second order)", fontsize=25)
 Label(fig_mean[5, 1:2], L"$T/T_c$")
 Label(fig_mean[1:4, 0], L"$\langle \max(\Delta\lambda) \rangle$", rotation=pi / 2)
@@ -417,9 +418,9 @@ save(joinpath(output_root, filename(global_prefix * "EigvalMaxSpacingVars", "ord
 # Loop on anisotropy values
 for (D, D_dict) ∈ sort(collect(eigvals_datafiles), by=x -> x[1])
 
-    if D ∉ [D_vals_second..., D_vals_first..., D_vals_tcp[2]]
-        continue
-    end
+    # if D ∉ [D_vals_second..., D_vals_first..., D_vals_tcp[2]]
+    #     continue
+    # end
 
     # Fetch critical temperature info
     T_c, transition_order, crit_temp_source = get_critical_temperature(df_temperatures, D)
@@ -514,7 +515,7 @@ for (D, D_dict) ∈ sort(collect(eigvals_datafiles), by=x -> x[1])
     fig = Figure()
     ax = Axis(fig[1, 1],
         title=L"Eigenvalues spacing variance $D = %$(D)$",
-        xlabel=L"$T/T_c$", ylabel=L"\langle \left(\Delta\lambda\right)^2 \rangle - \langle \Delta\lambda \rangle^2",
+        xlabel=L"$T/T_c$", ylabel=L"\langle ( \Delta\lambda )^2 \rangle - \langle \Delta\lambda \rangle^2",
         xticks=0:0.5:6.5)
     scatterlines!(ax, tau_vec, var_vec)
     save(joinpath(output_dir_D, filename(global_prefix * "EigvalsSpacingVar", @varsdict(D); ext="svg")), fig)
