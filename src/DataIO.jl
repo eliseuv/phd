@@ -87,7 +87,11 @@ To create a file without extension, use either `ext=nothing` or `ext=""`.
 """
 function filename(prefix::AbstractString, params...; sep::AbstractString="_", ext::AbstractString="jld2")
     # Prefix and parameters
-    filename = prefix * sep * params_str(params..., sep=sep)
+    filename = prefix
+    parameters = params_str(params..., sep=sep)
+    if !isempty(parameters)
+        filename *= sep * parameters
+    end
     # Extension
     if !isnothing(ext) && ext != ""
         if ext[begin] == '.'
