@@ -11,11 +11,13 @@ include("plot_utils.jl")
 @info "Loading datafiles..."
 const datafiles_dict = get_datafiles_dict(datadir("blume_capel_pickles", "correlations"))
 
-for (D, D_dict) ∈ sort(collect(datafiles_dict), by=x -> x[1])
-    if D ∈ [1.0]
-        continue
-    end
+# for (D, D_dict) ∈ sort(collect(datafiles_dict), by=x -> x[1])
+#     if D ∉ D_vals
+#         continue
+#     end
+for D ∈ D_vals
     @show D
+    D_dict = datafiles_dict[D]
 
     T_c, transition_order, crit_temp_source = get_critical_temperature(df_temperatures, D)
     transition_order_str = replace(transition_order,
@@ -31,23 +33,20 @@ for (D, D_dict) ∈ sort(collect(datafiles_dict), by=x -> x[1])
     # Eigenvalues distribution
     fig = Figure()
     axs = [Axis(fig[i, j],
-        yticks=make_ticks_log(-6:2:0))
+        limits=((-1, 1), (0, nothing)),
+        xticks=axis_ticks([-1, 0, 1]),
+        yticklabelsvisible=false)
            for i ∈ 1:3 for j ∈ 1:3]
     for (ax, idx) ∈ zip(axs, T_idxs)
         T = T_vec[idx]
         tau = round(T / T_c; digits=3)
+        @show tau
         ax.title = L"$T/T_c = %$(tau)$"
         datafile = D_dict[T]
-        eigvals = load_pickle(datafile.path)
-        # hist!(ax, vec(eigvals), bins=100, normalization=:probability)
-        hist = Histogram(vec(eigvals), 100)
+        correlations = load_pickle(datafile.path)
+        hist = Histogram(vec(correlations), 100)
         x, y = hist_coords(hist)
-        const_log = log10(sum(y))
-        ax.limits = ((-1.1, 1.1), (-const_log, 0))
-        x_max = x[end]
-        ax.xticks = axis_ticks_range(-1, 1, 3)
-        y = log10.(y)
-        barplot!(ax, x, y, gap=0, offset=-const_log)
+        barplot!(ax, x, y, gap=0)
     end
     Label(fig[0, :], text=L"Correlations ($D = %$(D)$)", fontsize=30)
     Label(fig[4, 1:3], L"$\rho$")

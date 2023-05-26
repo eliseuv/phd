@@ -29,3 +29,5 @@ Wrong cross correlation calculation.
   + Analytical calculation of eigenvaluesots)
 
 + Perturbation of a Vandermonde matrix
+
+* Stat Phys equivalent of Turing demonstration of non-computability of the halting problem

@@ -1,0 +1,19 @@
+#+title: Statistics and extremal statistics of Wishart-like matrices in critical, tricritical, and first order points
+#+author: Eliseu Venites Filho and Roberto da Silva
+
+#+latex_header_extra: \newcommand{\mean}[1]{\left\langle#1\right\rangle}
+#+latex_header_extra: \newcommand{\var}[1]{\mean{#1^{2}} - \mean{#1}^{2}}
+
+#+startup: latexpreview
+
+* Ideas
+
++ Generate artificial time series matrices with columns all $-1$ or $+1$ shuffle columns and calculate correlation matrix.
+  + The expected entries in the correlation matrix are $-1$ and $+1$.
+  + How is it different from generating a symmetric matrix from $-1$ and $+1$ entries
+    + Does shuffle make a difference?
++ Blume-Capel system initial state sampled only from spins $\{-1, +1\}$ and not $0$.
+  + Can the system reach equilibrium faster.
++ Measurement of the correlation between eigenvalues from the same matrix
+  + How are two arbitrary eigenvalues $\lambda_i$ and $\lambda_j$ correlated?
+  + How are $\lambda_{min}$ and $\lambda_{max}$ correlated?
