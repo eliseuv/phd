@@ -103,5 +103,8 @@ const D_vals_1order = [1.9777, 1.99932488]
 
 const D_vals = [D_vals_2order..., D_val_tcp, D_vals_1order...]
 
+# Temperatures considered
+const T_idxs = [1, 4, 5, 6, 8, 10, 11, 19, 21]
+
 # Plot output root directory
 const output_root = plotsdir("blume_capel_paper")
