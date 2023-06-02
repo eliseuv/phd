@@ -9,15 +9,12 @@ set_theme!(Theme(fontsize=26))
 include("plot_utils.jl")
 
 @info "Loading datafiles..."
-const datafiles_dict = get_datafiles_dict(datadir("blume_capel_pickles", "correlations"))
+const datafiles_dict = get_datafiles_dict(datadir("blume_capel_pickles", "pm_init", "correlations"))
 
-# for (D, D_dict) ∈ sort(collect(datafiles_dict), by=x -> x[1])
-#     if D ∉ D_vals
-#         continue
-#     end
-for D ∈ D_vals
+for (D, D_dict) ∈ sort(collect(datafiles_dict), by=x -> x[1])
+    # for D ∈ D_vals
+    #     D_dict = datafiles_dict[D]
     @show D
-    D_dict = datafiles_dict[D]
 
     T_c, transition_order, crit_temp_source = get_critical_temperature(df_temperatures, D)
     transition_order_str = replace(transition_order,
@@ -51,6 +48,6 @@ for D ∈ D_vals
     Label(fig[0, :], text=L"Correlations ($D = %$(D)$)", fontsize=30)
     Label(fig[4, 1:3], L"$\rho$")
     Label(fig[1:3, 0], L"$p(\rho)$", rotation=pi / 2)
-    save(joinpath(output_root, filename(global_prefix * "CorrHist", @varsdict(D); ext="svg")), fig)
+    save(joinpath(output_root, "pm_init", filename(global_prefix * "CorrHist", @varsdict(D); ext="svg")), fig)
 
 end

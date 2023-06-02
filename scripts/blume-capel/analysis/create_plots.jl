@@ -215,209 +215,209 @@ D_vals_first = [1.96820, 1.97308, 1.9777, 1.98142, 1.98490, 1.994232, 1.99681357
 # Label(fig_var[1:4, 0], L"\langle \lambda^2 \rangle - \langle \lambda \rangle^2", rotation=pi / 2)
 # save(joinpath(output_root, filename(global_prefix * "EigvalsVars", "order" => "first"; ext="svg")), fig_var)
 
-#############################################
-# Multiplot Extreme Eigenvalue Fluctuations #
-#############################################
+# #############################################
+# # Multiplot Extreme Eigenvalue Fluctuations #
+# #############################################
 
-# Second order
-@info "Plotting minimum eigenvalues fluctuations (Second order)..."
-fig_mean = Figure(resolution=(600, 900))
-axs_mean = [Axis(fig_mean[i, j],
-    limits=((nothing, nothing), (nothing, nothing)),
-    xticks=[1, 2, 4, 6],
-    yticks=make_ticks(-5:0),
-    yscale=log10)
-            for i ∈ 1:4 for j ∈ 1:2]
-fig_var = Figure(resolution=(600, 900))
-axs_var = [Axis(fig_var[i, j],
-    limits=((nothing, nothing), (nothing, nothing)),
-    xticks=[1, 2, 4, 6],
-    yticks=make_ticks(-10:2:0),
-    yscale=log10)
-           for i ∈ 1:4 for j ∈ 1:2]
-for (ax_mean, ax_var, D) ∈ zip(axs_mean, axs_var, D_vals_second)
-    D_dict = eigvals_datafiles[D]
-    T_c, transition_order, crit_temp_source = get_critical_temperature(df_temperatures, D)
-    @assert transition_order == "second"
-    transition_order_str = replace(transition_order, "first" => "First order", "second" => "Second order", "tcp" => "TCP")
-    crit_temp_source_str = replace(string(crit_temp_source), "_" => " ")
-    T_vec = sort(collect(keys(D_dict)))
-    tau_vec = map(T_vec ./ T_c) do x
-        round(x; digits=3)
-    end
-    map(ax -> ax.title = L"$D = %$(D)$", [ax_mean, ax_var])
-    # Loop on temperatures
-    mean_vec = similar(T_vec)
-    var_vec = similar(T_vec)
-    for (i, T) in enumerate(T_vec)
-        datafile = D_dict[T]
-        eigvals_matrix = load_pickle(datafile.path)
-        eigvals_min = vec(eigvals_matrix[:, begin])
-        # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
-        mean_vec[i] = mean(eigvals_min)
-        var_vec[i] = var(eigvals_min)
-    end
-    scatterlines!(ax_mean, tau_vec, mean_vec)
-    scatterlines!(ax_var, tau_vec, var_vec)
-end
-Label(fig_mean[0, :], "Mean minimum eigenvalue (second order)")
-Label(fig_mean[5, 1:2], L"$T/T_c$")
-Label(fig_mean[1:4, 0], L"$\langle \lambda_{min} \rangle$", rotation=pi / 2)
-save(joinpath(output_root, filename(global_prefix * "MinEigvalMean", "order" => "second"; ext="svg")), fig_mean)
-Label(fig_var[0, :], "Minimum eigenvalue variance (second order)")
-Label(fig_var[5, 1:2], L"$T/T_c$")
-Label(fig_var[1:4, 0], L"\langle \lambda_{min}^2 \rangle - \langle \lambda_{min} \rangle^2", rotation=pi / 2)
-save(joinpath(output_root, filename(global_prefix * "MinEigvalVar", "order" => "second"; ext="svg")), fig_var)
+# # Second order
+# @info "Plotting minimum eigenvalues fluctuations (Second order)..."
+# fig_mean = Figure(resolution=(600, 900))
+# axs_mean = [Axis(fig_mean[i, j],
+#     limits=((nothing, nothing), (nothing, nothing)),
+#     xticks=[1, 2, 4, 6],
+#     yticks=make_ticks(-5:0),
+#     yscale=log10)
+#             for i ∈ 1:4 for j ∈ 1:2]
+# fig_var = Figure(resolution=(600, 900))
+# axs_var = [Axis(fig_var[i, j],
+#     limits=((nothing, nothing), (nothing, nothing)),
+#     xticks=[1, 2, 4, 6],
+#     yticks=make_ticks(-10:2:0),
+#     yscale=log10)
+#            for i ∈ 1:4 for j ∈ 1:2]
+# for (ax_mean, ax_var, D) ∈ zip(axs_mean, axs_var, D_vals_second)
+#     D_dict = eigvals_datafiles[D]
+#     T_c, transition_order, crit_temp_source = get_critical_temperature(df_temperatures, D)
+#     @assert transition_order == "second"
+#     transition_order_str = replace(transition_order, "first" => "First order", "second" => "Second order", "tcp" => "TCP")
+#     crit_temp_source_str = replace(string(crit_temp_source), "_" => " ")
+#     T_vec = sort(collect(keys(D_dict)))
+#     tau_vec = map(T_vec ./ T_c) do x
+#         round(x; digits=3)
+#     end
+#     map(ax -> ax.title = L"$D = %$(D)$", [ax_mean, ax_var])
+#     # Loop on temperatures
+#     mean_vec = similar(T_vec)
+#     var_vec = similar(T_vec)
+#     for (i, T) in enumerate(T_vec)
+#         datafile = D_dict[T]
+#         eigvals_matrix = load_pickle(datafile.path)
+#         eigvals_min = vec(eigvals_matrix[:, begin])
+#         # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
+#         mean_vec[i] = mean(eigvals_min)
+#         var_vec[i] = var(eigvals_min)
+#     end
+#     scatterlines!(ax_mean, tau_vec, mean_vec)
+#     scatterlines!(ax_var, tau_vec, var_vec)
+# end
+# Label(fig_mean[0, :], "Mean minimum eigenvalue (second order)")
+# Label(fig_mean[5, 1:2], L"$T/T_c$")
+# Label(fig_mean[1:4, 0], L"$\langle \lambda_{min} \rangle$", rotation=pi / 2)
+# save(joinpath(output_root, filename(global_prefix * "MinEigvalMean", "order" => "second"; ext="svg")), fig_mean)
+# Label(fig_var[0, :], "Minimum eigenvalue variance (second order)")
+# Label(fig_var[5, 1:2], L"$T/T_c$")
+# Label(fig_var[1:4, 0], L"\langle \lambda_{min}^2 \rangle - \langle \lambda_{min} \rangle^2", rotation=pi / 2)
+# save(joinpath(output_root, filename(global_prefix * "MinEigvalVar", "order" => "second"; ext="svg")), fig_var)
 
-# First order
-@info "Plotting minimum eigenvalues fluctuations (First order)..."
-fig_mean = Figure(resolution=(600, 900))
-axs_mean = [Axis(fig_mean[i, j],
-    limits=((nothing, nothing), (nothing, nothing)),
-    xticks=[1, 2, 4, 6],
-    yticks=make_ticks(-5:0),
-    yscale=log10)
-            for i ∈ 1:4 for j ∈ 1:2]
-fig_var = Figure(resolution=(600, 900))
-axs_var = [Axis(fig_var[i, j],
-    limits=((nothing, nothing), (nothing, nothing)),
-    xticks=[1, 2, 4, 6],
-    yticks=make_ticks(-10:2:0),
-    yscale=log10)
-           for i ∈ 1:4 for j ∈ 1:2]
-for (ax_mean, ax_var, D) ∈ zip(axs_mean, axs_var, D_vals_first)
-    D_dict = eigvals_datafiles[D]
-    T_c, transition_order, crit_temp_source = get_critical_temperature(df_temperatures, D)
-    @assert transition_order == "first"
-    transition_order_str = replace(transition_order, "first" => "First order", "second" => "Second order", "tcp" => "TCP")
-    crit_temp_source_str = replace(string(crit_temp_source), "_" => " ")
-    T_vec = sort(collect(keys(D_dict)))
-    tau_vec = map(T_vec ./ T_c) do x
-        round(x; digits=3)
-    end
-    map(ax -> ax.title = L"$D = %$(D)$", [ax_mean, ax_var])
-    # Loop on temperatures
-    mean_vec = similar(T_vec)
-    var_vec = similar(T_vec)
-    for (i, T) in enumerate(T_vec)
-        datafile = D_dict[T]
-        eigvals_matrix = load_pickle(datafile.path)
-        eigvals_min = vec(eigvals_matrix[:, begin])
-        # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
-        mean_vec[i] = mean(eigvals_min)
-        var_vec[i] = var(eigvals_min)
-    end
-    scatterlines!(ax_mean, tau_vec, mean_vec)
-    scatterlines!(ax_var, tau_vec, var_vec)
-end
-Label(fig_mean[0, :], "Mean minimum eigenvalue (first order)")
-Label(fig_mean[5, 1:2], L"$T/T_c$")
-Label(fig_mean[1:4, 0], L"$\langle \lambda_{min} \rangle$", rotation=pi / 2)
-save(joinpath(output_root, filename(global_prefix * "MinEigvalMean", "order" => "first"; ext="svg")), fig_mean)
-Label(fig_var[0, :], "Minimum eigenvalues variance (first order)")
-Label(fig_var[5, 1:2], L"$T/T_c$")
-Label(fig_var[1:4, 0], L"\langle \lambda_{min}^2 \rangle - \langle \lambda_{min} \rangle^2", rotation=pi / 2)
-save(joinpath(output_root, filename(global_prefix * "MinEigvalVar", "order" => "first"; ext="svg")), fig_var)
+# # First order
+# @info "Plotting minimum eigenvalues fluctuations (First order)..."
+# fig_mean = Figure(resolution=(600, 900))
+# axs_mean = [Axis(fig_mean[i, j],
+#     limits=((nothing, nothing), (nothing, nothing)),
+#     xticks=[1, 2, 4, 6],
+#     yticks=make_ticks(-5:0),
+#     yscale=log10)
+#             for i ∈ 1:4 for j ∈ 1:2]
+# fig_var = Figure(resolution=(600, 900))
+# axs_var = [Axis(fig_var[i, j],
+#     limits=((nothing, nothing), (nothing, nothing)),
+#     xticks=[1, 2, 4, 6],
+#     yticks=make_ticks(-10:2:0),
+#     yscale=log10)
+#            for i ∈ 1:4 for j ∈ 1:2]
+# for (ax_mean, ax_var, D) ∈ zip(axs_mean, axs_var, D_vals_first)
+#     D_dict = eigvals_datafiles[D]
+#     T_c, transition_order, crit_temp_source = get_critical_temperature(df_temperatures, D)
+#     @assert transition_order == "first"
+#     transition_order_str = replace(transition_order, "first" => "First order", "second" => "Second order", "tcp" => "TCP")
+#     crit_temp_source_str = replace(string(crit_temp_source), "_" => " ")
+#     T_vec = sort(collect(keys(D_dict)))
+#     tau_vec = map(T_vec ./ T_c) do x
+#         round(x; digits=3)
+#     end
+#     map(ax -> ax.title = L"$D = %$(D)$", [ax_mean, ax_var])
+#     # Loop on temperatures
+#     mean_vec = similar(T_vec)
+#     var_vec = similar(T_vec)
+#     for (i, T) in enumerate(T_vec)
+#         datafile = D_dict[T]
+#         eigvals_matrix = load_pickle(datafile.path)
+#         eigvals_min = vec(eigvals_matrix[:, begin])
+#         # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
+#         mean_vec[i] = mean(eigvals_min)
+#         var_vec[i] = var(eigvals_min)
+#     end
+#     scatterlines!(ax_mean, tau_vec, mean_vec)
+#     scatterlines!(ax_var, tau_vec, var_vec)
+# end
+# Label(fig_mean[0, :], "Mean minimum eigenvalue (first order)")
+# Label(fig_mean[5, 1:2], L"$T/T_c$")
+# Label(fig_mean[1:4, 0], L"$\langle \lambda_{min} \rangle$", rotation=pi / 2)
+# save(joinpath(output_root, filename(global_prefix * "MinEigvalMean", "order" => "first"; ext="svg")), fig_mean)
+# Label(fig_var[0, :], "Minimum eigenvalues variance (first order)")
+# Label(fig_var[5, 1:2], L"$T/T_c$")
+# Label(fig_var[1:4, 0], L"\langle \lambda_{min}^2 \rangle - \langle \lambda_{min} \rangle^2", rotation=pi / 2)
+# save(joinpath(output_root, filename(global_prefix * "MinEigvalVar", "order" => "first"; ext="svg")), fig_var)
 
-# Second order
-@info "Plotting maximum eigenvalues fluctuations (Second order)..."
-fig_mean = Figure(resolution=(600, 900))
-axs_mean = [Axis(fig_mean[i, j],
-    limits=((nothing, nothing), (nothing, nothing)),
-    xticks=[1, 2, 4, 6],
-    yticks=make_ticks(-5:5),
-    yscale=log10)
-            for i ∈ 1:4 for j ∈ 1:2]
-fig_var = Figure(resolution=(600, 900))
-axs_var = [Axis(fig_var[i, j],
-    limits=((nothing, nothing), (nothing, nothing)),
-    xticks=[1, 2, 4, 6],
-    yticks=make_ticks(-5:5),
-    yscale=log10)
-           for i ∈ 1:4 for j ∈ 1:2]
-for (ax_mean, ax_var, D) ∈ zip(axs_mean, axs_var, D_vals_second)
-    D_dict = eigvals_datafiles[D]
-    T_c, transition_order, crit_temp_source = get_critical_temperature(df_temperatures, D)
-    @assert transition_order == "second"
-    transition_order_str = replace(transition_order, "first" => "First order", "second" => "Second order", "tcp" => "TCP")
-    crit_temp_source_str = replace(string(crit_temp_source), "_" => " ")
-    T_vec = sort(collect(keys(D_dict)))
-    tau_vec = map(T_vec ./ T_c) do x
-        round(x; digits=3)
-    end
-    map(ax -> ax.title = L"$D = %$(D)$", [ax_mean, ax_var])
-    # Loop on temperatures
-    mean_vec = similar(T_vec)
-    var_vec = similar(T_vec)
-    for (i, T) in enumerate(T_vec)
-        datafile = D_dict[T]
-        eigvals_matrix = load_pickle(datafile.path)
-        eigvals_max = vec(eigvals_matrix[:, end])
-        # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
-        mean_vec[i] = mean(eigvals_max)
-        var_vec[i] = var(eigvals_max)
-    end
-    scatterlines!(ax_mean, tau_vec, mean_vec)
-    scatterlines!(ax_var, tau_vec, var_vec)
-end
-Label(fig_mean[0, :], "Mean maximum eigenvalue (second order)")
-Label(fig_mean[5, 1:2], L"$T/T_c$")
-Label(fig_mean[1:4, 0], L"$\langle \lambda_{max} \rangle$", rotation=pi / 2)
-save(joinpath(output_root, filename(global_prefix * "MaxEigvalMean", "order" => "second"; ext="svg")), fig_mean)
-Label(fig_var[0, :], "Maximum eigenvalue variance (second order)")
-Label(fig_var[5, 1:2], L"$T/T_c$")
-Label(fig_var[1:4, 0], L"\langle \lambda_{max}^2 \rangle - \langle \lambda_{max} \rangle^2", rotation=pi / 2)
-save(joinpath(output_root, filename(global_prefix * "MaxEigvalVar", "order" => "second"; ext="svg")), fig_var)
+# # Second order
+# @info "Plotting maximum eigenvalues fluctuations (Second order)..."
+# fig_mean = Figure(resolution=(600, 900))
+# axs_mean = [Axis(fig_mean[i, j],
+#     limits=((nothing, nothing), (nothing, nothing)),
+#     xticks=[1, 2, 4, 6],
+#     yticks=make_ticks(-5:5),
+#     yscale=log10)
+#             for i ∈ 1:4 for j ∈ 1:2]
+# fig_var = Figure(resolution=(600, 900))
+# axs_var = [Axis(fig_var[i, j],
+#     limits=((nothing, nothing), (nothing, nothing)),
+#     xticks=[1, 2, 4, 6],
+#     yticks=make_ticks(-5:5),
+#     yscale=log10)
+#            for i ∈ 1:4 for j ∈ 1:2]
+# for (ax_mean, ax_var, D) ∈ zip(axs_mean, axs_var, D_vals_second)
+#     D_dict = eigvals_datafiles[D]
+#     T_c, transition_order, crit_temp_source = get_critical_temperature(df_temperatures, D)
+#     @assert transition_order == "second"
+#     transition_order_str = replace(transition_order, "first" => "First order", "second" => "Second order", "tcp" => "TCP")
+#     crit_temp_source_str = replace(string(crit_temp_source), "_" => " ")
+#     T_vec = sort(collect(keys(D_dict)))
+#     tau_vec = map(T_vec ./ T_c) do x
+#         round(x; digits=3)
+#     end
+#     map(ax -> ax.title = L"$D = %$(D)$", [ax_mean, ax_var])
+#     # Loop on temperatures
+#     mean_vec = similar(T_vec)
+#     var_vec = similar(T_vec)
+#     for (i, T) in enumerate(T_vec)
+#         datafile = D_dict[T]
+#         eigvals_matrix = load_pickle(datafile.path)
+#         eigvals_max = vec(eigvals_matrix[:, end])
+#         # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
+#         mean_vec[i] = mean(eigvals_max)
+#         var_vec[i] = var(eigvals_max)
+#     end
+#     scatterlines!(ax_mean, tau_vec, mean_vec)
+#     scatterlines!(ax_var, tau_vec, var_vec)
+# end
+# Label(fig_mean[0, :], "Mean maximum eigenvalue (second order)")
+# Label(fig_mean[5, 1:2], L"$T/T_c$")
+# Label(fig_mean[1:4, 0], L"$\langle \lambda_{max} \rangle$", rotation=pi / 2)
+# save(joinpath(output_root, filename(global_prefix * "MaxEigvalMean", "order" => "second"; ext="svg")), fig_mean)
+# Label(fig_var[0, :], "Maximum eigenvalue variance (second order)")
+# Label(fig_var[5, 1:2], L"$T/T_c$")
+# Label(fig_var[1:4, 0], L"\langle \lambda_{max}^2 \rangle - \langle \lambda_{max} \rangle^2", rotation=pi / 2)
+# save(joinpath(output_root, filename(global_prefix * "MaxEigvalVar", "order" => "second"; ext="svg")), fig_var)
 
-# First order
-@info "Plotting maximum eigenvalues fluctuations (First order)..."
-fig_mean = Figure(resolution=(600, 900))
-axs_mean = [Axis(fig_mean[i, j],
-    limits=((nothing, nothing), (nothing, nothing)),
-    xticks=[1, 2, 4, 6],
-    yticks=make_ticks(-5:5),
-    yscale=log10)
-            for i ∈ 1:4 for j ∈ 1:2]
-fig_var = Figure(resolution=(600, 900))
-axs_var = [Axis(fig_var[i, j],
-    limits=((nothing, nothing), (nothing, nothing)),
-    xticks=[1, 2, 4, 6],
-    yticks=make_ticks(-5:5),
-    yscale=log10)
-           for i ∈ 1:4 for j ∈ 1:2]
-for (ax_mean, ax_var, D) ∈ zip(axs_mean, axs_var, D_vals_first)
-    D_dict = eigvals_datafiles[D]
-    T_c, transition_order, crit_temp_source = get_critical_temperature(df_temperatures, D)
-    @assert transition_order == "first"
-    transition_order_str = replace(transition_order, "first" => "First order", "second" => "Second order", "tcp" => "TCP")
-    crit_temp_source_str = replace(string(crit_temp_source), "_" => " ")
-    T_vec = sort(collect(keys(D_dict)))
-    tau_vec = map(T_vec ./ T_c) do x
-        round(x; digits=3)
-    end
-    map(ax -> ax.title = L"$D = %$(D)$", [ax_mean, ax_var])
-    # Loop on temperatures
-    mean_vec = similar(T_vec)
-    var_vec = similar(T_vec)
-    for (i, T) in enumerate(T_vec)
-        datafile = D_dict[T]
-        eigvals_matrix = load_pickle(datafile.path)
-        eigvals_max = vec(eigvals_matrix[:, end])
-        # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
-        mean_vec[i] = mean(eigvals_max)
-        var_vec[i] = var(eigvals_max)
-    end
-    scatterlines!(ax_mean, tau_vec, mean_vec)
-    scatterlines!(ax_var, tau_vec, var_vec)
-end
-Label(fig_mean[0, :], "Mean maximum eigenvalue (first order)")
-Label(fig_mean[5, 1:2], L"$T/T_c$")
-Label(fig_mean[1:4, 0], L"$\langle \lambda_{max} \rangle$", rotation=pi / 2)
-save(joinpath(output_root, filename(global_prefix * "MaxEigvalMean", "order" => "first"; ext="svg")), fig_mean)
-Label(fig_var[0, :], "Maximum eigenvalues variance (first order)")
-Label(fig_var[5, 1:2], L"$T/T_c$")
-Label(fig_var[1:4, 0], L"\langle \lambda_{max}^2 \rangle - \langle \lambda_{max} \rangle^2", rotation=pi / 2)
-save(joinpath(output_root, filename(global_prefix * "MaxEigvalVar", "order" => "first"; ext="svg")), fig_var)
+# # First order
+# @info "Plotting maximum eigenvalues fluctuations (First order)..."
+# fig_mean = Figure(resolution=(600, 900))
+# axs_mean = [Axis(fig_mean[i, j],
+#     limits=((nothing, nothing), (nothing, nothing)),
+#     xticks=[1, 2, 4, 6],
+#     yticks=make_ticks(-5:5),
+#     yscale=log10)
+#             for i ∈ 1:4 for j ∈ 1:2]
+# fig_var = Figure(resolution=(600, 900))
+# axs_var = [Axis(fig_var[i, j],
+#     limits=((nothing, nothing), (nothing, nothing)),
+#     xticks=[1, 2, 4, 6],
+#     yticks=make_ticks(-5:5),
+#     yscale=log10)
+#            for i ∈ 1:4 for j ∈ 1:2]
+# for (ax_mean, ax_var, D) ∈ zip(axs_mean, axs_var, D_vals_first)
+#     D_dict = eigvals_datafiles[D]
+#     T_c, transition_order, crit_temp_source = get_critical_temperature(df_temperatures, D)
+#     @assert transition_order == "first"
+#     transition_order_str = replace(transition_order, "first" => "First order", "second" => "Second order", "tcp" => "TCP")
+#     crit_temp_source_str = replace(string(crit_temp_source), "_" => " ")
+#     T_vec = sort(collect(keys(D_dict)))
+#     tau_vec = map(T_vec ./ T_c) do x
+#         round(x; digits=3)
+#     end
+#     map(ax -> ax.title = L"$D = %$(D)$", [ax_mean, ax_var])
+#     # Loop on temperatures
+#     mean_vec = similar(T_vec)
+#     var_vec = similar(T_vec)
+#     for (i, T) in enumerate(T_vec)
+#         datafile = D_dict[T]
+#         eigvals_matrix = load_pickle(datafile.path)
+#         eigvals_max = vec(eigvals_matrix[:, end])
+#         # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
+#         mean_vec[i] = mean(eigvals_max)
+#         var_vec[i] = var(eigvals_max)
+#     end
+#     scatterlines!(ax_mean, tau_vec, mean_vec)
+#     scatterlines!(ax_var, tau_vec, var_vec)
+# end
+# Label(fig_mean[0, :], "Mean maximum eigenvalue (first order)")
+# Label(fig_mean[5, 1:2], L"$T/T_c$")
+# Label(fig_mean[1:4, 0], L"$\langle \lambda_{max} \rangle$", rotation=pi / 2)
+# save(joinpath(output_root, filename(global_prefix * "MaxEigvalMean", "order" => "first"; ext="svg")), fig_mean)
+# Label(fig_var[0, :], "Maximum eigenvalues variance (first order)")
+# Label(fig_var[5, 1:2], L"$T/T_c$")
+# Label(fig_var[1:4, 0], L"\langle \lambda_{max}^2 \rangle - \langle \lambda_{max} \rangle^2", rotation=pi / 2)
+# save(joinpath(output_root, filename(global_prefix * "MaxEigvalVar", "order" => "first"; ext="svg")), fig_var)
 
 # #############################################
 # # Multiplot Eigenvalue Spacing Fluctuations #
@@ -701,70 +701,70 @@ for (D, D_dict) ∈ sort(collect(eigvals_datafiles), by=x -> x[1])
     # scatterlines!(ax, tau_vec, var_vec)
     # save(joinpath(output_dir_D, filename(global_prefix * "EigvalsVar", @varsdict(D); ext="svg")), fig)
 
-    @info "Plotting eigenvalue extrema fluctuations..."
-    # Loop on temperatures
-    mean_vec = similar(T_vec)
-    var_vec = similar(T_vec)
-    for (i, T) in enumerate(T_vec)
-        datafile = D_dict[T]
-        eigvals_matrix = load_pickle(datafile.path)
-        eigvals_min = vec(eigvals_matrix[:, begin])
-        # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
-        mean_vec[i] = mean(eigvals_min)
-        var_vec[i] = var(eigvals_min)
-    end
-    # Plot eigenvalues mean
-    fig = Figure()
-    ax = Axis(fig[1, 1],
-        title=L"Mean minimum eigenvalue $D = %$(D)$",
-        xlabel=L"$T/T_c$", ylabel=L"\langle \lambda_{min} \rangle",
-        xticks=0:0.5:6.5,
-        yticks=make_ticks(-5:0),
-        yscale=log10)
-    scatterlines!(ax, tau_vec, mean_vec)
-    save(joinpath(output_dir_D, filename(global_prefix * "MinEigvalsMean", @varsdict(D); ext="svg")), fig)
-    # Plot eigenvalues variance
-    fig = Figure()
-    ax = Axis(fig[1, 1],
-        title=L"Minimum eigenvalue variance $D = %$(D)$",
-        xlabel=L"$T/T_c$", ylabel=L"\langle \lambda_{min}^2 \rangle - \langle \lambda_{min} \rangle^2",
-        xticks=0:0.5:6.5,
-        yticks=make_ticks(-5:0),
-        yscale=log10)
-    scatterlines!(ax, tau_vec, var_vec)
-    save(joinpath(output_dir_D, filename(global_prefix * "MinEigvalVar", @varsdict(D); ext="svg")), fig)
+    # @info "Plotting eigenvalue extrema fluctuations..."
+    # # Loop on temperatures
+    # mean_vec = similar(T_vec)
+    # var_vec = similar(T_vec)
+    # for (i, T) in enumerate(T_vec)
+    #     datafile = D_dict[T]
+    #     eigvals_matrix = load_pickle(datafile.path)
+    #     eigvals_min = vec(eigvals_matrix[:, begin])
+    #     # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
+    #     mean_vec[i] = mean(eigvals_min)
+    #     var_vec[i] = var(eigvals_min)
+    # end
+    # # Plot eigenvalues mean
+    # fig = Figure()
+    # ax = Axis(fig[1, 1],
+    #     title=L"Mean minimum eigenvalue $D = %$(D)$",
+    #     xlabel=L"$T/T_c$", ylabel=L"\langle \lambda_{min} \rangle",
+    #     xticks=0:0.5:6.5,
+    #     yticks=make_ticks(-5:0),
+    #     yscale=log10)
+    # scatterlines!(ax, tau_vec, mean_vec)
+    # save(joinpath(output_dir_D, filename(global_prefix * "MinEigvalsMean", @varsdict(D); ext="svg")), fig)
+    # # Plot eigenvalues variance
+    # fig = Figure()
+    # ax = Axis(fig[1, 1],
+    #     title=L"Minimum eigenvalue variance $D = %$(D)$",
+    #     xlabel=L"$T/T_c$", ylabel=L"\langle \lambda_{min}^2 \rangle - \langle \lambda_{min} \rangle^2",
+    #     xticks=0:0.5:6.5,
+    #     yticks=make_ticks(-5:0),
+    #     yscale=log10)
+    # scatterlines!(ax, tau_vec, var_vec)
+    # save(joinpath(output_dir_D, filename(global_prefix * "MinEigvalVar", @varsdict(D); ext="svg")), fig)
 
-    # Loop on temperatures
-    mean_vec = similar(T_vec)
-    var_vec = similar(T_vec)
-    for (i, T) in enumerate(T_vec)
-        datafile = D_dict[T]
-        eigvals_matrix = load_pickle(datafile.path)
-        eigvals_max = vec(eigvals_matrix[:, end])
-        # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
-        mean_vec[i] = mean(eigvals_max)
-        var_vec[i] = var(eigvals_max)
-    end
-    # Plot eigenvalues mean
-    fig = Figure()
-    ax = Axis(fig[1, 1],
-        title=L"Mean maximum eigenvalue $D = %$(D)$",
-        xlabel=L"$T/T_c$", ylabel=L"\langle \lambda_{max} \rangle",
-        xticks=0:0.5:6.5,
-        yticks=make_ticks(-5:5),
-        yscale=log10)
-    scatterlines!(ax, tau_vec, mean_vec)
-    save(joinpath(output_dir_D, filename(global_prefix * "MaxEigvalsMean", @varsdict(D); ext="svg")), fig)
-    # Plot eigenvalues variance
-    fig = Figure()
-    ax = Axis(fig[1, 1],
-        title=L"Maximum eigenvalue variance $D = %$(D)$",
-        xlabel=L"$T/T_c$", ylabel=L"\langle \lambda_{max}^2 \rangle - \langle \lambda_{max} \rangle^2",
-        xticks=0:0.5:6.5,
-        yticks=make_ticks(-5:5),
-        yscale=log10)
-    scatterlines!(ax, tau_vec, var_vec)
-    save(joinpath(output_dir_D, filename(global_prefix * "MaxEigvalVar", @varsdict(D); ext="svg")), fig)
+    # # Loop on temperatures
+    # mean_vec = similar(T_vec)
+    # var_vec = similar(T_vec)
+    # for (i, T) in enumerate(T_vec)
+    #     datafile = D_dict[T]
+    #     eigvals_matrix = load_pickle(datafile.path)
+    #     eigvals_max = vec(eigvals_matrix[:, end])
+    #     # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
+    #     mean_vec[i] = mean(eigvals_max)
+    #     var_vec[i] = var(eigvals_max)
+    # end
+    # # Plot eigenvalues mean
+    # fig = Figure()
+    # ax = Axis(fig[1, 1],
+    #     title=L"Mean maximum eigenvalue $D = %$(D)$",
+    #     xlabel=L"$T/T_c$", ylabel=L"\langle \lambda_{max} \rangle",
+    #     xticks=0:0.5:6.5,
+    #     yticks=make_ticks(-5:5),
+    #     yscale=log10)
+    # scatterlines!(ax, tau_vec, mean_vec)
+    # save(joinpath(output_dir_D, filename(global_prefix * "MaxEigvalsMean", @varsdict(D); ext="svg")), fig)
+    # # Plot eigenvalues variance
+    # fig = Figure()
+    # ax = Axis(fig[1, 1],
+    #     title=L"Maximum eigenvalue variance $D = %$(D)$",
+    #     xlabel=L"$T/T_c$", ylabel=L"\langle \lambda_{max}^2 \rangle - \langle \lambda_{max} \rangle^2",
+    #     xticks=0:0.5:6.5,
+    #     yticks=make_ticks(-5:5),
+    #     yscale=log10)
+    # scatterlines!(ax, tau_vec, var_vec)
+    # save(joinpath(output_dir_D, filename(global_prefix * "MaxEigvalVar", @varsdict(D); ext="svg")), fig)
 
     # # Plot eigenvalues spacing fluctuations
     # # Loop on temperatures
@@ -825,9 +825,9 @@ for (D, D_dict) ∈ sort(collect(eigvals_datafiles), by=x -> x[1])
     # scatterlines!(ax, tau_vec, var_vec)
     # save(joinpath(output_dir_D, filename(global_prefix * "EigvalsMaxSpacingVar", @varsdict(D); ext="svg")), fig)
 
-    # @info "Plotting combined histograms..."
-    # idxs = [1, 4, 5, 6, 8, 10, 11, 19, 21]
-    # println("tau = ", getindex(tau_vec, idxs))
+    @info "Plotting combined histograms..."
+    idxs = [1, 4, 5, 6, 8, 10, 11, 19, 21]
+    println("tau = ", getindex(tau_vec, idxs))
 
     # # Eigenvalues distribution
     # fig = Figure()
@@ -907,32 +907,32 @@ for (D, D_dict) ∈ sort(collect(eigvals_datafiles), by=x -> x[1])
     # Label(fig[1:3, 0], L"$\rho(\lambda_{max})$", rotation=pi / 2)
     # save(joinpath(output_dir_D, filename(global_prefix * "EigvalsMaxHist", @varsdict(D); ext="svg")), fig)
 
-    # # Eigenvalues spacing distributions
-    # fig = Figure()
-    # axs = [Axis(fig[i, j],
-    #     yticks=make_ticks_log(-4:2:0))
-    #        for i ∈ 1:3 for j ∈ 1:3]
-    # for (ax, idx) ∈ zip(axs, idxs)
-    #     T = T_vec[idx]
-    #     tau = round(T / T_c; digits=3)
-    #     ax.title = L"$T/T_c = %$(tau)$"
-    #     datafile = D_dict[T]
-    #     eigvals_matrix = load_pickle(datafile.path)
-    #     # script_show(eigvals_matrix)
-    #     eigvals_normalized_spacings = get_normalized_spacings(eigvals_matrix)
-    #     # script_show(eigvals_normalized_spacings)
-    #     hist = Histogram(vec(eigvals_normalized_spacings), 100)
-    #     x, y = hist_coords(hist)
-    #     const_log = log10(sum(y))
-    #     ax.limits = ((0, x[end]), (-const_log, nothing))
-    #     ax.xticks = axis_ticks_range(0, x[end], 4)
-    #     y = log10.(y)
-    #     barplot!(ax, x, y, gap=0, offset=-const_log)
-    # end
-    # Label(fig[0, :], text=L"Eigenvalues spacing ($D = %$(D)$)", fontsize=30)
-    # Label(fig[4, 1:3], L"$s$")
-    # Label(fig[1:3, 0], L"$\rho(s)$", rotation=pi / 2)
-    # save(joinpath(output_dir_D, filename(global_prefix * "EigvalsSpacingHist", @varsdict(D); ext="svg")), fig)
+    # Eigenvalues spacing distributions
+    fig = Figure()
+    axs = [Axis(fig[i, j],
+        yticks=make_ticks_log(-4:2:0))
+           for i ∈ 1:3 for j ∈ 1:3]
+    for (ax, idx) ∈ zip(axs, idxs)
+        T = T_vec[idx]
+        tau = round(T / T_c; digits=3)
+        ax.title = L"$T/T_c = %$(tau)$"
+        datafile = D_dict[T]
+        eigvals_matrix = load_pickle(datafile.path)
+        # script_show(eigvals_matrix)
+        eigvals_normalized_spacings = get_normalized_spacings(eigvals_matrix)
+        # script_show(eigvals_normalized_spacings)
+        hist = Histogram(vec(eigvals_normalized_spacings), 100)
+        x, y = hist_coords(hist)
+        const_log = log10(sum(y))
+        ax.limits = ((0, x[end]), (-const_log, nothing))
+        ax.xticks = axis_ticks_int_range(0, x[end], 4)
+        y = log10.(y)
+        barplot!(ax, x, y, gap=0, offset=-const_log)
+    end
+    Label(fig[0, :], text=L"Eigenvalues spacing ($D = %$(D)$)", fontsize=30)
+    Label(fig[4, 1:3], L"$s$")
+    Label(fig[1:3, 0], L"$\rho(s)$", rotation=pi / 2)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalsSpacingHist", @varsdict(D); ext="svg")), fig)
 
     # @info "Plotting histograms..."
     # for (T, tau) in zip(T_vec, tau_vec)

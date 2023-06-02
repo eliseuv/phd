@@ -49,9 +49,9 @@ scatterlines!(ax_main, tau_vec, mean_vec)
 vlines!(ax_main, [1], color=:grey)
 
 ax_inset = Axis(fig[1, 1],
-    limits=((nothing, nothing), (0, nothing)),
+    limits=((nothing, nothing), (nothing, nothing)),
     xticks=axis_ticks([1, 2, 4, 6]),
-    yticks=axis_ticks(0:10:60),
+    # yticks=axis_ticks(0:10:60),
     width=Relative(0.55),
     height=Relative(0.55),
     halign=0.9,
