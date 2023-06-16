@@ -6,7 +6,7 @@ using DrWatson
 using Logging, Statistics, PyCall, CSV, DataFrames, LinearAlgebra, LaTeXStrings
 
 # My libs
-include("../../../../src/Thesis.jl")
+include("../../src/Thesis.jl")
 using .Thesis.Metaprogramming
 using .Thesis.DataIO
 using .Thesis.Stats
@@ -21,24 +21,6 @@ def load_pickle(fpath):
 """
 
 @inline load_pickle = py"load_pickle"
-
-function get_datafiles_dict(dir_path)
-    datafiles_dict = Dict()
-    for (root, _, filenames) in walkdir(dir_path)
-        for filename in filenames
-            path = joinpath(root, filename)
-            datafile = DataIO.DataFile(path)
-            D = Float64(datafile.params["D"])
-            T = Float64(datafile.params["T"])
-            if haskey(datafiles_dict, D)
-                datafiles_dict[D][T] = datafile
-            else
-                datafiles_dict[D] = Dict(T => datafile)
-            end
-        end
-    end
-    return datafiles_dict
-end
 
 # Calculate fluctuations using histograms
 @inline function hist_fluctuations(values::AbstractVector, nbins::Integer)
