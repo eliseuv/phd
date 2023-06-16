@@ -9,20 +9,28 @@ export
     # Print in script the same way as in the REPL
     script_show,
     # File extensions
-    get_extension,
     keep_extension,
     # Filenames
     filename,
     parse_filename,
+    # DataFile type
+    DataFile,
     # Check parameters
     check_params,
-    find_datafiles
+    find_datafiles,
+    # Python pickle
+    load_pickle
 
-using Logging
+using Logging, PyCall
+
+# Load Python pickle module
+@pyimport pickle
 
 using ..Metaprogramming
 
-# Script preview
+##################
+# Script preview #
+##################
 
 @doc raw"""
     script_show(x...)
@@ -34,11 +42,12 @@ function script_show(x...)
     println()
 end
 
-# Filenames
+#######################
+# Filename generation #
+#######################
 
 @doc raw"""
     params_str(params::Union{Dict{String},Pair{String}}...; sep::AbstractString="_")
-
 
 Generate a string containing the 'name=value' of the parameters specified by the arguments `params`
 (name-value pairs or dictionaries) sorted alphabetically and separated by the string `sep`.
@@ -103,6 +112,10 @@ function filename(prefix::AbstractString, params...; sep::AbstractString="_", ex
     return filename
 end
 
+####################
+# Filename parsing #
+####################
+
 @doc raw"""
     parse_filename(path::AbstractString; sep::AbstractString = "_")
 
@@ -111,29 +124,26 @@ Attempts to parse parameters in name of file given by `path` using `sep` as para
 It assumes the following pattern for the filename (using the default separator `"_"`):
     `SomePrefix_first_param=foo_second_param=42_third_param=3.14.ext`
 
-Retuns a `Dict{Symbol,Any}` with keys being the names of the parameters as symbols and the values the parsed parameter values.
+Returns a tuple `(String, Dict{String,Any}, String)` containing:
+    [1] Filename prefix
+    [2] Dictionary with keys being the names of the parameters as symbols and the values the parsed parameter values
+    [3] File extension
 
 # Example:
     ```julia
-    julia> test_path = "/path/to/SomePrefix_first_param=foo_second_param=42_third_param=3.14.ext"
-    julia>  for (key, value) in parse_filename(test_filename)
-                println("$key => $value ($(typeof(value)))")
-            end
-    prefix => SomePrefix (SubString{String})
-    third_param => 3.14 (Float64)
-    second_param => 42 (Int64)
-    first_param => foo (SubString{String})
+    julia> parse_filename("/path/to/SomePrefix_first_param=foo_second_param=42_third_param=3.14.ext")
+    ("SomePrefix", Dict("first_param" => "foo", "second_param" => 42, "third_param" => 3.14), ".ext")
     ```
 """
 function parse_filename(path::AbstractString; sep::AbstractString="_")
-    # Discard directory path and extension
-    filename = splitext(basename(path))[begin]
+    # Get filename and extension
+    (filename, ext) = path |> basename |> splitext
     # Split name into chunks
     namechunks = split(filename, sep)
     # The first chunk is always the prefix
     prefix = popfirst!(namechunks)
     # Dictionary to store parsed parameter values
-    param_dict = Dict{String,Any}()
+    params_dict = Dict{String,Any}()
     while length(namechunks) != 0
         param = popfirst!(namechunks)
         while !occursin("=", param) && length(namechunks) != 0
@@ -148,29 +158,18 @@ function parse_filename(path::AbstractString; sep::AbstractString="_")
         ParamType = infer_type_sized(param_value)
         if ParamType != Any
             # Type could be inferred, parse it
-            param_dict[string(param_name)] = parse(ParamType, param_value)
+            params_dict[string(param_name)] = parse(ParamType, param_value)
         else
             # Type could not be inferred, keep it as String
-            param_dict[string(param_name)] = param_value
+            params_dict[string(param_name)] = param_value
         end
     end
-    return (prefix, param_dict)
+    return (prefix, params_dict, ext)
 end
 
-"""
-    get_extension(path::AbstractString)
-
-Get the file extension from a given `filename`.
-"""
-function get_extension(path::AbstractString)
-    ext = splitext(path)[end]
-    if ext != ""
-        return ext
-    else
-        @debug "File " * "\"$path\"" * " without extension"
-        return nothing
-    end
-end
+#################
+# DataFile type #
+#################
 
 @doc raw"""
     DataFile
@@ -178,11 +177,11 @@ end
 struct DataFile
 
     path::AbstractString
-    ext::AbstractString
     prefix::AbstractString
     params::Dict{String,T} where {T}
+    ext::AbstractString
 
-    DataFile(path::AbstractString; sep::AbstractString="_") = new(path, get_extension(path), parse_filename(path, sep=sep)...)
+    DataFile(path::AbstractString; sep::AbstractString="_") = new(path, parse_filename(path, sep=sep)...)
 end
 
 """
@@ -194,7 +193,7 @@ Keep only the files from `paths` with a given extension `ext`.
     if !startswith(ext, '.')
         ext = '.' * ext
     end
-    return filter(path -> (get_extension(path) == ext), paths)
+    return filter(path -> (splitext(path)[2] == ext), paths)
 end
 
 @doc raw"""
@@ -237,5 +236,22 @@ Find data files in the directory `datadir` that have the satisfies the required 
     fs -> keep_extension(ext, fs) |>
           fs -> map(f -> DataFile(f, sep=sep), fs) |>
                 dfs -> filter(df -> df.prefix == prefix && check_params(df.params, reqs...), dfs)
+
+"""
+    load_pickle(path::AbstractString)
+
+Load Python `pickle` data file.
+"""
+@inline function load_pickle(path::AbstractString)
+    # Check if file exists
+    if !isfile(path)
+        @error "File $(path) not found!"
+    end
+    # Load data
+    f = open(path, "r")
+    data = pickle.load(f)
+    close(f)
+    return data
+end
 
 end

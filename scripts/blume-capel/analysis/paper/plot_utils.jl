@@ -40,8 +40,6 @@ function get_datafiles_dict(dir_path)
     return datafiles_dict
 end
 
-const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_square_lattice.csv")))
-
 # Calculate fluctuations using histograms
 @inline function hist_fluctuations(values::AbstractVector, nbins::Integer)
     hist = Histogram(values, nbins)
@@ -87,6 +85,19 @@ end
     return (T_c, transition_order, crit_temp_source)
 end
 
+@inline function get_critical_temperature_info(df_temperatures, D::Real)
+    df_D_row = df_temperatures[only(findall(==(D), df_temperatures.anisotropy_field)), 2:end]
+    transition_order = lowercase(string(df_D_row[:transition_order]))
+    transition_order_str = replace(transition_order,
+        "first" => "1st order",
+        "second" => "2nd order",
+        "tcp" => "TCP")
+    crit_temp_source = findfirst(!ismissing, df_D_row)
+    crit_temp_source_str = replace(string(crit_temp_source), "_" => " ")
+    T_c = df_D_row[crit_temp_source]
+    return (T_c, transition_order_str, crit_temp_source_str)
+end
+
 @inline get_spacings(eigvals_matrix::AbstractMatrix{<:Real}) = diff(eigvals_matrix, dims=2)
 @inline function get_normalized_spacings(eigvals_matrix::AbstractMatrix{<:Real})
     eigvals_spacings = get_spacings(eigvals_matrix)
@@ -94,17 +105,5 @@ end
     return eigvals_spacings_means .\ eigvals_spacings
 end
 
-const global_prefix = "BlumeCapelSq2D"
-
-# D values considered
-const D_vals_2order = [1.0, 1.75, 1.9]
-const D_val_tcp = 1.96582
-const D_vals_1order = [1.9777, 1.99932488]
-
-const D_vals = [D_vals_2order..., D_val_tcp, D_vals_1order...]
-
 # Temperatures considered
 const T_idxs = [1, 3, 5, 6, 8, 10, 11, 19, 21]
-
-# Plot output root directory
-const output_root = plotsdir("blume_capel_paper")

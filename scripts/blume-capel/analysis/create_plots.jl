@@ -32,7 +32,7 @@ end
 end
 
 @inline function axis_ticks_range(low::Real, high::Real, length::Integer)
-    tick_vals = map(x -> round(x, digits=5), range(low, high, length=length))
+    tick_vals = map(x -> round(x, digits=6), range(low, high, length=length))
     return (tick_vals, map(tck -> latexstring("$(tck)"), tick_vals))
 end
 
@@ -63,10 +63,10 @@ end
 end
 
 # Where to take the data from
-data_dirpath = datadir("blume_capel_pickles", "eigvals")
+data_dirpath = datadir("magnet_ts_wishart", "blume-capel_3d", "eigvals")
 @show data_dirpath
 
-const global_prefix = "BlumeCapelSq2D"
+const global_prefix = "BlumeCapelSq3D"
 
 # Parse datafiles into dicts
 # Eigenvalues pickle stores a (n_runs x n_samples) matrix each row containing a set of eigenvalues
@@ -99,10 +99,10 @@ D_values = sort(collect(keys(eigvals_datafiles)))
 
 # Load temperatures table
 @info "Loading temperatures table..."
-df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_square_lattice.csv")))
+df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_cubic_lattice.csv")))
 
 # Plot output root directory
-output_root = plotsdir("blume_capel_pickles")
+output_root = plotsdir("blume-capel_3d")
 
 # Makie theme
 my_theme = Theme(fontsize=24)
@@ -673,239 +673,240 @@ for (D, D_dict) ∈ sort(collect(eigvals_datafiles), by=x -> x[1])
     # scatterlines!(ax, s, z)
     # save(joinpath(output_dir_D, filename(global_prefix * "EigvalsSpacingHist", @varsdict(D, tau_max); ext="svg")), fig)
 
-    # @info "Plotting fluctuations..."
-    # # Loop on temperatures
-    # mean_vec = similar(T_vec)
-    # var_vec = similar(T_vec)
-    # for (i, T) in enumerate(T_vec)
-    #     datafile = D_dict[T]
-    #     eigvals = vec(load_pickle(datafile.path))
-    #     mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
-    #     # mean_vec[i] = mean(eigvals)
-    #     # var_vec[i] = var(eigvals)
-    # end
-    # # Plot eigenvalues mean
-    # fig = Figure()
-    # ax = Axis(fig[1, 1],
-    #     title=L"Eigenvalues mean $D = %$(D)$",
-    #     xlabel=L"$T/T_c$", ylabel=L"\langle \lambda \rangle",
-    #     xticks=0:0.5:6.5)
-    # scatterlines!(ax, tau_vec, mean_vec)
-    # save(joinpath(output_dir_D, filename(global_prefix * "EigvalsMean", @varsdict(D); ext="svg")), fig)
-    # # Plot eigenvalues variance
-    # fig = Figure()
-    # ax = Axis(fig[1, 1],
-    #     title=L"Eigenvalues variance $D = %$(D)$",
-    #     xlabel=L"$T/T_c$", ylabel=L"\langle \lambda^2 \rangle - \langle \lambda \rangle^2",
-    #     xticks=0:0.5:6.5)
-    # scatterlines!(ax, tau_vec, var_vec)
-    # save(joinpath(output_dir_D, filename(global_prefix * "EigvalsVar", @varsdict(D); ext="svg")), fig)
+    @info "Plotting fluctuations..."
+    # Loop on temperatures
+    mean_vec = similar(T_vec)
+    var_vec = similar(T_vec)
+    for (i, T) in enumerate(T_vec)
+        datafile = D_dict[T]
+        eigvals = vec(load_pickle(datafile.path))
+        mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
+        # mean_vec[i] = mean(eigvals)
+        # var_vec[i] = var(eigvals)
+    end
+    # Plot eigenvalues mean
+    fig = Figure()
+    ax = Axis(fig[1, 1],
+        title=L"Eigenvalues mean $D = %$(D)$",
+        xlabel=L"$T/T_c$", ylabel=L"\langle \lambda \rangle",
+        xticks=0:0.5:6.5)
+    scatterlines!(ax, tau_vec, mean_vec)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalsMean", @varsdict(D); ext="svg")), fig)
+    # Plot eigenvalues variance
+    fig = Figure()
+    ax = Axis(fig[1, 1],
+        title=L"Eigenvalues variance $D = %$(D)$",
+        xlabel=L"$T/T_c$", ylabel=L"\langle \lambda^2 \rangle - \langle \lambda \rangle^2",
+        xticks=0:0.5:6.5)
+    scatterlines!(ax, tau_vec, var_vec)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalsVar", @varsdict(D); ext="svg")), fig)
 
-    # @info "Plotting eigenvalue extrema fluctuations..."
-    # # Loop on temperatures
-    # mean_vec = similar(T_vec)
-    # var_vec = similar(T_vec)
-    # for (i, T) in enumerate(T_vec)
-    #     datafile = D_dict[T]
-    #     eigvals_matrix = load_pickle(datafile.path)
-    #     eigvals_min = vec(eigvals_matrix[:, begin])
-    #     # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
-    #     mean_vec[i] = mean(eigvals_min)
-    #     var_vec[i] = var(eigvals_min)
-    # end
-    # # Plot eigenvalues mean
-    # fig = Figure()
-    # ax = Axis(fig[1, 1],
-    #     title=L"Mean minimum eigenvalue $D = %$(D)$",
-    #     xlabel=L"$T/T_c$", ylabel=L"\langle \lambda_{min} \rangle",
-    #     xticks=0:0.5:6.5,
-    #     yticks=make_ticks(-5:0),
-    #     yscale=log10)
-    # scatterlines!(ax, tau_vec, mean_vec)
-    # save(joinpath(output_dir_D, filename(global_prefix * "MinEigvalsMean", @varsdict(D); ext="svg")), fig)
-    # # Plot eigenvalues variance
-    # fig = Figure()
-    # ax = Axis(fig[1, 1],
-    #     title=L"Minimum eigenvalue variance $D = %$(D)$",
-    #     xlabel=L"$T/T_c$", ylabel=L"\langle \lambda_{min}^2 \rangle - \langle \lambda_{min} \rangle^2",
-    #     xticks=0:0.5:6.5,
-    #     yticks=make_ticks(-5:0),
-    #     yscale=log10)
-    # scatterlines!(ax, tau_vec, var_vec)
-    # save(joinpath(output_dir_D, filename(global_prefix * "MinEigvalVar", @varsdict(D); ext="svg")), fig)
+    @info "Plotting eigenvalue extrema fluctuations..."
+    # Loop on temperatures
+    mean_vec = similar(T_vec)
+    var_vec = similar(T_vec)
+    for (i, T) in enumerate(T_vec)
+        datafile = D_dict[T]
+        eigvals_matrix = load_pickle(datafile.path)
+        eigvals_min = vec(eigvals_matrix[:, begin])
+        # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
+        mean_vec[i] = mean(eigvals_min)
+        var_vec[i] = var(eigvals_min)
+    end
+    @show extrema(mean_vec)
+    # Plot eigenvalues mean
+    fig = Figure()
+    ax = Axis(fig[1, 1],
+        title=L"Mean minimum eigenvalue $D = %$(D)$",
+        xlabel=L"$T/T_c$", ylabel=L"\langle \lambda_{min} \rangle",
+        xticks=0:0.5:6.5,
+        yticks=make_ticks(-5:0),
+        yscale=log10)
+    scatterlines!(ax, tau_vec, mean_vec)
+    save(joinpath(output_dir_D, filename(global_prefix * "MinEigvalsMean", @varsdict(D); ext="svg")), fig)
+    # Plot eigenvalues variance
+    fig = Figure()
+    ax = Axis(fig[1, 1],
+        title=L"Minimum eigenvalue variance $D = %$(D)$",
+        xlabel=L"$T/T_c$", ylabel=L"\langle \lambda_{min}^2 \rangle - \langle \lambda_{min} \rangle^2",
+        xticks=0:0.5:6.5,
+        yticks=make_ticks(-5:0),
+        yscale=log10)
+    scatterlines!(ax, tau_vec, var_vec)
+    save(joinpath(output_dir_D, filename(global_prefix * "MinEigvalVar", @varsdict(D); ext="svg")), fig)
 
-    # # Loop on temperatures
-    # mean_vec = similar(T_vec)
-    # var_vec = similar(T_vec)
-    # for (i, T) in enumerate(T_vec)
-    #     datafile = D_dict[T]
-    #     eigvals_matrix = load_pickle(datafile.path)
-    #     eigvals_max = vec(eigvals_matrix[:, end])
-    #     # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
-    #     mean_vec[i] = mean(eigvals_max)
-    #     var_vec[i] = var(eigvals_max)
-    # end
-    # # Plot eigenvalues mean
-    # fig = Figure()
-    # ax = Axis(fig[1, 1],
-    #     title=L"Mean maximum eigenvalue $D = %$(D)$",
-    #     xlabel=L"$T/T_c$", ylabel=L"\langle \lambda_{max} \rangle",
-    #     xticks=0:0.5:6.5,
-    #     yticks=make_ticks(-5:5),
-    #     yscale=log10)
-    # scatterlines!(ax, tau_vec, mean_vec)
-    # save(joinpath(output_dir_D, filename(global_prefix * "MaxEigvalsMean", @varsdict(D); ext="svg")), fig)
-    # # Plot eigenvalues variance
-    # fig = Figure()
-    # ax = Axis(fig[1, 1],
-    #     title=L"Maximum eigenvalue variance $D = %$(D)$",
-    #     xlabel=L"$T/T_c$", ylabel=L"\langle \lambda_{max}^2 \rangle - \langle \lambda_{max} \rangle^2",
-    #     xticks=0:0.5:6.5,
-    #     yticks=make_ticks(-5:5),
-    #     yscale=log10)
-    # scatterlines!(ax, tau_vec, var_vec)
-    # save(joinpath(output_dir_D, filename(global_prefix * "MaxEigvalVar", @varsdict(D); ext="svg")), fig)
+    # Loop on temperatures
+    mean_vec = similar(T_vec)
+    var_vec = similar(T_vec)
+    for (i, T) in enumerate(T_vec)
+        datafile = D_dict[T]
+        eigvals_matrix = load_pickle(datafile.path)
+        eigvals_max = vec(eigvals_matrix[:, end])
+        # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals, 100)
+        mean_vec[i] = mean(eigvals_max)
+        var_vec[i] = var(eigvals_max)
+    end
+    # Plot eigenvalues mean
+    fig = Figure()
+    ax = Axis(fig[1, 1],
+        title=L"Mean maximum eigenvalue $D = %$(D)$",
+        xlabel=L"$T/T_c$", ylabel=L"\langle \lambda_{max} \rangle",
+        xticks=0:0.5:6.5,
+        yticks=make_ticks(-5:5),
+        yscale=log10)
+    scatterlines!(ax, tau_vec, mean_vec)
+    save(joinpath(output_dir_D, filename(global_prefix * "MaxEigvalsMean", @varsdict(D); ext="svg")), fig)
+    # Plot eigenvalues variance
+    fig = Figure()
+    ax = Axis(fig[1, 1],
+        title=L"Maximum eigenvalue variance $D = %$(D)$",
+        xlabel=L"$T/T_c$", ylabel=L"\langle \lambda_{max}^2 \rangle - \langle \lambda_{max} \rangle^2",
+        xticks=0:0.5:6.5,
+        yticks=make_ticks(-5:5),
+        yscale=log10)
+    scatterlines!(ax, tau_vec, var_vec)
+    save(joinpath(output_dir_D, filename(global_prefix * "MaxEigvalVar", @varsdict(D); ext="svg")), fig)
 
-    # # Plot eigenvalues spacing fluctuations
-    # # Loop on temperatures
-    # mean_vec = similar(T_vec)
-    # var_vec = similar(T_vec)
-    # for (i, T) in enumerate(T_vec)
-    #     datafile = D_dict[T]
-    #     eigvals_matrix = load_pickle(datafile.path)
-    #     eigvals_spacings = vec(get_spacings(eigvals_matrix))
-    #     mean_vec[i], var_vec[i] = hist_fluctuations(eigvals_spacings, 100)
-    #     # mean_vec[i] = mean(eigvals_spacings)
-    #     # var_vec[i] = var(eigvals_spacings)
-    # end
-    # # Plot eigenvalues spacing mean
-    # fig = Figure()
-    # ax = Axis(fig[1, 1],
-    #     title=L"Eigenvalues spacing mean $D = %$(D)$",
-    #     xlabel=L"$T/T_c$", ylabel=L"\langle\Delta\lambda\rangle",
-    #     xticks=0:0.5:6.5)
-    # scatterlines!(ax, tau_vec, mean_vec)
-    # save(joinpath(output_dir_D, filename(global_prefix * "EigvalsSpacingMean", @varsdict(D); ext="svg")), fig)
-    # # Plot eigenvalues spacing variance
-    # fig = Figure()
-    # ax = Axis(fig[1, 1],
-    #     title=L"Eigenvalues spacing variance $D = %$(D)$",
-    #     xlabel=L"$T/T_c$", ylabel=L"\langle ( \Delta\lambda )^2 \rangle - \langle \Delta\lambda \rangle^2",
-    #     xticks=0:0.5:6.5)
-    # scatterlines!(ax, tau_vec, var_vec)
-    # save(joinpath(output_dir_D, filename(global_prefix * "EigvalsSpacingVar", @varsdict(D); ext="svg")), fig)
+    # Plot eigenvalues spacing fluctuations
+    # Loop on temperatures
+    mean_vec = similar(T_vec)
+    var_vec = similar(T_vec)
+    for (i, T) in enumerate(T_vec)
+        datafile = D_dict[T]
+        eigvals_matrix = load_pickle(datafile.path)
+        eigvals_spacings = vec(get_spacings(eigvals_matrix))
+        mean_vec[i], var_vec[i] = hist_fluctuations(eigvals_spacings, 100)
+        # mean_vec[i] = mean(eigvals_spacings)
+        # var_vec[i] = var(eigvals_spacings)
+    end
+    # Plot eigenvalues spacing mean
+    fig = Figure()
+    ax = Axis(fig[1, 1],
+        title=L"Eigenvalues spacing mean $D = %$(D)$",
+        xlabel=L"$T/T_c$", ylabel=L"\langle\Delta\lambda\rangle",
+        xticks=0:0.5:6.5)
+    scatterlines!(ax, tau_vec, mean_vec)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalsSpacingMean", @varsdict(D); ext="svg")), fig)
+    # Plot eigenvalues spacing variance
+    fig = Figure()
+    ax = Axis(fig[1, 1],
+        title=L"Eigenvalues spacing variance $D = %$(D)$",
+        xlabel=L"$T/T_c$", ylabel=L"\langle ( \Delta\lambda )^2 \rangle - \langle \Delta\lambda \rangle^2",
+        xticks=0:0.5:6.5)
+    scatterlines!(ax, tau_vec, var_vec)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalsSpacingVar", @varsdict(D); ext="svg")), fig)
 
-    # # Plot eigenvalues max spacing fluctuations
-    # # Loop on temperatures
-    # mean_vec = similar(T_vec)
-    # var_vec = similar(T_vec)
-    # for (i, T) in enumerate(T_vec)
-    #     datafile = D_dict[T]
-    #     eigvals_matrix = load_pickle(datafile.path)
-    #     eigvals_spacings = get_spacings(eigvals_matrix)
-    #     eigvals_spacings_max = vec(maximum(eigvals_spacings, dims=2))
-    #     # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals_spacings, 100)
-    #     mean_vec[i] = mean(eigvals_spacings_max)
-    #     var_vec[i] = var(eigvals_spacings_max)
-    # end
-    # # Plot mean maximum eigenvalues spacing
-    # fig = Figure()
-    # ax = Axis(fig[1, 1],
-    #     title=L"Mean eigenvalue maximum spacing $D = %$(D)$",
-    #     xlabel=L"$T/T_c$", ylabel=L"\langle \max(\Delta\lambda) \rangle",
-    #     xticks=0:0.5:6.5)
-    # scatterlines!(ax, tau_vec, mean_vec)
-    # save(joinpath(output_dir_D, filename(global_prefix * "EigvalsMaxSpacingMean", @varsdict(D); ext="svg")), fig)
-    # # Plot maximum eigenvalues spacing variance
-    # fig = Figure()
-    # ax = Axis(fig[1, 1],
-    #     title=L"Eigenvalues maximum spacing variance $D = %$(D)$",
-    #     xlabel=L"$T/T_c$", ylabel=L"\langle \max\left((\Delta\lambda)^2\right) \rangle - \langle \max(\Delta\lambda) \rangle^2",
-    #     xticks=0:0.5:6.5)
-    # scatterlines!(ax, tau_vec, var_vec)
-    # save(joinpath(output_dir_D, filename(global_prefix * "EigvalsMaxSpacingVar", @varsdict(D); ext="svg")), fig)
+    # Plot eigenvalues max spacing fluctuations
+    # Loop on temperatures
+    mean_vec = similar(T_vec)
+    var_vec = similar(T_vec)
+    for (i, T) in enumerate(T_vec)
+        datafile = D_dict[T]
+        eigvals_matrix = load_pickle(datafile.path)
+        eigvals_spacings = get_spacings(eigvals_matrix)
+        eigvals_spacings_max = vec(maximum(eigvals_spacings, dims=2))
+        # mean_vec[i], var_vec[i] = hist_fluctuations(eigvals_spacings, 100)
+        mean_vec[i] = mean(eigvals_spacings_max)
+        var_vec[i] = var(eigvals_spacings_max)
+    end
+    # Plot mean maximum eigenvalues spacing
+    fig = Figure()
+    ax = Axis(fig[1, 1],
+        title=L"Mean eigenvalue maximum spacing $D = %$(D)$",
+        xlabel=L"$T/T_c$", ylabel=L"\langle \max(\Delta\lambda) \rangle",
+        xticks=0:0.5:6.5)
+    scatterlines!(ax, tau_vec, mean_vec)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalsMaxSpacingMean", @varsdict(D); ext="svg")), fig)
+    # Plot maximum eigenvalues spacing variance
+    fig = Figure()
+    ax = Axis(fig[1, 1],
+        title=L"Eigenvalues maximum spacing variance $D = %$(D)$",
+        xlabel=L"$T/T_c$", ylabel=L"\langle \max\left((\Delta\lambda)^2\right) \rangle - \langle \max(\Delta\lambda) \rangle^2",
+        xticks=0:0.5:6.5)
+    scatterlines!(ax, tau_vec, var_vec)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalsMaxSpacingVar", @varsdict(D); ext="svg")), fig)
 
     @info "Plotting combined histograms..."
-    idxs = [1, 4, 5, 6, 8, 10, 11, 19, 21]
+    idxs = [1, 4, 5, 7, 9, 10, 11, 19, 21]
     println("tau = ", getindex(tau_vec, idxs))
 
-    # # Eigenvalues distribution
-    # fig = Figure()
-    # axs = [Axis(fig[i, j],
-    #     yticks=make_ticks_log(-5:2:0))
-    #        for i ∈ 1:3 for j ∈ 1:3]
-    # for (ax, idx) ∈ zip(axs, idxs)
-    #     T = T_vec[idx]
-    #     tau = round(T / T_c; digits=3)
-    #     ax.title = L"$T/T_c = %$(tau)$"
-    #     datafile = D_dict[T]
-    #     eigvals = load_pickle(datafile.path)
-    #     # hist!(ax, vec(eigvals), bins=100, normalization=:probability)
-    #     hist = Histogram(vec(eigvals), 100)
-    #     x, y = hist_coords(hist)
-    #     const_log = log10(sum(y))
-    #     ax.limits = ((0, x[end]), (-const_log, 0))
-    #     x_max = x[end]
-    #     ax.xticks = axis_ticks_range(0, x_max, 4)
-    #     y = log10.(y)
-    #     barplot!(ax, x, y, gap=0, offset=-const_log)
-    # end
-    # Label(fig[0, :], text=L"Eigenvalues ($D = %$(D)$)", fontsize=30)
-    # Label(fig[4, 1:3], L"$\lambda$")
-    # Label(fig[1:3, 0], L"$\rho(\lambda)$", rotation=pi / 2)
-    # save(joinpath(output_dir_D, filename(global_prefix * "EigvalsHist", @varsdict(D); ext="svg")), fig)
+    # Eigenvalues distribution
+    fig = Figure()
+    axs = [Axis(fig[i, j],
+        yticks=make_ticks_log(-5:2:0))
+           for i ∈ 1:3 for j ∈ 1:3]
+    for (ax, idx) ∈ zip(axs, idxs)
+        T = T_vec[idx]
+        tau = round(T / T_c; digits=3)
+        ax.title = L"$T/T_c = %$(tau)$"
+        datafile = D_dict[T]
+        eigvals = load_pickle(datafile.path)
+        # hist!(ax, vec(eigvals), bins=100, normalization=:probability)
+        hist = Histogram(vec(eigvals), 100)
+        x, y = hist_coords(hist)
+        const_log = log10(sum(y))
+        ax.limits = ((0, x[end]), (-const_log, 0))
+        x_max = x[end]
+        ax.xticks = axis_ticks_range(0, x_max, 4)
+        y = log10.(y)
+        barplot!(ax, x, y, gap=0, offset=-const_log)
+    end
+    Label(fig[0, :], text=L"Eigenvalues ($D = %$(D)$)", fontsize=30)
+    Label(fig[4, 1:3], L"$\lambda$")
+    Label(fig[1:3, 0], L"$\rho(\lambda)$", rotation=pi / 2)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalsHist", @varsdict(D); ext="svg")), fig)
 
-    # # Eigenvalue minimum
-    # fig = Figure()
-    # axs = [Axis(fig[i, j],
-    #     yticks=make_ticks_log(-5:2:0))
-    #        for i ∈ 1:3 for j ∈ 1:3]
-    # for (ax, idx) ∈ zip(axs, idxs)
-    #     T = T_vec[idx]
-    #     tau = round(T / T_c; digits=3)
-    #     ax.title = L"$T/T_c = %$(tau)$"
-    #     datafile = D_dict[T]
-    #     eigvals_matrix = load_pickle(datafile.path)
-    #     eigvals_min = vec(eigvals_matrix[:, begin])
-    #     hist = Histogram(eigvals_min, 50)
-    #     x, y = hist_coords(hist)
-    #     const_log = log10(sum(y))
-    #     ax.limits = ((0, x[end]), (-const_log, 0))
-    #     x_max = x[end]
-    #     ax.xticks = axis_ticks_range(0, x_max, 3)
-    #     y = log10.(y)
-    #     barplot!(ax, x, y, gap=0, offset=-const_log)
-    # end
-    # Label(fig[0, :], text=L"Minimum eigenvalue distribution ($D = %$(D)$)", fontsize=30)
-    # Label(fig[4, 1:3], L"$\lambda_{min}$")
-    # Label(fig[1:3, 0], L"$\rho(\lambda_{min})$", rotation=pi / 2)
-    # save(joinpath(output_dir_D, filename(global_prefix * "EigvalsMinHist", @varsdict(D); ext="svg")), fig)
+    # Eigenvalue minimum
+    fig = Figure()
+    axs = [Axis(fig[i, j],
+        yticks=make_ticks_log(-5:2:0))
+           for i ∈ 1:3 for j ∈ 1:3]
+    for (ax, idx) ∈ zip(axs, idxs)
+        T = T_vec[idx]
+        tau = round(T / T_c; digits=3)
+        ax.title = L"$T/T_c = %$(tau)$"
+        datafile = D_dict[T]
+        eigvals_matrix = load_pickle(datafile.path)
+        eigvals_min = vec(eigvals_matrix[:, begin])
+        hist = Histogram(eigvals_min, 50)
+        x, y = hist_coords(hist)
+        const_log = log10(sum(y))
+        ax.limits = ((0, x[end]), (-const_log, 0))
+        x_max = x[end]
+        ax.xticks = axis_ticks_range(0, x_max, 3)
+        y = log10.(y)
+        barplot!(ax, x, y, gap=0, offset=-const_log)
+    end
+    Label(fig[0, :], text=L"Minimum eigenvalue distribution ($D = %$(D)$)", fontsize=30)
+    Label(fig[4, 1:3], L"$\lambda_{min}$")
+    Label(fig[1:3, 0], L"$\rho(\lambda_{min})$", rotation=pi / 2)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalsMinHist", @varsdict(D); ext="svg")), fig)
 
-    # # Eigenvalue maximum
-    # fig = Figure()
-    # axs = [Axis(fig[i, j],
-    #     yticks=make_ticks_log(-5:2:0))
-    #        for i ∈ 1:3 for j ∈ 1:3]
-    # for (ax, idx) ∈ zip(axs, idxs)
-    #     T = T_vec[idx]
-    #     tau = round(T / T_c; digits=3)
-    #     ax.title = L"$T/T_c = %$(tau)$"
-    #     datafile = D_dict[T]
-    #     eigvals_matrix = load_pickle(datafile.path)
-    #     eigvals_max = vec(eigvals_matrix[:, end])
-    #     hist = Histogram(eigvals_max, 50)
-    #     x, y = hist_coords(hist)
-    #     const_log = log10(sum(y))
-    #     ax.limits = ((0, x[end]), (-const_log, 0))
-    #     x_max = x[end]
-    #     ax.xticks = axis_ticks_int_range(0, x_max, 4)
-    #     y = log10.(y)
-    #     barplot!(ax, x, y, gap=0, offset=-const_log)
-    # end
-    # Label(fig[0, :], text=L"Maximum eigenvalue distribution ($D = %$(D)$)", fontsize=30)
-    # Label(fig[4, 1:3], L"$\lambda_{max}$")
-    # Label(fig[1:3, 0], L"$\rho(\lambda_{max})$", rotation=pi / 2)
-    # save(joinpath(output_dir_D, filename(global_prefix * "EigvalsMaxHist", @varsdict(D); ext="svg")), fig)
+    # Eigenvalue maximum
+    fig = Figure()
+    axs = [Axis(fig[i, j],
+        yticks=make_ticks_log(-5:2:0))
+           for i ∈ 1:3 for j ∈ 1:3]
+    for (ax, idx) ∈ zip(axs, idxs)
+        T = T_vec[idx]
+        tau = round(T / T_c; digits=3)
+        ax.title = L"$T/T_c = %$(tau)$"
+        datafile = D_dict[T]
+        eigvals_matrix = load_pickle(datafile.path)
+        eigvals_max = vec(eigvals_matrix[:, end])
+        hist = Histogram(eigvals_max, 50)
+        x, y = hist_coords(hist)
+        const_log = log10(sum(y))
+        ax.limits = ((0, x[end]), (-const_log, 0))
+        x_max = x[end]
+        ax.xticks = axis_ticks_int_range(0, x_max, 4)
+        y = log10.(y)
+        barplot!(ax, x, y, gap=0, offset=-const_log)
+    end
+    Label(fig[0, :], text=L"Maximum eigenvalue distribution ($D = %$(D)$)", fontsize=30)
+    Label(fig[4, 1:3], L"$\lambda_{max}$")
+    Label(fig[1:3, 0], L"$\rho(\lambda_{max})$", rotation=pi / 2)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalsMaxHist", @varsdict(D); ext="svg")), fig)
 
     # Eigenvalues spacing distributions
     fig = Figure()
@@ -934,70 +935,70 @@ for (D, D_dict) ∈ sort(collect(eigvals_datafiles), by=x -> x[1])
     Label(fig[1:3, 0], L"$\rho(s)$", rotation=pi / 2)
     save(joinpath(output_dir_D, filename(global_prefix * "EigvalsSpacingHist", @varsdict(D); ext="svg")), fig)
 
-    # @info "Plotting histograms..."
-    # for (T, tau) in zip(T_vec, tau_vec)
-    #     datafile = D_dict[T]
-    #     eigvals_matrix = load_pickle(datafile.path)
-    #     @show tau T
+    @info "Plotting histograms..."
+    for (T, tau) in zip(T_vec, tau_vec)
+        datafile = D_dict[T]
+        eigvals_matrix = load_pickle(datafile.path)
+        @show tau T
 
-    #     # Create dir
-    #     output_dir_D_T = joinpath(output_dir_D, "tau=$tau")
-    #     mkpath(output_dir_D_T)
+        # Create dir
+        output_dir_D_T = joinpath(output_dir_D, "tau=$tau")
+        mkpath(output_dir_D_T)
 
-    #     # Plot eigenvalues distribution
-    #     @info "Plotting eigenvalues distributions..."
-    #     fig = Figure()
-    #     ax = Axis(fig[1, 1],
-    #         title=L"Eigenvalues distribution $D = %$(D)$, $T/T_c = %$(tau)$",
-    #         xlabel=L"\lambda",
-    #         ylabel=L"\rho(\lambda)",
-    #         limits=((0, nothing), (0, nothing)),
-    #         yticks=make_ticks_log(0:5),
-    #         yscale=Makie.pseudolog10)
-    #     hist!(ax, vec(eigvals_matrix), bins=100)
-    #     save(joinpath(output_dir_D_T, filename(global_prefix * "EigvalsHist", @varsdict(D, tau); ext="svg")), fig)
+        # Plot eigenvalues distribution
+        @info "Plotting eigenvalues distributions..."
+        fig = Figure()
+        ax = Axis(fig[1, 1],
+            title=L"Eigenvalues distribution $D = %$(D)$, $T/T_c = %$(tau)$",
+            xlabel=L"\lambda",
+            ylabel=L"\rho(\lambda)",
+            limits=((0, nothing), (0, nothing)),
+            yticks=make_ticks_log(0:5),
+            yscale=Makie.pseudolog10)
+        hist!(ax, vec(eigvals_matrix), bins=100)
+        save(joinpath(output_dir_D_T, filename(global_prefix * "EigvalsHist", @varsdict(D, tau); ext="svg")), fig)
 
-    #     # Plot eigenvalues gaps distribution
-    #     @info "Plotting eigenvalues spacing distributions..."
-    #     fig = Figure()
-    #     ax = Axis(fig[1, 1],
-    #         title=L"Eigenvalues gap distribution $D = %$(D)$, $T/T_c = %$(tau)$",
-    #         xlabel=L"\lambda",
-    #         ylabel=L"\rho(\Delta\lambda)",
-    #         limits=((0, nothing), (0, nothing)),
-    #         yticks=make_ticks_log(0:5),
-    #         yscale=Makie.pseudolog10)
-    #     eigvals_normalized_spacings = get_normalized_spacings(eigvals_matrix)
-    #     hist!(ax, vec(eigvals_normalized_spacings), bins=100)
-    #     save(joinpath(output_dir_D_T, filename(global_prefix * "EigvalsSpacingHist", @varsdict(D, tau); ext="svg")), fig)
+        # Plot eigenvalues gaps distribution
+        @info "Plotting eigenvalues spacing distributions..."
+        fig = Figure()
+        ax = Axis(fig[1, 1],
+            title=L"Eigenvalues gap distribution $D = %$(D)$, $T/T_c = %$(tau)$",
+            xlabel=L"\lambda",
+            ylabel=L"\rho(\Delta\lambda)",
+            limits=((0, nothing), (0, nothing)),
+            yticks=make_ticks_log(0:5),
+            yscale=Makie.pseudolog10)
+        eigvals_normalized_spacings = get_normalized_spacings(eigvals_matrix)
+        hist!(ax, vec(eigvals_normalized_spacings), bins=100)
+        save(joinpath(output_dir_D_T, filename(global_prefix * "EigvalsSpacingHist", @varsdict(D, tau); ext="svg")), fig)
 
-    #     # Plot min eigenvalue distribution
-    #     @info "Plotting min eigenvalue distributions..."
-    #     fig = Figure()
-    #     ax = Axis(fig[1, 1],
-    #         title=L"Minimum eigenvalue distribution $D = %$(D)$, $T/T_c = %$(tau)$",
-    #         xlabel=L"\lambda",
-    #         ylabel=L"min(\lambda)",
-    #         limits=((0, nothing), (0, nothing)),
-    #         yticks=make_ticks_log(0:5),
-    #         yscale=Makie.pseudolog10)
-    #     eigvals_min = vec(eigvals_matrix[:, begin])
-    #     hist!(ax, eigvals_min, bins=100)
-    #     save(joinpath(output_dir_D_T, filename(global_prefix * "EigvalsMin", @varsdict(D, tau); ext="svg")), fig)
+        # Plot min eigenvalue distribution
+        @info "Plotting min eigenvalue distributions..."
+        fig = Figure()
+        ax = Axis(fig[1, 1],
+            title=L"Minimum eigenvalue distribution $D = %$(D)$, $T/T_c = %$(tau)$",
+            xlabel=L"\lambda",
+            ylabel=L"min(\lambda)",
+            limits=((0, nothing), (0, nothing)),
+            yticks=make_ticks_log(0:5),
+            yscale=Makie.pseudolog10)
+        eigvals_min = vec(eigvals_matrix[:, begin])
+        hist!(ax, eigvals_min, bins=100)
+        save(joinpath(output_dir_D_T, filename(global_prefix * "EigvalsMin", @varsdict(D, tau); ext="svg")), fig)
 
-    #     # Plot max eigenvalue distribution
-    #     @info "Plotting max eigenvalue distributions..."
-    #     fig = Figure()
-    #     ax = Axis(fig[1, 1],
-    #         title=L"Maximum eigenvalue distribution $D = %$(D)$, $T/T_c = %$(tau)$",
-    #         xlabel=L"\lambda",
-    #         ylabel=L"max(\lambda)",
-    #         limits=((0, nothing), (0, nothing)),
-    #         yticks=make_ticks_log(0:5),
-    #         yscale=Makie.pseudolog10)
-    #     eigvals_max = vec(eigvals_matrix[:, end])
-    #     hist!(ax, eigvals_max, bins=100)
-    #     save(joinpath(output_dir_D_T, filename(global_prefix * "EigvalsMax", @varsdict(D, tau); ext="svg")), fig)
-    # end
+        # Plot max eigenvalue distribution
+        @info "Plotting max eigenvalue distributions..."
+        fig = Figure()
+        ax = Axis(fig[1, 1],
+            title=L"Maximum eigenvalue distribution $D = %$(D)$, $T/T_c = %$(tau)$",
+            xlabel=L"\lambda",
+            ylabel=L"max(\lambda)",
+            limits=((0, nothing), (0, nothing)),
+            yticks=make_ticks_log(0:5),
+            yscale=Makie.pseudolog10)
+        eigvals_max = vec(eigvals_matrix[:, end])
+        hist!(ax, eigvals_max, bins=100)
+        save(joinpath(output_dir_D_T, filename(global_prefix * "EigvalsMax", @varsdict(D, tau); ext="svg")), fig)
+    end
 
 end
