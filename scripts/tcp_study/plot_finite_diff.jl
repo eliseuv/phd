@@ -9,28 +9,6 @@ include("plot_utils.jl")
 @info "Loading datafiles..."
 const datafiles_dict = get_datafiles_dict(datadir("blume_capel_pickles", "eigvals"))
 
-function discrete_first_derivative(x::AbstractVector{T}, y::AbstractVector{T}) where {T<:Real}
-    @assert length(x) == length(y)
-    N = length(x)
-    x_out = x[2:N-1]
-    y_out = Vector{T}(undef, N - 2)
-    for k ∈ 2:N-1
-        y_out[k-1] = (y[k+1] - y[k-1]) / (x[k+1] - x[k-1])
-    end
-    return (x_out, y_out)
-end
-
-function discrete_second_derivative(x::AbstractVector{T}, y::AbstractVector{T}) where {T<:Real}
-    @assert length(x) == length(y)
-    N = length(x)
-    x_out = x[2:N-1]
-    y_out = Vector{T}(undef, N - 2)
-    for k ∈ 2:N-1
-        y_out[k-1] = 2 * ((x[k] - x[k-1]) * (y[k+1] - y[k]) - (x[k+1] - x[k]) * (y[k] - y[k-1])) / ((x[k+1] - x[k-1]) * (x[k+1] - x[k]) * (x[k] - x[k-1]))
-    end
-    return (x_out, y_out)
-end
-
 D = 1.0
 
 D_dict = datafiles_dict[D]

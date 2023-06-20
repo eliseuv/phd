@@ -8,27 +8,27 @@ include("plot_utils.jl")
 
 @info "Loading datafiles..."
 
-# # Blume-Capel 2D
-# const system_title = "Blume-Capel 2D"
-# const datafiles_dir = datadir("magnet_ts_wishart", "blume-capel_2d", "eigvals")
-# const global_prefix = "BlumeCapelSq2D"
-# const datafiles = find_datafiles(datafiles_dir,
-#     global_prefix * "Eigvals",
-#     "L" => 100;
-#     ext=".pickle")
-# const output_root = plotsdir("magnet_ts_wishart", "blume-capel_2d")
-# const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_square_lattice.csv")))
-
-# Blume-Capel 3D
-const system_title = "Blume-Capel 3D"
-const datafiles_dir = datadir("magnet_ts_wishart", "blume-capel_3d", "eigvals")
-const global_prefix = "BlumeCapelSq3D"
+# Blume-Capel 2D
+const system_title = "Blume-Capel 2D"
+const datafiles_dir = datadir("magnet_ts_wishart", "blume-capel_2d", "eigvals")
+const global_prefix = "BlumeCapelSq2D"
 const datafiles = find_datafiles(datafiles_dir,
     global_prefix * "Eigvals",
-    "L" => 20;
+    "L" => 100;
     ext=".pickle")
-const output_root = plotsdir("magnet_ts_wishart", "blume-capel_3d")
-const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_cubic_lattice.csv")))
+const output_root = plotsdir("magnet_ts_wishart", "blume-capel_2d")
+const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_square_lattice.csv")))
+
+# # Blume-Capel 3D
+# const system_title = "Blume-Capel 3D"
+# const datafiles_dir = datadir("magnet_ts_wishart", "blume-capel_3d", "eigvals")
+# const global_prefix = "BlumeCapelSq3D"
+# const datafiles = find_datafiles(datafiles_dir,
+#     global_prefix * "Eigvals",
+#     "L" => 20;
+#     ext=".pickle")
+# const output_root = plotsdir("magnet_ts_wishart", "blume-capel_3d")
+# const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_cubic_lattice.csv")))
 
 const D_vals = map(x -> x.params["D"], datafiles) |> unique |> sort
 @show D_vals
@@ -47,8 +47,8 @@ for D ∈ D_vals
     T_c, transition_order_str, _ = get_critical_temperature_info(df_temperatures, D)
     transition_order = replace(transition_order_str,
         "1st order" => "first",
-        "second" => "2nd order",
-        "tcp" => "TCP")
+        "2nd order" => "second",
+        "TCP" => "tcp")
     # Create dir
     output_dir_D = joinpath(output_root, "D=$D($(transition_order))")
     mkpath(output_dir_D)
@@ -81,6 +81,38 @@ for D ∈ D_vals
     scatterlines!(ax_var, df.tau, df.var)
     save(joinpath(output_dir_D, filename(global_prefix * "EigvalMean", @varsdict(D); ext="svg")), fig_mean)
     save(joinpath(output_dir_D, filename(global_prefix * "EigvalVar", @varsdict(D); ext="svg")), fig_var)
+
+    @info "Plotting eigenvalues variance inset..."
+    fig = Figure(resolution=fig_size)
+    ax_main = Axis(fig[1, 1],
+        limits=((nothing, nothing), (0, nothing)),
+        xticks=axis_ticks([1, 2, 4, 6]),
+        yticks=axis_ticks(0:20:60),
+        backgroundcolor=:white,
+        title=L"%$(system_title) - Eigenvalue spectrum variance ($D=%$(D)$)",
+        xlabel=L"T/T_c",
+        ylabel=L"\langle \lambda^2 \rangle - \langle \lambda \rangle^2", ylabelrotation=pi / 2)
+    scatterlines!(ax_main, df.tau, df.var)
+    vlines!(ax_main, [1], color=:grey)
+
+    ax_inset = Axis(fig[1, 1],
+        limits=((nothing, nothing), (nothing, nothing)),
+        xticks=axis_ticks([1, 2, 4, 6]),
+        yticks=axis_ticks(-120:40:0),
+        width=Relative(0.5),
+        height=Relative(0.6),
+        halign=0.95,
+        valign=0.65,
+        backgroundcolor=:lightgray,
+        xlabel=L"T/T_c",
+        ylabel=L"\frac{d}{dT} \left[ \langle \lambda^2 \rangle - \langle \lambda \rangle^2 \right]", ylabelrotation=pi / 2)
+    # hidexdecorations!(ax_inset)
+    translate!(ax_inset.scene, 0, 0, 10)
+    translate!(ax_inset.elements[:background], 0, 0, 9)
+    x_diff, y_diff = discrete_first_derivative(df.tau, df.var)
+    scatterlines!(ax_inset, x_diff, y_diff .* (1 / T_c))
+    vlines!(ax_inset, [1], color=:grey)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalVarDiff", @varsdict(D); ext="svg")), fig)
 
     @info "Plotting minimum eigenvalues fluctuations..."
     fig_mean = Figure(resolution=fig_size)

@@ -11,31 +11,33 @@ include("plot_utils.jl")
 
 @info "Loading datafiles..."
 
-# # Blume-Capel 2D
-# const system_title = "Blume-Capel 2D"
-# const datafiles_dir = datadir("magnet_ts_wishart", "blume-capel_2d", "eigvals")
-# const global_prefix = "BlumeCapelSq2D"
-# const D = 1.96582
-# const datafiles = find_datafiles(datafiles_dir,
-#     global_prefix * "Eigvals",
-#     "D" => D;
-#     ext=".pickle")
-# const output_root = plotsdir("magnet_ts_wishart", "blume-capel_2d", "fss")
-# const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_square_lattice.csv")))
-
-# Blume-Capel 3D
-const system_title = "Blume-Capel 3D"
-const datafiles_dir = datadir("magnet_ts_wishart", "blume-capel_3d", "eigvals")
-const global_prefix = "BlumeCapelSq3D"
-const D = 2.8448
+# Blume-Capel 2D
+const system_title = "Blume-Capel 2D"
+const datafiles_dir = datadir("magnet_ts_wishart", "blume-capel_2d", "eigvals")
+const global_prefix = "BlumeCapelSq2D"
+const D = 1.96582
+const L_max = 30
 const datafiles = find_datafiles(datafiles_dir,
     global_prefix * "Eigvals",
     "D" => D;
     ext=".pickle")
-const output_root = plotsdir("magnet_ts_wishart", "blume-capel_3d", "fss")
-const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_cubic_lattice.csv")))
+const output_root = plotsdir("magnet_ts_wishart", "blume-capel_2d", "fss")
+const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_square_lattice.csv")))
 
-const L_vals = map(x -> x.params["L"], datafiles) |> sort |> unique
+# # Blume-Capel 3D
+# const system_title = "Blume-Capel 3D"
+# const datafiles_dir = datadir("magnet_ts_wishart", "blume-capel_3d", "eigvals")
+# const global_prefix = "BlumeCapelSq3D"
+# const D = 2.8448
+# const L_max = 10
+# const datafiles = find_datafiles(datafiles_dir,
+#     global_prefix * "Eigvals",
+#     "D" => D;
+#     ext=".pickle")
+# const output_root = plotsdir("magnet_ts_wishart", "blume-capel_3d", "fss")
+# const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_cubic_lattice.csv")))
+
+const L_vals = map(x -> x.params["L"], datafiles) |> sort |> unique |> filter(L -> L <= L_max)
 @show L_vals
 const T_c, transition_order_str, _ = get_critical_temperature_info(df_temperatures, D)
 mkpath(output_root)

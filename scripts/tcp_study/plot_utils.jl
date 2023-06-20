@@ -42,10 +42,10 @@ end
     return (tick_vals, map(tck -> latexstring("$(tck)"), tick_vals))
 end
 
-@inline function axis_ticks_range(low::Real, high::Real, length::Integer)
-    tick_vals = map(x -> round(x, digits=5), range(low, high, length=length))
-    return (tick_vals, map(tck -> latexstring("$(tck)"), tick_vals))
-end
+# @inline function axis_ticks_range(low::Real, high::Real, length::Integer)
+#     tick_vals = map(x -> round(x, digits=5), range(low, high, length=length))
+#     return (tick_vals, map(tck -> latexstring("$(tck)"), tick_vals))
+# end
 
 @inline axis_ticks(vals) = (vals, map(x -> latexstring("$(x)"), vals))
 
@@ -85,6 +85,28 @@ end
     eigvals_spacings = get_spacings(eigvals_matrix)
     eigvals_spacings_means = mean(eigvals_spacings, dims=2)
     return eigvals_spacings_means .\ eigvals_spacings
+end
+
+function discrete_first_derivative(x::AbstractVector{T}, y::AbstractVector{T}) where {T<:Real}
+    @assert length(x) == length(y)
+    N = length(x)
+    x_out = x[2:N-1]
+    y_out = Vector{T}(undef, N - 2)
+    for k ∈ 2:N-1
+        y_out[k-1] = (y[k+1] - y[k-1]) / (x[k+1] - x[k-1])
+    end
+    return (x_out, y_out)
+end
+
+function discrete_second_derivative(x::AbstractVector{T}, y::AbstractVector{T}) where {T<:Real}
+    @assert length(x) == length(y)
+    N = length(x)
+    x_out = x[2:N-1]
+    y_out = Vector{T}(undef, N - 2)
+    for k ∈ 2:N-1
+        y_out[k-1] = 2 * ((x[k] - x[k-1]) * (y[k+1] - y[k]) - (x[k+1] - x[k]) * (y[k] - y[k-1])) / ((x[k+1] - x[k-1]) * (x[k+1] - x[k]) * (x[k] - x[k-1]))
+    end
+    return (x_out, y_out)
 end
 
 # Temperatures considered
