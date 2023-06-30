@@ -111,3 +111,7 @@ end
 
 # Temperatures considered
 const T_idxs = [1, 3, 5, 6, 8, 10, 11, 19, 21]
+
+# Interpolation
+@inline log_interpolate(x, low, high; base=2) = (log(base, x) - log(base, low)) / (log(base, high) - log(base, low))
+@inline linear_interpolate(x, low, high) = (x - low) / (high - low)
