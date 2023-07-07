@@ -80,7 +80,6 @@ const σ = parse(Float64, ARGS[1])
 const n_bins = 128
 const hist_target = hist_ramp(n_bins)
 const distance_str = ARGS[2]
->>>>>>> 8549ac33fec7512d1afc8197d9c2406a3c2c7b8f
 const distance = eval(Meta.parse(distance_str))
 # Simulated annealing parameters
 const β₀ = 1e1
