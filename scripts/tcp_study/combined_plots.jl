@@ -75,11 +75,11 @@ end
 Label(fig_mean[0, :], LaTeXString(system_title * " - Mean eigenvalue"))
 Label(fig_mean[4, 1:2], L"T/T_c")
 Label(fig_mean[1:3, 0], L"\langle \lambda \rangle", rotation=pi / 2)
-save(joinpath(output_root, filename(global_prefix * "EigvalMean"; ext="svg")), fig_mean)
+save(joinpath(output_root, filename(global_prefix * "EigvalMean"; ext="pdf")), fig_mean)
 Label(fig_var[0, :], LaTeXString(system_title * " - Eigenvalues variance"))
 Label(fig_var[4, 1:2], L"T/T_c")
 Label(fig_var[1:3, 0], L"\langle \lambda^2 \rangle - \langle \lambda \rangle^2", rotation=pi / 2)
-save(joinpath(output_root, filename(global_prefix * "EigvalVar"; ext="svg")), fig_var)
+save(joinpath(output_root, filename(global_prefix * "EigvalVar"; ext="pdf")), fig_var)
 
 @info "Plotting minimum eigenvalue fluctuations..."
 fig_mean = Figure(resolution=fig_size)
@@ -120,11 +120,11 @@ end
 Label(fig_mean[0, :], LaTeXString(system_title * " - Mean smallest eigenvalue"))
 Label(fig_mean[4, 1:2], L"T/T_c")
 Label(fig_mean[1:3, 0], L"\langle \lambda_{min} \rangle", rotation=pi / 2)
-save(joinpath(output_root, filename(global_prefix * "MinEigvalMean"; ext="svg")), fig_mean)
+save(joinpath(output_root, filename(global_prefix * "MinEigvalMean"; ext="pdf")), fig_mean)
 Label(fig_var[0, :], LaTeXString(system_title * " - Smallest eigenvalue variance"))
 Label(fig_var[4, 1:2], L"T/T_c")
 Label(fig_var[1:3, 0], L"\langle \lambda_{min}^2 \rangle - \langle \lambda_{min} \rangle^2", rotation=pi / 2)
-save(joinpath(output_root, filename(global_prefix * "MinEigvalVar"; ext="svg")), fig_var)
+save(joinpath(output_root, filename(global_prefix * "MinEigvalVar"; ext="pdf")), fig_var)
 
 @info "Plotting maximum eigenvalue fluctuations..."
 fig_mean = Figure(resolution=fig_size)
@@ -162,11 +162,11 @@ end
 Label(fig_mean[0, :], LaTeXString(system_title * " - Mean largest eigenvalue"))
 Label(fig_mean[4, 1:2], L"T/T_c")
 Label(fig_mean[1:3, 0], L"\langle \lambda_{max} \rangle", rotation=pi / 2)
-save(joinpath(output_root, filename(global_prefix * "MaxEigvalMean"; ext="svg")), fig_mean)
+save(joinpath(output_root, filename(global_prefix * "MaxEigvalMean"; ext="pdf")), fig_mean)
 Label(fig_var[0, :], LaTeXString(system_title * " - Largest eigenvalue variance"))
 Label(fig_var[4, 1:2], L"T/T_c")
 Label(fig_var[1:3, 0], L"\langle \lambda_{max}^2 \rangle - \langle \lambda_{max} \rangle^2", rotation=pi / 2)
-save(joinpath(output_root, filename(global_prefix * "MaxEigvalVar"; ext="svg")), fig_var)
+save(joinpath(output_root, filename(global_prefix * "MaxEigvalVar"; ext="pdf")), fig_var)
 
 @info "Plotting eigenvalue spacings fluctuations..."
 fig_mean = Figure(resolution=fig_size)
@@ -202,8 +202,8 @@ end
 Label(fig_mean[0, :], LaTeXString(system_title * " - Mean eigenvalue spacing"))
 Label(fig_mean[4, 1:2], L"T/T_c")
 Label(fig_mean[1:3, 0], L"\langle \Delta\lambda \rangle", rotation=pi / 2)
-save(joinpath(output_root, filename(global_prefix * "EigvalSpacingMean"; ext="svg")), fig_mean)
+save(joinpath(output_root, filename(global_prefix * "EigvalSpacingMean"; ext="pdf")), fig_mean)
 Label(fig_var[0, :], LaTeXString(system_title * " - Eigenvalue spacing variance"))
 Label(fig_var[4, 1:2], L"T/T_c")
 Label(fig_var[1:3, 0], L"\langle (\Delta\lambda)^2 \rangle - \langle \Delta\lambda \rangle^2", rotation=pi / 2)
-save(joinpath(output_root, filename(global_prefix * "EigvalSpacingVar"; ext="svg")), fig_var)
+save(joinpath(output_root, filename(global_prefix * "EigvalSpacingVar"; ext="pdf")), fig_var)
