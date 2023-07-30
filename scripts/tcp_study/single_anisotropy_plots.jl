@@ -79,8 +79,8 @@ for D ∈ D_vals
     end
     scatterlines!(ax_mean, df.tau, df.mean)
     scatterlines!(ax_var, df.tau, df.var)
-    save(joinpath(output_dir_D, filename(global_prefix * "EigvalMean", @varsdict(D); ext="svg")), fig_mean)
-    save(joinpath(output_dir_D, filename(global_prefix * "EigvalVar", @varsdict(D); ext="svg")), fig_var)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalMean", @varsdict(D); ext="pdf")), fig_mean)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalVar", @varsdict(D); ext="pdf")), fig_var)
 
     @info "Plotting eigenvalues variance inset..."
     fig = Figure(resolution=fig_size)
@@ -112,7 +112,7 @@ for D ∈ D_vals
     x_diff, y_diff = discrete_first_derivative(df.tau, df.var)
     scatterlines!(ax_inset, x_diff, y_diff .* (1 / T_c))
     vlines!(ax_inset, [1], color=:grey)
-    save(joinpath(output_dir_D, filename(global_prefix * "EigvalVarDiff", @varsdict(D); ext="svg")), fig)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalVarDiff", @varsdict(D); ext="pdf")), fig)
 
     @info "Plotting minimum eigenvalues fluctuations..."
     fig_mean = Figure(resolution=fig_size)
@@ -141,8 +141,8 @@ for D ∈ D_vals
     end
     scatterlines!(ax_mean, df.tau, df.mean)
     scatterlines!(ax_var, df.tau, df.var)
-    save(joinpath(output_dir_D, filename(global_prefix * "MinEigvalMean", @varsdict(D); ext="svg")), fig_mean)
-    save(joinpath(output_dir_D, filename(global_prefix * "MinEigvalVar", @varsdict(D); ext="svg")), fig_var)
+    save(joinpath(output_dir_D, filename(global_prefix * "MinEigvalMean", @varsdict(D); ext="pdf")), fig_mean)
+    save(joinpath(output_dir_D, filename(global_prefix * "MinEigvalVar", @varsdict(D); ext="pdf")), fig_var)
 
     @info "Plotting maximum eigenvalues fluctuations..."
     fig_mean = Figure(resolution=fig_size)
@@ -171,8 +171,8 @@ for D ∈ D_vals
     end
     scatterlines!(ax_mean, df.tau, df.mean)
     scatterlines!(ax_var, df.tau, df.var)
-    save(joinpath(output_dir_D, filename(global_prefix * "MaxEigvalMean", @varsdict(D); ext="svg")), fig_mean)
-    save(joinpath(output_dir_D, filename(global_prefix * "MaxEigvalVar", @varsdict(D); ext="svg")), fig_var)
+    save(joinpath(output_dir_D, filename(global_prefix * "MaxEigvalMean", @varsdict(D); ext="pdf")), fig_mean)
+    save(joinpath(output_dir_D, filename(global_prefix * "MaxEigvalVar", @varsdict(D); ext="pdf")), fig_var)
 
     @info "Plotting eigenvalues spacing fluctuations..."
     fig_mean = Figure(resolution=fig_size)
@@ -201,8 +201,8 @@ for D ∈ D_vals
     end
     scatterlines!(ax_mean, df.tau, df.mean)
     scatterlines!(ax_var, df.tau, df.var)
-    save(joinpath(output_dir_D, filename(global_prefix * "EigvalSpacingMean", @varsdict(D); ext="svg")), fig_mean)
-    save(joinpath(output_dir_D, filename(global_prefix * "EigvalSpacingVar", @varsdict(D); ext="svg")), fig_var)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalSpacingMean", @varsdict(D); ext="pdf")), fig_mean)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalSpacingVar", @varsdict(D); ext="pdf")), fig_var)
 
     @info "Plotting largest eigenvalues spacing fluctuations..."
     fig_mean = Figure(resolution=fig_size)
@@ -232,8 +232,8 @@ for D ∈ D_vals
     end
     scatterlines!(ax_mean, df.tau, df.mean)
     scatterlines!(ax_var, df.tau, df.var)
-    save(joinpath(output_dir_D, filename(global_prefix * "EigvalMaxSpacingMean", @varsdict(D); ext="svg")), fig_mean)
-    save(joinpath(output_dir_D, filename(global_prefix * "EigvalMaxSpacingVar", @varsdict(D); ext="svg")), fig_var)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalMaxSpacingMean", @varsdict(D); ext="pdf")), fig_mean)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalMaxSpacingVar", @varsdict(D); ext="pdf")), fig_var)
 
     @info "Plotting eigenvalue histogram..."
     fig = Figure()
@@ -256,7 +256,7 @@ for D ∈ D_vals
     Label(fig[0, :], text=L"%$(system_title) - Eigenvalues ($D = %$(D)$)", fontsize=30)
     Label(fig[4, 1:3], L"$\lambda$")
     Label(fig[1:3, 0], L"$\rho(\lambda)$", rotation=pi / 2)
-    save(joinpath(output_dir_D, filename(global_prefix * "EigvalHist", @varsdict(D); ext="svg")), fig)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalHist", @varsdict(D); ext="pdf")), fig)
 
     # @info "Plotting minimum eigenvalue histogram..."
     # fig = Figure()
@@ -280,7 +280,7 @@ for D ∈ D_vals
     # Label(fig[0, :], text=L"%$(system_title) - Smallest eigenvalue ($D = %$(D)$)", fontsize=30)
     # Label(fig[4, 1:3], L"$\lambda_{min}$")
     # Label(fig[1:3, 0], L"$\rho(\lambda_{min})$", rotation=pi / 2)
-    # save(joinpath(output_dir_D, filename(global_prefix * "MinEigvalHist", @varsdict(D); ext="svg")), fig)
+    # save(joinpath(output_dir_D, filename(global_prefix * "MinEigvalHist", @varsdict(D); ext="pdf")), fig)
 
     @info "Plotting eigenvalue spacing histogram..."
     fig = Figure()
@@ -303,6 +303,6 @@ for D ∈ D_vals
     Label(fig[0, :], text=L"%$(system_title) - Eigenvalue spacing ($D = %$(D)$)", fontsize=30)
     Label(fig[4, 1:3], L"$s$")
     Label(fig[1:3, 0], L"$\rho(s)$", rotation=pi / 2)
-    save(joinpath(output_dir_D, filename(global_prefix * "EigvalSpacingHist", @varsdict(D); ext="svg")), fig)
+    save(joinpath(output_dir_D, filename(global_prefix * "EigvalSpacingHist", @varsdict(D); ext="pdf")), fig)
 
 end

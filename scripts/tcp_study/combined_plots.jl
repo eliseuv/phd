@@ -8,33 +8,33 @@ include("plot_utils.jl")
 
 @info "Loading datafiles..."
 
-# # Blume-Capel 2D
-# const system_title = "Blume-Capel 2D"
-# const datafiles_dir = datadir("magnet_ts_wishart", "blume-capel_2d", "eigvals")
-# const global_prefix = "BlumeCapelSq2D"
-# const datafiles = find_datafiles(datafiles_dir,
-#     global_prefix * "Eigvals",
-#     "L" => 100;
-#     ext=".pickle")
-# const output_root = plotsdir("magnet_ts_wishart", "blume-capel_2d")
-# const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_square_lattice.csv")))
-# const D_vals_plot = [1, 1.75, 1.9, # First order
-#     1.96582, # TCP
-#     1.9777, 1.99932488] # First order
-
-# Blume-Capel 3D
-const system_title = "Blume-Capel 3D"
-const datafiles_dir = datadir("magnet_ts_wishart", "blume-capel_3d", "eigvals")
-const global_prefix = "BlumeCapelSq3D"
+# Blume-Capel 2D
+const system_title = "Blume-Capel 2D"
+const datafiles_dir = datadir("magnet_ts_wishart", "blume-capel_2d", "eigvals")
+const global_prefix = "BlumeCapelSq2D"
 const datafiles = find_datafiles(datafiles_dir,
     global_prefix * "Eigvals",
-    "L" => 20;
+    "L" => 100;
     ext=".pickle")
-const output_root = plotsdir("magnet_ts_wishart", "blume-capel_3d")
-const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_cubic_lattice.csv")))
-const D_vals_plot = [0, 1, 2, # First order
-    2.8446, # TCP
-    2.8502, 2.998] # First order
+const output_root = plotsdir("magnet_ts_wishart", "blume-capel_2d")
+const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_square_lattice.csv")))
+const D_vals_plot = [1, 1.75, 1.9, # First order
+    1.96582, # TCP
+    1.9777, 1.99932488] # First order
+
+# # Blume-Capel 3D
+# const system_title = "Blume-Capel 3D"
+# const datafiles_dir = datadir("magnet_ts_wishart", "blume-capel_3d", "eigvals")
+# const global_prefix = "BlumeCapelSq3D"
+# const datafiles = find_datafiles(datafiles_dir,
+#     global_prefix * "Eigvals",
+#     "L" => 20;
+#     ext=".pickle")
+# const output_root = plotsdir("magnet_ts_wishart", "blume-capel_3d")
+# const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_cubic_lattice.csv")))
+# const D_vals_plot = [0, 1, 2, # First order
+#     2.8446, # TCP
+#     2.8502, 2.998] # First order
 
 const D_vals_available = map(x -> x.params["D"], datafiles) |> unique |> sort
 @show D_vals_available
@@ -115,7 +115,7 @@ for (ax_mean, ax_var, D) ∈ zip(axs_mean, axs_var, D_vals_plot)
     ax_mean.yticks = axis_ticks_range(extrema(df.mean)..., 5)
     scatterlines!(ax_var, df.tau, df.var)
     @show axis_ticks_range(0, maximum(df.var), 5)
-    ax_var.yticks = axis_ticks_range(0, maximum(df.var), 5)
+    # ax_var.yticks = axis_ticks_range(0, maximum(df.var), 5)
 end
 Label(fig_mean[0, :], LaTeXString(system_title * " - Mean smallest eigenvalue"))
 Label(fig_mean[4, 1:2], L"T/T_c")

@@ -8,34 +8,34 @@ include("plot_utils.jl")
 
 @info "Loading datafiles..."
 
-# Blume-Capel 2D
-const system_title = "Blume-Capel 2D"
-const datafiles_dir = datadir("magnet_ts_wishart", "blume-capel_2d", "eigvals")
-const global_prefix = "BlumeCapelSq2D"
-# const D = 1.96582
-const D = 1
-const L_max = 30
-const datafiles = find_datafiles(datafiles_dir,
-    global_prefix * "Eigvals",
-    "D" => D,
-    "mc_steps" => 300;
-    ext=".pickle")
-const output_root = plotsdir("magnet_ts_wishart", "blume-capel_2d", "fss")
-const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_square_lattice.csv")))
-
-# # Blume-Capel 3D
-# const system_title = "Blume-Capel 3D"
-# const datafiles_dir = datadir("magnet_ts_wishart", "blume-capel_3d", "eigvals")
-# const global_prefix = "BlumeCapelSq3D"
-# const D = 2.8448
-# const L_max = 10
+# # Blume-Capel 2D
+# const system_title = "Blume-Capel 2D"
+# const datafiles_dir = datadir("magnet_ts_wishart", "blume-capel_2d", "eigvals")
+# const global_prefix = "BlumeCapelSq2D"
+# # const D = 1.96582
+# const D = 1
+# const L_max = 30
 # const datafiles = find_datafiles(datafiles_dir,
 #     global_prefix * "Eigvals",
 #     "D" => D,
 #     "mc_steps" => 300;
 #     ext=".pickle")
-# const output_root = plotsdir("magnet_ts_wishart", "blume-capel_3d", "fss")
-# const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_cubic_lattice.csv")))
+# const output_root = plotsdir("magnet_ts_wishart", "blume-capel_2d", "fss")
+# const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_square_lattice.csv")))
+
+# Blume-Capel 3D
+const system_title = "Blume-Capel 3D"
+const datafiles_dir = datadir("magnet_ts_wishart", "blume-capel_3d", "eigvals")
+const global_prefix = "BlumeCapelSq3D"
+const D = 2.8448
+const L_max = 10
+const datafiles = find_datafiles(datafiles_dir,
+    global_prefix * "Eigvals",
+    "D" => D,
+    "mc_steps" => 300;
+    ext=".pickle")
+const output_root = plotsdir("magnet_ts_wishart", "blume-capel_3d", "fss")
+const df_temperatures = DataFrame(CSV.File(projectdir("tables", "butera_and_pernici_2018", "blume-capel_s=1_cubic_lattice.csv")))
 
 const L_vals = map(x -> x.params["L"], datafiles) |> sort |> unique |> filter(L -> L <= L_max)
 @show L_vals
@@ -80,8 +80,8 @@ for (i, L) ∈ enumerate(L_vals)
 end
 Legend(fig_mean[1, 2], mean_curves, (LaTeXString ∘ string).(L_vals), L"L", framevisible=false)
 Legend(fig_var[1, 2], var_curves, (LaTeXString ∘ string).(L_vals), L"L", framevisible=false)
-save(joinpath(output_root, filename(global_prefix * "EigvalMean", "D" => D; ext="svg")), fig_mean)
-save(joinpath(output_root, filename(global_prefix * "EigvalVar", "D" => D; ext="svg")), fig_var)
+save(joinpath(output_root, filename(global_prefix * "EigvalMean", "D" => D; ext="pdf")), fig_mean)
+save(joinpath(output_root, filename(global_prefix * "EigvalVar", "D" => D; ext="pdf")), fig_var)
 
 @info "Plotting minimum eigenvalues fluctuations..."
 fig_mean = Figure(resolution=fig_size)
@@ -119,8 +119,8 @@ for (i, L) ∈ enumerate(L_vals)
 end
 Legend(fig_mean[1, 2], mean_curves, (LaTeXString ∘ string).(L_vals), L"L", framevisible=false)
 Legend(fig_var[1, 2], var_curves, (LaTeXString ∘ string).(L_vals), L"L", framevisible=false)
-save(joinpath(output_root, filename(global_prefix * "MinEigvalMean", "D" => D; ext="svg")), fig_mean)
-save(joinpath(output_root, filename(global_prefix * "MinEigvalVar", "D" => D; ext="svg")), fig_var)
+save(joinpath(output_root, filename(global_prefix * "MinEigvalMean", "D" => D; ext="pdf")), fig_mean)
+save(joinpath(output_root, filename(global_prefix * "MinEigvalVar", "D" => D; ext="pdf")), fig_var)
 
 @info "Plotting maximum eigenvalues fluctuations..."
 fig_mean = Figure(resolution=fig_size)
@@ -158,8 +158,8 @@ for (i, L) ∈ enumerate(L_vals)
 end
 Legend(fig_mean[1, 2], mean_curves, (LaTeXString ∘ string).(L_vals), L"L", framevisible=false)
 Legend(fig_var[1, 2], var_curves, (LaTeXString ∘ string).(L_vals), L"L", framevisible=false)
-save(joinpath(output_root, filename(global_prefix * "MaxEigvalMean", "D" => D; ext="svg")), fig_mean)
-save(joinpath(output_root, filename(global_prefix * "MaxEigvalVar", "D" => D; ext="svg")), fig_var)
+save(joinpath(output_root, filename(global_prefix * "MaxEigvalMean", "D" => D; ext="pdf")), fig_mean)
+save(joinpath(output_root, filename(global_prefix * "MaxEigvalVar", "D" => D; ext="pdf")), fig_var)
 
 @info "Plotting eigenvalue spacings fluctuations..."
 fig_mean = Figure(resolution=fig_size)
@@ -197,5 +197,5 @@ for (i, L) ∈ enumerate(L_vals)
 end
 Legend(fig_mean[1, 2], mean_curves, (LaTeXString ∘ string).(L_vals), L"L", framevisible=false)
 Legend(fig_var[1, 2], var_curves, (LaTeXString ∘ string).(L_vals), L"L", framevisible=false)
-save(joinpath(output_root, filename(global_prefix * "EigvalSpacingMean", "D" => D; ext="svg")), fig_mean)
-save(joinpath(output_root, filename(global_prefix * "EigvalSpacingVar", "D" => D; ext="svg")), fig_var)
+save(joinpath(output_root, filename(global_prefix * "EigvalSpacingMean", "D" => D; ext="pdf")), fig_mean)
+save(joinpath(output_root, filename(global_prefix * "EigvalSpacingVar", "D" => D; ext="pdf")), fig_var)
