@@ -3,7 +3,32 @@
 
 #+startup: latexpreview
 
-* Research
+* Projects management
+
+** Tesis repo
+
+*** TODO Single Julia research repo
+
+Merge =phd=, =Thesis= and =DataAnalisys= repos into one.
+
+** comp-phys
+
+*** TODO Use faer-rs lib
+
+Use native Rust =faer-rs= linear algebra library instead of calling =LAPACK=.
+
+** Lovelace
+
+*** TODO Lovelace tools repo
+
+Create repo that contains all tools used remotely (Bash and Julia scripts).
+
+**** TODO Queue multiple bin calls in single job
+
+Write command that calls a bin with a set of different arguments in a single job.
+
+
+* Theory
 
 ** Determiation coefficients
 
@@ -16,18 +41,7 @@
 
 ** Contact process
 
-*** TODO Implement model
+*** DONE Implement model
+CLOSED: [2023-07-31 Mon 14:03]
 
   + SIR
-
-* Home computer
-
-** TODO Create precompiled julia command
-
-* IF-UFRGS computer
-
-** TODO Install xmonad
-
-* Remote computers
-
-** TODO Create CESUP account
